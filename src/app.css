@@ -6,7 +6,7 @@
 
   color-scheme: light dark;
   --background-color:rgba(255, 255, 255, 0.87);
-  
+  --dark-primary-color:#4B0082;
   --primary-accent-color:#845EC2;
   --secondary-accent-color:#0081CF;
   --highlight-color:#B39CD0;
@@ -36,7 +36,7 @@
 
 /* Handle */
 ::-webkit-scrollbar-thumb {
-  background: var(--primary-accent-color);
+  background: var(--dark-primary-color);
 }
 
 /* Handle on hover */

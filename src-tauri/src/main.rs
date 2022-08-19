@@ -34,13 +34,17 @@ pub struct IRC {
 
 impl IRC {
 
-  pub fn send_message(&mut self, message : &str) {
-    self.client.as_mut().unwrap().send_privmsg(&self.channel, String::from(message.to_owned()));
+  pub fn send_message(&self, message : &str) {
+    self.client.as_ref().unwrap().send_privmsg(&self.channel, String::from(message.to_owned()));
   }
 
-  pub fn get_users(& mut self)-> Option<Vec<irc::client::data::User>> {
-    return self.client.as_mut().unwrap().list_users(&self.channel);
+  pub fn get_users(& self)-> Option<Vec<irc::client::data::User>> {
+    return self.client.as_ref().unwrap().list_users(&self.channel);
   }
+  pub fn send_quit(& self, message : &str) {
+    self.client.as_ref().unwrap().send_quit(message);
+  }
+
 
 }
 
@@ -157,13 +161,13 @@ fn loggin(nick_name : &str, server : &str, channel : &str, password : &str, irc 
 
 #[tauri::command]
 fn send_message( message : &str, irc : tauri::State<'_, IRCState>) {
-  let mut state_guard = irc.0.try_lock().expect("ERROR");
+  let state_guard = irc.0.try_lock().expect("ERROR");
   state_guard.send_message(message);
 }
 
 #[tauri::command]
 fn get_users(irc : tauri::State<'_, IRCState>) -> Vec<User> {
-  let mut state_guard = irc.0.try_lock().expect("ERROR");
+  let state_guard = irc.0.try_lock().expect("ERROR");
   let users = state_guard.get_users();
   let mut js_users : Vec<User> = Vec::new();
   if let Some(users) = users {
@@ -175,12 +179,21 @@ fn get_users(irc : tauri::State<'_, IRCState>) -> Vec<User> {
   return js_users;
 }
 
-
+#[tauri::command]
+fn disconnect(message : &str, irc : tauri::State<'_, IRCState>)
+{
+  let client = irc.0.try_lock().expect("ERROR");
+  client.send_quit(message);
+}
 
 fn main() {
 
   tauri::Builder::default()
-  .invoke_handler(tauri::generate_handler![loggin, connect, send_message, get_users])
+  .invoke_handler(tauri::generate_handler![loggin, 
+    connect, 
+    send_message,
+    disconnect,
+    get_users])
   .manage(IRCState(Mutex::new(IRC{client : None, channel : String::from("")})))
   .setup(|app| {
 

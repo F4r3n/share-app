@@ -1,9 +1,10 @@
 <script lang="ts">
 import { listen } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api'
-import { onMount } from 'svelte';
+import { onMount, onDestroy } from 'svelte';
 import { afterUpdate } from 'svelte';
 import { Jumper } from 'svelte-loading-spinners'
+import PlusSign from './plusSign.svelte';
 
 type Response = {
     kind : number,
@@ -20,6 +21,7 @@ type MessageFromIRC = {
 type Message = {
     nick_name: string;
     content: string;
+    link:string;
     date: Date;
 }
 
@@ -37,18 +39,25 @@ let discussSection = null;
 let users : User[] = []
 let updateScroll = true;
 
+var urlRegex = /(((https?:\/\/)|(www\.))[^\s]+)/g;
+function parseMessage(inMessage : string)
+{
+    console.log(inMessage)
+    getLinkPreview(
+        inMessage
+).then((data) => console.debug(data));
 
-
-
+    return "";
+}
 
 let isLoaded = false;
 
 function isScrollAtTheEnd() {
     if(discussSection == null) return;
-    const documentHeight = discussSection.scrollHeight;
-    const currentScroll = discussSection.scrollTop;
-    const modifier = 300; 
-    return currentScroll + modifier > documentHeight;
+
+    const modifier = 30;
+    //console.log(currentScroll + modifier, documentHeight)
+    return discussSection.scrollTop + discussSection.offsetHeight + modifier > discussSection.scrollHeight;
 }
 
 afterUpdate(() => {
@@ -56,6 +65,7 @@ afterUpdate(() => {
     {
         refreshScroll();
     }
+
     updateScroll = false;
   });
 
@@ -73,9 +83,11 @@ onMount(async () => {
         
         let message : Message = {} as Message;
         message.content = data.content;
+        message.link = ""
         message.nick_name = data.nick_name;
         if(data.command === "PRIVMSG") {
             message.date = new Date();
+            message.link = parseMessage(message.content)
             updateScroll = isScrollAtTheEnd();
 
             listMessages.push(message)
@@ -119,6 +131,10 @@ onMount(async () => {
 
 });
 
+onDestroy(async ()=> {
+    invoke('disconnect', {message:"Bye"});
+})
+
 function updateUsers() {
     getUsers().then((data)=> {
         users = data as User[];
@@ -129,7 +145,7 @@ function updateUsers() {
 function sendCurrentMessage() {
     updateScroll = isScrollAtTheEnd();
     let message : Message;
-    message = {nick_name:nickName, content:messageToSend, date: new Date()}
+    message = {nick_name:nickName, content:messageToSend, date: new Date(), link:parseMessage(messageToSend)}
     listMessages.push(message)
     invoke('send_message', {message:messageToSend}).then(()=> {
 
@@ -174,7 +190,7 @@ $: isSameMessage = (id, message) : boolean => {return (id === 0 || (id > 0 && li
                     </div>
                     {/if}
                     <div class="message-content" class:message-content-system={message.nick_name === ""}>
-                        {message.content}
+                        <div>{message.content}</div>
                     </div>
                 </div>
                 {/each}
@@ -184,11 +200,12 @@ $: isSameMessage = (id, message) : boolean => {return (id === 0 || (id > 0 && li
     
         <div class="wrapper-writter">
             <div class="write-section">
-                <input type="text" bind:value={messageToSend} on:keyup={e=>e.key==='Enter' && sendCurrentMessage()}>
+                <input type="text" bind:value={messageToSend} 
+                on:keyup={e=>e.key==='Enter' && sendCurrentMessage()}>
                 <button on:click={()=> {
                    sendCurrentMessage()
     
-                }}>+</button>
+                }}><PlusSign width=15 height=15></PlusSign></button>
             </div>
         </div>
     
@@ -219,18 +236,14 @@ $: isSameMessage = (id, message) : boolean => {return (id === 0 || (id > 0 && li
         visibility: hidden;
     }
 
-    .debug-section {
-        position: absolute;
-        top:0px;
-        z-index: 11;
-    }
-
     .list-users {
         display: flex;
         flex-direction: column;
         padding-left: 15px;
         padding-right: 15px;
-        background-color: var(--hover-color);
+        min-width: 50px;
+        background-color: var(--primary-accent-color);
+        color: var(--background-color);
     }
 
     main {
@@ -276,7 +289,7 @@ $: isSameMessage = (id, message) : boolean => {return (id === 0 || (id > 0 && li
     .wrapper-messages {
         flex: 1;
 
-       height: calc(100vh - 30px);
+       height: calc(100vh - 35px);
        margin-left: 8px;
 
     }
@@ -288,6 +301,7 @@ $: isSameMessage = (id, message) : boolean => {return (id === 0 || (id > 0 && li
         width: 95%;
         flex: 0 1 auto;
         height: 30px;
+        margin-bottom: 7px;
     }
 
     .message {
@@ -296,6 +310,8 @@ $: isSameMessage = (id, message) : boolean => {return (id === 0 || (id > 0 && li
 
     .message-content {
         margin-left: 20px;
+        display: flex;
+        flex-direction: column;
     }
 
     .message-content-system {

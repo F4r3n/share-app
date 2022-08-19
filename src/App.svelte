@@ -10,6 +10,7 @@
   let password=""
 
   onMount(async () => {
+
     await config.read();
     const c = config.getConnectionConfig();
     console.log(c)
@@ -50,9 +51,7 @@
   </Connection>
 
   {:else}
-  <Discuss nickName={nickName} 
-  server={server} 
-  channel={channel} ></Discuss>
+  <Discuss nickName={nickName}></Discuss>
   {/if}
 </main>
 

@@ -19,6 +19,9 @@
       },
       "path": {
         "all": true
+      },
+      "http": {
+        "scope": ["https://*", "http://*"]
       }
     },
     "bundle": {
