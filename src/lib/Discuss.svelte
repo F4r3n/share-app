@@ -8,7 +8,7 @@ import PlusSign from './plusSign.svelte';
 
 type Response = {
     kind : number,
-    content : string
+    content : string[];
 }
 
 type MessageFromIRC = {
@@ -21,8 +21,8 @@ type MessageFromIRC = {
 type Message = {
     nick_name: string;
     content: string;
-    link:string;
     date: Date;
+    highlight : boolean;
 }
 
 type User = {
@@ -31,7 +31,7 @@ type User = {
 }
 let listMessages : Message[] = [];
 let messageToSend = ""
-
+let topic = ""
 export let nickName : string;
 
 
@@ -39,16 +39,7 @@ let discussSection = null;
 let users : User[] = []
 let updateScroll = true;
 
-var urlRegex = /(((https?:\/\/)|(www\.))[^\s]+)/g;
-function parseMessage(inMessage : string)
-{
-    console.log(inMessage)
-    getLinkPreview(
-        inMessage
-).then((data) => console.debug(data));
 
-    return "";
-}
 
 let isLoaded = false;
 
@@ -58,6 +49,14 @@ function isScrollAtTheEnd() {
     const modifier = 30;
     //console.log(currentScroll + modifier, documentHeight)
     return discussSection.scrollTop + discussSection.offsetHeight + modifier > discussSection.scrollHeight;
+}
+
+function isMessageHighlight(inMessageContent : string) : boolean{
+    for( let user of users) {
+        if(inMessageContent.search(user.nick_name) !== -1)
+            return true;
+    }
+    return false;
 }
 
 afterUpdate(() => {
@@ -76,76 +75,80 @@ function refreshScroll() {
 }
 
 onMount(async () => {
-    isLoaded = true;
+    //isLoaded = true;
     await listen('irc-recieved', (event) => {
     let data : MessageFromIRC = event.payload as MessageFromIRC
 
-        
-        let message : Message = {} as Message;
-        message.content = data.content;
-        message.link = ""
-        message.nick_name = data.nick_name;
-        if(data.command === "PRIVMSG") {
-            message.date = new Date();
-            message.link = parseMessage(message.content)
-            updateScroll = isScrollAtTheEnd();
-
-            listMessages.push(message)
-            listMessages = listMessages;
+    let message : Message = {} as Message;
+    message.content = data.content;
+    message.nick_name = data.nick_name;
+    message.highlight = false;
+    if(data.command === "PRIVMSG") {
+        message.date = new Date();
+        updateScroll = isScrollAtTheEnd();
+        message.highlight = isMessageHighlight(message.content)
+        listMessages.push(message)
+        listMessages = listMessages;
+    }
+    else if(data.command === "JOIN") {
+        updateScroll = isScrollAtTheEnd();
+        if(message.nick_name === nickName)
+        {
+            listMessages.push({nick_name:"", content:`you joined`, date:new Date() } as Message)
         }
-        else if(data.command === "JOIN") {
-            message.date = new Date();
-            updateScroll = isScrollAtTheEnd();
-            listMessages.push(message)
-            listMessages = listMessages;
+        else {
+            listMessages.push({nick_name:"", content:`${message.nick_name} has joined`, date:new Date() } as Message)
+        }
+        listMessages = listMessages;
+        updateUsers();
+    }
+    else if(data.command === "QUIT") {
+        updateScroll = isScrollAtTheEnd();
+        listMessages.push({nick_name:"", content:`${message.nick_name} has quit`, date:new Date() } as Message)
+        listMessages = listMessages;
+        updateUsers();
+    }
+    else if(data.command === "TOPIC") {
+        message.date = new Date();
+        updateScroll = isScrollAtTheEnd();
+        listMessages.push(message)
+        listMessages = listMessages;
+        updateUsers();
+    }
+    else if(data.command === "RESPONSE"){
+        if(data.response.kind === 353) { //users
             updateUsers();
         }
-        else if(data.command === "QUIT") {
-            message.date = new Date();
-            updateScroll = isScrollAtTheEnd();
-            listMessages.push(message)
-            listMessages = listMessages;
-            updateUsers();
+        else if(data.response.kind === 332) {
+            topic = data.response.content.at(-1)
         }
-        else if(data.command === "TOPIC") {
-            message.date = new Date();
-            updateScroll = isScrollAtTheEnd();
-            listMessages.push(message)
-            listMessages = listMessages;
-            updateUsers();
-        }
-        else if(data.command === "RESPONSE"){
-            if(data.response.kind === 97) { //users
-                users = []
-                updateUsers();
-            }
-        }
+    }
 
-})
+    })
 
-    invoke('connect').then(()=> {
+    invoke('read_messages').finally(()=> {
         getUsers().then((data)=> {
             users = data as User[];
         })
+        isLoaded = true;
     })
 
 });
 
 onDestroy(async ()=> {
-    invoke('disconnect', {message:"Bye"});
+    //invoke('disconnect', {message:"Bye"});
 })
 
 function updateUsers() {
     getUsers().then((data)=> {
         users = data as User[];
-        isLoaded = true;
     })
 }
 
 function sendCurrentMessage() {
     updateScroll = isScrollAtTheEnd();
     let message : Message;
-    message = {nick_name:nickName, content:messageToSend, date: new Date(), link:parseMessage(messageToSend)}
+    message = {nick_name:nickName, content:messageToSend, date: new Date(), highlight:false}
     listMessages.push(message)
     invoke('send_message', {message:messageToSend}).then(()=> {
 
@@ -174,10 +177,11 @@ $: isSameMessage = (id, message) : boolean => {return (id === 0 || (id > 0 && li
     </div>
     {:else}
     <div class="discuss-section">
+        <div class="topic">{topic}</div>
         <div class="wrapper-messages" >
             <div class="messages" bind:this={discussSection}>
                 {#each listMessages as message, id}
-                <div class="message" style="--space:{isSameMessage(id, message)? "10px" : "0px"}">
+                <div class="message" style="--space:{isSameMessage(id, message) && id !== 0 ? "10px" : "0px"}">
                     {#if isSameMessage(id, message)}
                     <div class="title">
                         <div class="username" class:username-me={message.nick_name === nickName}>
@@ -189,7 +193,9 @@ $: isSameMessage = (id, message) : boolean => {return (id === 0 || (id > 0 && li
                         </div>
                     </div>
                     {/if}
-                    <div class="message-content" class:message-content-system={message.nick_name === ""}>
+                    <div class="message-content"
+                    class:message-content-highlight={message.highlight}
+                    class:message-content-system={message.nick_name === ""}>
                         <div>{message.content}</div>
                     </div>
                 </div>
@@ -224,6 +230,14 @@ $: isSameMessage = (id, message) : boolean => {return (id === 0 || (id > 0 && li
 </main>
 
 <style>
+    .topic {
+        margin-left: 10px;
+        display:inline-block;
+        max-width: calc(100vw - 90px );
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+
     .loading {
         position: absolute;
         top: 50%;
@@ -289,7 +303,8 @@ $: isSameMessage = (id, message) : boolean => {return (id === 0 || (id > 0 && li
     .wrapper-messages {
         flex: 1;
 
-       height: calc(100vh - 35px);
+       height: calc(100vh - 55px);
+       max-width: calc(100vw - 90px);
        margin-left: 8px;
 
     }
@@ -312,11 +327,16 @@ $: isSameMessage = (id, message) : boolean => {return (id === 0 || (id > 0 && li
         margin-left: 20px;
         display: flex;
         flex-direction: column;
+        white-space: pre;
+        font-family: monospace;
     }
 
     .message-content-system {
-        margin-left: 20px;
         color:#B0A8B9;
+    }
+
+    .message-content-highlight {
+        background-color: var(--hover-color);
     }
 
     .date {

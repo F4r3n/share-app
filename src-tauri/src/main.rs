@@ -3,11 +3,12 @@
   windows_subsystem = "windows"
 )]
 use irc::{client::{prelude::*}};
+use irc::client::prelude::Response;
 use futures::{prelude::*, lock::Mutex};
 
 #[derive(Clone, serde::Serialize)]
-struct Response {
-  kind : u8,
+struct ResponseMessage {
+  kind : u16,
   content: Vec<String>
 }
 
@@ -17,7 +18,7 @@ struct Payload {
   content: String,
   nick_name: String,
   command: String,
-  response : Option<Response>
+  response : Option<ResponseMessage>
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -34,15 +35,21 @@ pub struct IRC {
 
 impl IRC {
 
-  pub fn send_message(&self, message : &str) {
-    self.client.as_ref().unwrap().send_privmsg(&self.channel, String::from(message.to_owned()));
+  pub fn send_message(&self, message : &str) -> Result<(), String> {
+    match self.client.as_ref().unwrap().send_privmsg(&self.channel, String::from(message.to_owned())) {
+      Ok(()) => Ok(()),
+      Err(e) => Err(e.to_string())
+    }
   }
 
   pub fn get_users(& self)-> Option<Vec<irc::client::data::User>> {
     return self.client.as_ref().unwrap().list_users(&self.channel);
   }
-  pub fn send_quit(& self, message : &str) {
-    self.client.as_ref().unwrap().send_quit(message);
+  pub fn send_quit(& self, message : &str)-> Result<(), String> {
+    match self.client.as_ref().unwrap().send_quit(message) {
+      Ok(()) => Ok(()),
+      Err(e) => Err(e.to_string())
+    }
   }
 
 
@@ -52,7 +59,7 @@ impl IRC {
 pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStream) -> Result<(), irc::error::Error> {
   while let Some(message) = stream.next().await.transpose()? {
      print!("{}", message);
-
+      
      let mut pay_load = Payload{content : String::from(""),
                                     nick_name : String::from(""),
                                     command : String::from(""), 
@@ -65,29 +72,47 @@ pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStr
           pay_load.nick_name = String::from(nick_name);
         }
         pay_load.content = msg.to_owned();
-
       },
       Command::NOTICE(ref _target, ref msg) => {
         pay_load.command = String::from("NOTICE");
         pay_load.content = msg.to_owned();
-
       },
-      Command::Response(ref response, ref msg) => {
+      Command::Response(response, ref msg) => {
         pay_load.command = String::from("RESPONSE");
-        pay_load.response = Some(Response{kind:response.to_owned() as u8, content: msg.clone()});
-
+        pay_load.response = Some(ResponseMessage{kind:response as u16, content: msg.clone()});
       },
-      Command::QUIT(Some(comment)) => {
+      Command::QUIT(ref comment) => {
         pay_load.command = String::from("QUIT");
-        pay_load.content = comment;
+
+        if let Some(comment) = comment {
+          pay_load.content = comment.to_string();
+        }
+        
+        if let Some(nick_name) = message.source_nickname() {
+          pay_load.nick_name = nick_name.to_owned();
+        }
+        
       },
-      Command::JOIN(ref _channel, _chanKeys, Some(name) ) => {
+      Command::JOIN(ref _channel, ref _chan_keys, ref name) => {
         pay_load.command = String::from("JOIN");
-        pay_load.content = name;
+        if let Some(name) = name {
+          pay_load.content = name.to_owned();
+        }
+        else {
+          if let Some(nick_name) = message.source_nickname() {
+            pay_load.nick_name = nick_name.to_owned();
+          }
+        }
       },
-      Command::TOPIC(_channel, Some(topic)) => {
+      Command::TOPIC(ref _channel, ref topic) => {
         pay_load.command = String::from("TOPIC");
-        pay_load.content = topic;
+        if let Some(topic) = topic {
+          pay_load.content = topic.to_string();
+        }
+
+        if let Some(nick_name) = message.source_nickname() {
+          pay_load.nick_name = nick_name.to_owned();
+        }
         
       },
       Command::NAMES(_channel, target) => {
@@ -95,8 +120,7 @@ pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStr
       },
       _ =>()
      }
-     window.emit("irc-recieved", pay_load).unwrap();
-
+     window.emit("irc-recieved", pay_load);
  }
 
  Ok(())
@@ -115,17 +139,13 @@ pub async fn irc_login(nick_name : &str, server : &str, channel : &str, password
 
   let client = Client::from_config(config).await?;
   client.identify()?;
-
+  
   return Ok(client);
 }
 
-#[derive(Clone, serde::Serialize)]
-struct TEST {
-  message: String,
-}
 
 #[tauri::command]
-fn connect(window: tauri::Window, irc : tauri::State<'_, IRCState>) {
+fn read_messages(window: tauri::Window, irc : tauri::State<'_, IRCState>) -> Result<(), String>{
 
   let mut state_guard = irc.0.try_lock().expect("ERROR");
 
@@ -133,14 +153,15 @@ fn connect(window: tauri::Window, irc : tauri::State<'_, IRCState>) {
   match stream {
       Ok(s) => {
         tauri::async_runtime::spawn(async {
-          irc_read(window, s).await;
-      
+          match irc_read(window, s).await {
+            Ok(()) => Ok(()),
+            Err(e) => Err(e.to_string())
+          }
         });
+        Ok(())
       },
-      Err(e) => ()
+      Err(e)=>Err(e.to_string())
   }
-
-  
 }
 
 #[tauri::command]
@@ -160,9 +181,9 @@ fn loggin(nick_name : &str, server : &str, channel : &str, password : &str, irc 
 }
 
 #[tauri::command]
-fn send_message( message : &str, irc : tauri::State<'_, IRCState>) {
+fn send_message( message : &str, irc : tauri::State<'_, IRCState>) -> Result<(), String> {
   let state_guard = irc.0.try_lock().expect("ERROR");
-  state_guard.send_message(message);
+  state_guard.send_message(message)
 }
 
 #[tauri::command]
@@ -175,30 +196,26 @@ fn get_users(irc : tauri::State<'_, IRCState>) -> Vec<User> {
       js_users.push(User{nick_name:user.get_nickname().to_owned(), user_mode:(user.highest_access_level() as u8)})
     }
   }
-  println!("SEND");
   return js_users;
 }
 
 #[tauri::command]
-fn disconnect(message : &str, irc : tauri::State<'_, IRCState>)
+fn disconnect(message : &str, irc : tauri::State<'_, IRCState>) -> Result<(), String>
 {
   let client = irc.0.try_lock().expect("ERROR");
-  client.send_quit(message);
+  client.send_quit(message)
 }
 
 fn main() {
 
   tauri::Builder::default()
-  .invoke_handler(tauri::generate_handler![loggin, 
-    connect, 
+  .invoke_handler(tauri::generate_handler![
+    loggin, 
+    read_messages, 
     send_message,
     disconnect,
     get_users])
   .manage(IRCState(Mutex::new(IRC{client : None, channel : String::from("")})))
-  .setup(|app| {
-
-    Ok(())
-  })
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
