@@ -5,7 +5,7 @@ import { onMount, onDestroy } from 'svelte';
 import { afterUpdate } from 'svelte';
 import { Jumper } from 'svelte-loading-spinners'
 import PlusSign from './plusSign.svelte';
-
+import MessageContent from "./MessageContent.svelte"
 type Response = {
     kind : number,
     content : string[];
@@ -196,7 +196,7 @@ $: isSameMessage = (id, message) : boolean => {return (id === 0 || (id > 0 && li
                     <div class="message-content"
                     class:message-content-highlight={message.highlight}
                     class:message-content-system={message.nick_name === ""}>
-                        <div>{message.content}</div>
+                        <MessageContent content={message.content}></MessageContent>
                     </div>
                 </div>
                 {/each}
@@ -233,7 +233,6 @@ $: isSameMessage = (id, message) : boolean => {return (id === 0 || (id > 0 && li
     .topic {
         margin-left: 10px;
         display:inline-block;
-        max-width: calc(100vw - 90px );
         text-overflow: ellipsis;
         overflow: hidden;
     }
@@ -273,6 +272,8 @@ $: isSameMessage = (id, message) : boolean => {return (id === 0 || (id > 0 && li
         position: relative;
         display: flex;
         flex-direction: column;
+        width: max-content;
+        max-width: calc(100vw - 80px);
     }
 
     input {
@@ -304,7 +305,6 @@ $: isSameMessage = (id, message) : boolean => {return (id === 0 || (id > 0 && li
         flex: 1;
 
        height: calc(100vh - 55px);
-       max-width: calc(100vw - 90px);
        margin-left: 8px;
 
     }

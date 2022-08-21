@@ -3,7 +3,6 @@
   windows_subsystem = "windows"
 )]
 use irc::{client::{prelude::*}};
-use irc::client::prelude::Response;
 use futures::{prelude::*, lock::Mutex};
 
 #[derive(Clone, serde::Serialize)]
@@ -206,6 +205,10 @@ fn disconnect(message : &str, irc : tauri::State<'_, IRCState>) -> Result<(), St
   client.send_quit(message)
 }
 
+#[tauri::command]
+fn sanitize_html(message : &str) -> String {
+  return ammonia::clean(message);
+}
 fn main() {
 
   tauri::Builder::default()
@@ -214,6 +217,7 @@ fn main() {
     read_messages, 
     send_message,
     disconnect,
+    sanitize_html,
     get_users])
   .manage(IRCState(Mutex::new(IRC{client : None, channel : String::from("")})))
     .run(tauri::generate_context!())
