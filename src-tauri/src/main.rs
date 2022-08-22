@@ -17,6 +17,7 @@ struct Payload {
   content: String,
   nick_name: String,
   command: String,
+  channel: String,
   response : Option<ResponseMessage>
 }
 
@@ -34,8 +35,14 @@ pub struct IRC {
 
 impl IRC {
 
-  pub fn send_message(&self, message : &str) -> Result<(), String> {
-    match self.client.as_ref().unwrap().send_privmsg(&self.channel, String::from(message.to_owned())) {
+  pub fn send_message(&self, message : &str, channel :&str) -> Result<(), String> {
+    let mut currentChannel = String::from(channel);
+    if currentChannel.is_empty() {
+      currentChannel = self.channel.to_owned();
+    }
+
+    match self.client.as_ref().unwrap().send_privmsg(currentChannel, 
+    String::from(message.to_owned())) {
       Ok(()) => Ok(()),
       Err(e) => Err(e.to_string())
     }
@@ -61,12 +68,14 @@ pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStr
       
      let mut pay_load = Payload{content : String::from(""),
                                     nick_name : String::from(""),
-                                    command : String::from(""), 
+                                    command : String::from(""),
+                                    channel : String::from(""),
                                     response : None
     };
      match message.command {
-      Command::PRIVMSG(ref _target, ref msg) => {
+      Command::PRIVMSG(ref target, ref msg) => {
         pay_load.command = String::from("PRIVMSG");
+        pay_load.channel = String::from(target);
         if let Some(nick_name) = message.source_nickname() {
           pay_load.nick_name = String::from(nick_name);
         }
@@ -180,9 +189,9 @@ fn loggin(nick_name : &str, server : &str, channel : &str, password : &str, irc 
 }
 
 #[tauri::command]
-fn send_message( message : &str, irc : tauri::State<'_, IRCState>) -> Result<(), String> {
+fn send_message( message : &str, channel : &str, irc : tauri::State<'_, IRCState>) -> Result<(), String> {
   let state_guard = irc.0.try_lock().expect("ERROR");
-  state_guard.send_message(message)
+  state_guard.send_message(message, channel)
 }
 
 #[tauri::command]

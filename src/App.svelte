@@ -51,7 +51,7 @@
   </Connection>
 
   {:else}
-  <Discuss nickName={nickName}></Discuss>
+  <Discuss nickName={nickName} channel={channel}></Discuss>
   {/if}
 </main>
 
