@@ -1,12 +1,12 @@
-<script>
+<script lang="ts">
   import { invoke } from '@tauri-apps/api/tauri';
 	import { createEventDispatcher } from 'svelte';
 
     const dispatch = createEventDispatcher();
-    export let nickName="pickles"
-    export let server="chat.freenode.net" 
-    export let channel="#share-chan"
-    export let password=""
+    export let nickName :string ="pickles"
+    export let server: string = "chat.freenode.net" 
+    export let channel:string = "#share-chan"
+    export let password : string =""
     const connect = () => {
         
         invoke('loggin', {nickName:nickName, server:server, channel:channel, password:password})
@@ -18,7 +18,6 @@
 </script>
 
 <main>
-
     <form on:submit|preventDefault={connect} class="form">
           <label for="nickname" class="">
             NickName
@@ -65,10 +64,6 @@
         padding: 10px;
 
         justify-content: space-between;
-    }
-
-
-    main {
     }
 
 </style>

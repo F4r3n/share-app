@@ -6,7 +6,7 @@ import { createEventDispatcher } from 'svelte';
 
 const dispatch = createEventDispatcher();
 
-    let messageWrapper;
+    let messageWrapper : Element;
     let isASCII = false;
     export let content = ""
 

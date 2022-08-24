@@ -4,7 +4,7 @@ import { invoke } from '@tauri-apps/api'
 import { onMount, onDestroy } from 'svelte';
 import { afterUpdate } from 'svelte';
 import { Jumper } from 'svelte-loading-spinners'
-import PlusSign from './plusSign.svelte';
+import PlusSign from './plus-sign-svg.svelte';
 import MessageContent from "./MessageContent.svelte"
 import type {Message} from "./channel";
 import {Channel} from "./channel";
@@ -34,18 +34,18 @@ export let channel : string;
 
 let listMessages : Map<string, Channel> = new Map<string, Channel>([[
     channel, new Channel]]);
-let messageToSend = ""
-let topic = ""
-let channelNameSelected = channel;
+let messageToSend :string = ""
+let topic :string = ""
+let channelNameSelected :string = channel ?? "";
 
-let discussSection = null;
+let discussSection: HTMLDivElement|null|undefined = null;
 let users : User[] = []
 let updateScroll = true;
 let messagesUnreadChannel : Set<string> = new Set<string>();
 let isLoaded = false;
 
 function isScrollAtTheEnd() : boolean {
-    if(discussSection == null) return;
+    if(discussSection == undefined) return true;
 
     const modifier = 100;
     return (discussSection.scrollTop + discussSection.offsetHeight + modifier) > discussSection.scrollHeight;
@@ -88,13 +88,13 @@ onMount(async () => {
     if(!listMessages.has(channelOrigin)) {
         listMessages.set(channelOrigin, new Channel)
     }
-    let currentChannel : Channel = listMessages.get(channelOrigin);
+    let currentChannel : Channel|undefined = listMessages.get(channelOrigin);
 
     
     if(data.command === "PRIVMSG") {
         message.date = new Date();
         message.highlight = isMessageHighlight(message.content);
-        currentChannel.pushMessage(message)
+        currentChannel?.pushMessage(message)
         listMessages = listMessages;
 
         if(channelNameSelected !== channelOrigin) {
@@ -105,31 +105,31 @@ onMount(async () => {
     else if(data.command === "JOIN") {
         if(message.nick_name === nickName)
         {
-            currentChannel.pushMessage({nick_name:"", content:`you joined`, date:new Date() } as Message)
+            currentChannel?.pushMessage({nick_name:"", content:`you joined`, date:new Date() } as Message)
         }
         else {
-            currentChannel.pushMessage({nick_name:"", content:`${message.nick_name} has joined`, date:new Date() } as Message)
+            currentChannel?.pushMessage({nick_name:"", content:`${message.nick_name} has joined`, date:new Date() } as Message)
         }
         listMessages = listMessages;
         updateUsers();
     }
     else if(data.command === "QUIT") {
-        currentChannel.pushMessage({nick_name:"", content:`${message.nick_name} has quit`, date:new Date() } as Message)
+        currentChannel?.pushMessage({nick_name:"", content:`${message.nick_name} has quit`, date:new Date() } as Message)
         listMessages = listMessages;
         updateUsers();
     }
     else if(data.command === "TOPIC") {
         message.date = new Date();
-        currentChannel.pushMessage(message)
+        currentChannel?.pushMessage(message)
         listMessages = listMessages;
         updateUsers();
     }
     else if(data.command === "RESPONSE"){
-        if(data.response.kind === 353) { //users
+        if(data.response?.kind === 353) { //users
             updateUsers();
         }
-        else if(data.response.kind === 332) {
-            topic = data.response.content.at(-1)
+        else if(data.response?.kind === 332) {
+            topic = data.response?.content.at(-1) ?? ""
         }
     }
     })
@@ -180,13 +180,13 @@ function getUsers() {
 $: isSameMessage = (id : number, nick_name : string) : boolean =>
  {return (id === 0 || (id > 0 && messagesSelected[id - 1].nick_name !== nick_name))}
 
-$: messagesSelected = listMessages.has(channelNameSelected) ? listMessages.get(channelNameSelected).messages 
-: [] as Message[];
-
-function getListMessages(inMessagesList, inChannel) {
-    return inMessagesList.has(inChannel) ? listMessages.get(inChannel).messages 
+ function getListMessages(inMessagesList : Map<string, Channel>, inChannel : string) : Message[]{
+    return inMessagesList.has(inChannel) ? inMessagesList!.get(inChannel)!.messages 
 : [] as Message[];
 }
+
+$: messagesSelected = getListMessages(listMessages, channelNameSelected)
+
 
 function changeChannel(inChannel : string) {
     channelNameSelected = inChannel;
