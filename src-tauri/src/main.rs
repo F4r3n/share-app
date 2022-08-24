@@ -36,12 +36,12 @@ pub struct IRC {
 impl IRC {
 
   pub fn send_message(&self, message : &str, channel :&str) -> Result<(), String> {
-    let mut currentChannel = String::from(channel);
-    if currentChannel.is_empty() {
-      currentChannel = self.channel.to_owned();
+    let mut current_channel = String::from(channel);
+    if current_channel.is_empty() {
+      current_channel = self.channel.to_owned();
     }
 
-    match self.client.as_ref().unwrap().send_privmsg(currentChannel, 
+    match self.client.as_ref().unwrap().send_privmsg(current_channel, 
     String::from(message.to_owned())) {
       Ok(()) => Ok(()),
       Err(e) => Err(e.to_string())
@@ -57,8 +57,6 @@ impl IRC {
       Err(e) => Err(e.to_string())
     }
   }
-
-
 }
 
 

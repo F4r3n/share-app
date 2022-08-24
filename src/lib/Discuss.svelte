@@ -89,16 +89,18 @@ onMount(async () => {
         listMessages.set(channelOrigin, new Channel)
     }
     let currentChannel : Channel = listMessages.get(channelOrigin);
-    if(channelNameSelected !== channelOrigin) {
-        messagesUnreadChannel.add(channelOrigin);
-        messagesUnreadChannel = messagesUnreadChannel;
-    }
+
     
     if(data.command === "PRIVMSG") {
         message.date = new Date();
         message.highlight = isMessageHighlight(message.content);
         currentChannel.pushMessage(message)
         listMessages = listMessages;
+
+        if(channelNameSelected !== channelOrigin) {
+        messagesUnreadChannel.add(channelOrigin);
+        messagesUnreadChannel = messagesUnreadChannel;
+    }
     }
     else if(data.command === "JOIN") {
         if(message.nick_name === nickName)
@@ -130,8 +132,6 @@ onMount(async () => {
             topic = data.response.content.at(-1)
         }
     }
-    isLoaded = true;
-
     })
 
     invoke('read_messages').finally(()=> {
@@ -183,7 +183,6 @@ $: isSameMessage = (id : number, nick_name : string) : boolean =>
 $: messagesSelected = listMessages.has(channelNameSelected) ? listMessages.get(channelNameSelected).messages 
 : [] as Message[];
 
-$: hasUnreadMessage = (inChannel)=> {return messagesUnreadChannel.has(inChannel)}
 function getListMessages(inMessagesList, inChannel) {
     return inMessagesList.has(inChannel) ? listMessages.get(inChannel).messages 
 : [] as Message[];
@@ -193,7 +192,6 @@ function changeChannel(inChannel : string) {
     channelNameSelected = inChannel;
     messagesUnreadChannel.delete(inChannel);
     messagesUnreadChannel = messagesUnreadChannel;
-    console.log(messagesUnreadChannel);
 }
 
 </script>
@@ -257,6 +255,7 @@ function changeChannel(inChannel : string) {
     <div class="list-users">
         <User on:channel_changed={()=>{changeChannel(channel)}}
         channelName={channel}
+        isSelectable={true}
         unread={messagesUnreadChannel.has(channel)}
         isSelected={channelNameSelected === channel}></User>
 
@@ -269,6 +268,7 @@ function changeChannel(inChannel : string) {
                     messagesSelected = messagesSelected;
                 }
             }}
+            isSelectable={nickName !== user.nick_name}
             unread={messagesUnreadChannel.has(user.nick_name)}
             channelName={user.nick_name} 
             isSelected={channelNameSelected === user.nick_name}>
@@ -311,6 +311,8 @@ function changeChannel(inChannel : string) {
         min-width: 50px;
         background-color: var(--primary-accent-color);
         color: var(--background-color);
+        width:120px;
+        max-width: 120px;
     }
 
     .user-item {
@@ -325,6 +327,7 @@ function changeChannel(inChannel : string) {
         position: relative;
         display: flex;
         flex-direction: row;
+        max-width: 100vw;
     }
 
     .discuss-section {
@@ -333,8 +336,7 @@ function changeChannel(inChannel : string) {
         position: relative;
         display: flex;
         flex-direction: column;
-        width: max-content;
-        max-width: calc(100vw - 80px);
+        max-width: calc(100vw - 120px);
     }
 
     input {
@@ -343,7 +345,10 @@ function changeChannel(inChannel : string) {
 
     button {
         padding: 0px;
-        border-radius: 0px;
+        border-radius: 4px;
+        padding-left: 4px;
+        padding-right: 4px;
+        margin-left: 2px;
     }
 
     .write-section {
@@ -364,17 +369,15 @@ function changeChannel(inChannel : string) {
 
     .wrapper-messages {
         flex: 1;
-
-       height: calc(100vh - 62px);
-       margin-left: 8px;
-
+        height: calc(100vh - 62px);
+        margin-left: 8px;
     }
 
     .wrapper-writter {
         align-items: center;
         justify-content: center;
         margin: auto;
-        width: 95%;
+        width:95%;
         flex: 0 1 auto;
         height: 30px;
         margin-top: 7px;
@@ -386,7 +389,6 @@ function changeChannel(inChannel : string) {
     }
 
     .message-content {
-        margin-left: 20px;
         display: flex;
         flex-direction: column;
     }
@@ -396,7 +398,7 @@ function changeChannel(inChannel : string) {
     }
 
     .message-content-highlight {
-        background-color: var(--hover-color);
+        background-color: var(--secondary-accent-color-light);
     }
 
     .date {
@@ -418,6 +420,5 @@ function changeChannel(inChannel : string) {
         display: flex;
         flex-direction: row;
         align-items: baseline;
-
     }
 </style>

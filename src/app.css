@@ -15,6 +15,7 @@
   --outline-color:#0081CF;
   --primary-color:rgb(21, 21, 21);
   --secondary-color:rgb(40,40,40);
+  --secondary-accent-color-light:#a1dbff;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;

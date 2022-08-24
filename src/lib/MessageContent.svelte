@@ -48,6 +48,7 @@ const dispatch = createEventDispatcher();
 </div>
 <style>
     .message {
+        padding-left: 20px;
         word-wrap: break-word;
         white-space: break-spaces;
     }
