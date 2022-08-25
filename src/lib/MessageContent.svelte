@@ -46,7 +46,7 @@ const dispatch = createEventDispatcher();
             link.addEventListener("click", function(event) {
                 let isURL = /^(htpp:\/\/|https:\/\/)/
                 if(link.href.match(isURL))
-                open(link.href);
+                    open(link.href);
                 event.preventDefault();
             }, false);
         }
