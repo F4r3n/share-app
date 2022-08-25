@@ -1,6 +1,6 @@
 import { configDir, join, BaseDirectory } from '@tauri-apps/api/path';
 import { readTextFile, writeTextFile, createDir } from '@tauri-apps/api/fs';
-import { load, dump } from "js-yaml"
+import { load, dump } from "js-yaml";
 
 type ConnectionConfig = {
     nickName : string;
@@ -78,7 +78,6 @@ class Config {
         let path = await this._getConfigPath();  
         try {
             createDir(await this._getConfigDir(),  { recursive: true })
-            //createDir("share-app/test",  { dir:BaseDirectory.Config, recursive: true })
     
             await writeTextFile(path, dump( this.config, {
                 flowLevel: 3,

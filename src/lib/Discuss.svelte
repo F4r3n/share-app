@@ -4,7 +4,7 @@ import { invoke } from '@tauri-apps/api'
 import { onMount, onDestroy } from 'svelte';
 import { afterUpdate } from 'svelte';
 import { Jumper } from 'svelte-loading-spinners'
-import PlusSign from './plus-sign-svg.svelte';
+import PlusSign from '../assets/plus-sign-svg.svelte';
 import MessageContent from "./MessageContent.svelte"
 import type {Message} from "./channel";
 import {Channel} from "./channel";
