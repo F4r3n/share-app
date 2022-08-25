@@ -29,7 +29,7 @@ const dispatch = createEventDispatcher();
 
     function parseContent(inContent : string) : string {
         //add a tag as link
-        let regex : RegExp = /^(http:\/\/|https:\/\/)?(www.)?([a-zA-Z0-9]+).[a-zA-Z0-9]*.[‌​a-z]{3}\.([a-z]+)?$/g
+        let regex : RegExp = /(?<!>)(http:\/\/|https:\/\/){1}(www.)?([a-zA-Z0-9]+).[a-zA-Z0-9]*.[‌​a-z]{3}\.([a-z]+)?(?!<\/a>)$/g
         const content = inContent.replaceAll(regex, (inValue : string)=> {
             return `<a target="_blank" href="${inValue}">${inValue}</a>`
         })
@@ -44,6 +44,8 @@ const dispatch = createEventDispatcher();
 
         for (let link of externalLinks) {
             link.addEventListener("click", function(event) {
+                let isURL = /^(htpp:\/\/|https:\/\/)/
+                if(link.href.match(isURL))
                 open(link.href);
                 event.preventDefault();
             }, false);

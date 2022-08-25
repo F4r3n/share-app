@@ -23,7 +23,7 @@
         "all": true
       },
       "shell": {
-        "open": "^(((https||http)?:\/\/)||www)"
+        "open": true
       }
     },
     "bundle": {
