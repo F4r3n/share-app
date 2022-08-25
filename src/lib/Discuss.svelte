@@ -10,6 +10,7 @@ import type {Message} from "./channel";
 import {Channel} from "./channel";
 import User from './User.svelte';
 
+
 type Response = {
     kind : number,
     content : string[];
@@ -70,6 +71,7 @@ function refreshScroll() {
 }
 
 onMount(async () => {
+
     await listen('irc-recieved', (event) => {
     let data : MessageFromIRC = event.payload as MessageFromIRC
 
