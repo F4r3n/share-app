@@ -20,6 +20,15 @@ struct Payload {
   channel: String,
   response : Option<ResponseMessage>
 }
+#[derive(Clone, serde::Serialize)]
+enum EVENT {
+  Quit,
+}
+
+#[derive(Clone, serde::Serialize)]
+struct Event {
+  kind : EVENT
+}
 
 #[derive(Clone, serde::Serialize)]
 struct User {
@@ -53,6 +62,13 @@ impl IRC {
   }
   pub fn send_quit(& self, message : &str)-> Result<(), String> {
     match self.client.as_ref().unwrap().send_quit(message) {
+      Ok(()) => Ok(()),
+      Err(e) => Err(e.to_string())
+    }
+  }
+
+  pub fn send_irc_command(& self, command : &str, args : Vec<String>)-> Result<(), String> {    
+    match self.client.as_ref().unwrap().send(Command::Raw(String::from(command), args)) {
       Ok(()) => Ok(()),
       Err(e) => Err(e.to_string())
     }
@@ -129,6 +145,9 @@ pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStr
      window.emit("irc-recieved", pay_load);
  }
 
+  window.emit("irc-event", Event{kind:EVENT::Quit});
+
+
  Ok(())
 }
 
@@ -171,19 +190,22 @@ fn read_messages(window: tauri::Window, irc : tauri::State<'_, IRCState>) -> Res
 }
 
 #[tauri::command]
-fn loggin(nick_name : &str, server : &str, channel : &str, password : &str, irc : tauri::State<'_, IRCState>)->Result<(), ()> {
+fn loggin(nick_name : &str, server : &str, channel : &str, password : &str, irc : tauri::State<'_, IRCState>)->Result<(), String> {
   let mut state_guard = irc.0.try_lock().expect("ERROR");
   println!("{}{}{}", nick_name, server, channel);
   state_guard.channel = channel.to_owned();
   state_guard.client = tauri::async_runtime::block_on(async {
     let client = match irc_login(nick_name, server, channel, password).await {
         Ok(client) => Some(client),
-        Err(e) => panic!("{}", e),
+        Err(_e) => None
     };
     return client;
   });
 
-  Ok(())
+  match &state_guard.client {
+    Some(_) => Ok(()),
+    _ => Err(String::from("No client"))
+  }
 }
 
 #[tauri::command]
@@ -213,6 +235,13 @@ fn disconnect(message : &str, irc : tauri::State<'_, IRCState>) -> Result<(), St
 }
 
 #[tauri::command]
+fn send_irc_command(command : &str, args : Vec<String>, irc : tauri::State<'_, IRCState>) -> Result<(), String>
+{
+  let client = irc.0.try_lock().expect("ERROR");
+  client.send_irc_command(command, args)
+}
+
+#[tauri::command]
 fn sanitize_html(message : &str) -> String {
   return ammonia::clean(message);
 }
@@ -225,6 +254,7 @@ fn main() {
     send_message,
     disconnect,
     sanitize_html,
+    send_irc_command,
     get_users])
   .manage(IRCState(Mutex::new(IRC{client : None, channel : String::from("")})))
     .run(tauri::generate_context!())

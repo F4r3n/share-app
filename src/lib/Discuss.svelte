@@ -10,6 +10,7 @@ import type {Message} from "./channel";
 import {Channel} from "./channel";
 import User from './User.svelte';
 
+
 type Response = {
     kind : number,
     content : string[];
@@ -70,6 +71,7 @@ function refreshScroll() {
 }
 
 onMount(async () => {
+
     await listen('irc-recieved', (event) => {
     let data : MessageFromIRC = event.payload as MessageFromIRC
 
@@ -155,18 +157,32 @@ function updateUsers() {
 
 function sendCurrentMessage(inMessageContent : string) {
     let message : Message;
+
+    const isCommand : boolean = inMessageContent.at(0) == "/"
+    console.log(isCommand)
     message = {nick_name:nickName, content:inMessageContent, date: new Date(), highlight:false}
 
-    if(!listMessages.has(channelNameSelected)) {
-        listMessages.set(channelNameSelected, new Channel(message))
+    if(!isCommand) {
+        if(!listMessages.has(channelNameSelected)) {
+            listMessages.set(channelNameSelected, new Channel(message))
+        }
+        else {
+            messagesSelected.push(message);
+        }
+        invoke('send_message', {message:messageToSend, channel:channelNameSelected}).then(()=> {
+
+        })
+        listMessages = listMessages;
     }
     else {
-        messagesSelected.push(message);
-    }
-    invoke('send_message', {message:messageToSend, channel:channelNameSelected}).then(()=> {
+        let command = inMessageContent.split(" ");
+        const commandName = command.at(0)?.substring(1);
+        console.log(command.slice(1), commandName)
+        invoke('send_irc_command', {command:commandName, args:command.slice(1)}).then(()=> {
 
-    })
-    listMessages = listMessages;
+        })
+    }
+
 }
 
 function getUsers() {

@@ -11,7 +11,7 @@ const dispatch = createEventDispatcher();
     export let content = ""
 
     async function clean(inContent : string) : Promise<string> {
-        return invoke("sanitize_html", {message:content});
+        return invoke("sanitize_html", {message:inContent});
     }
 
     function isASCIIArt(inLine : string) {
@@ -27,15 +27,26 @@ const dispatch = createEventDispatcher();
         return !isNormal;
     }
 
+    function parseContent(inContent : string) : string {
+        //add a tag as link
+        let regex : RegExp = /(?<!>)(http:\/\/|https:\/\/){1}(www.)?([a-zA-Z0-9]+).[a-zA-Z0-9]*.[‌​a-z]{3}\.([a-z]+)?(?!<\/a>)$/g
+        const content = inContent.replaceAll(regex, (inValue : string)=> {
+            return `<a target="_blank" href="${inValue}">${inValue}</a>`
+        })
+        return content;
+    }
+
     onMount(async () => {
-        const html = await clean(content);
+        const html = await clean(parseContent(content));
         messageWrapper.innerHTML = html;
         const externalLinks = messageWrapper.getElementsByTagName('a');
 
 
         for (let link of externalLinks) {
             link.addEventListener("click", function(event) {
-                open(link.href);
+                let isURL = /^(htpp:\/\/|https:\/\/)/
+                if(link.href.match(isURL))
+                    open(link.href);
                 event.preventDefault();
             }, false);
         }
