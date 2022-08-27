@@ -97,6 +97,9 @@ pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStr
       },
       Command::NOTICE(ref _target, ref msg) => {
         pay_load.command = String::from("NOTICE");
+        if let Some(nick_name) = message.source_nickname() {
+          pay_load.nick_name = String::from(nick_name);
+        }
         pay_load.content = msg.to_owned();
       },
       Command::Response(response, ref msg) => {

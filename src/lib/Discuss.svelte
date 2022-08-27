@@ -100,9 +100,20 @@ onMount(async () => {
         listMessages = listMessages;
 
         if(channelNameSelected !== channelOrigin) {
-        messagesUnreadChannel.add(channelOrigin);
-        messagesUnreadChannel = messagesUnreadChannel;
+            messagesUnreadChannel.add(channelOrigin);
+            messagesUnreadChannel = messagesUnreadChannel;
+        }
     }
+    else if(data.command === "NOTICE") {
+        message.date = new Date();
+        message.highlight = isMessageHighlight(message.content);
+        currentChannel?.pushMessage(message)
+        listMessages = listMessages;
+
+        if(channelNameSelected !== channelOrigin) {
+            messagesUnreadChannel.add(channelOrigin);
+            messagesUnreadChannel = messagesUnreadChannel;
+        }
     }
     else if(data.command === "JOIN") {
         if(message.nick_name === nickName)
