@@ -4,8 +4,8 @@ import { invoke } from '@tauri-apps/api'
 import { onMount, onDestroy } from 'svelte';
 import { afterUpdate } from 'svelte';
 import { Jumper } from 'svelte-loading-spinners'
-import PlusSign from '../assets/plus-sign-svg.svelte';
 import MessageContent from "./MessageContent.svelte"
+import MessageInput from './MessageInput.svelte';
 import type {Message} from "./channel";
 import {Channel} from "./channel";
 import User from './User.svelte';
@@ -35,7 +35,6 @@ export let channel : string;
 
 let listMessages : Map<string, Channel> = new Map<string, Channel>([[
     channel, new Channel]]);
-let messageToSend :string = ""
 let topic :string = ""
 let channelNameSelected :string = channel ?? "";
 
@@ -71,7 +70,6 @@ function refreshScroll() {
 }
 
 onMount(async () => {
-
     await listen('irc-recieved', (event) => {
     let data : MessageFromIRC = event.payload as MessageFromIRC
 
@@ -147,32 +145,32 @@ onMount(async () => {
     }
     })
 
-    invoke('read_messages').finally(()=> {
-        getUsers().then((data)=> {
-            users = data as User[];
-        })
+    invoke('read_messages')
+    .catch(e=>console.error(e))
+    .finally(()=> {
+        updateUsers();
         isLoaded = true;
     })
 
 });
 
 onDestroy(async ()=> {
-    //invoke('disconnect', {message:"Bye"});
+   // invoke('disconnect', {message:"Bye"});
 })
 
 function updateUsers() {
     getUsers().then((data)=> {
         users = data as User[];
-    })
+    }).catch(e=>{console.error(e)});
+    
 }
 
 function sendCurrentMessage(inMessageContent : string) {
     let message : Message;
 
     const isCommand : boolean = inMessageContent.at(0) == "/"
-    console.log(isCommand)
     message = {nick_name:nickName, content:inMessageContent, date: new Date(), highlight:false}
-
+    
     if(!isCommand) {
         if(!listMessages.has(channelNameSelected)) {
             listMessages.set(channelNameSelected, new Channel(message))
@@ -180,15 +178,15 @@ function sendCurrentMessage(inMessageContent : string) {
         else {
             messagesSelected.push(message);
         }
-        invoke('send_message', {message:messageToSend, channel:channelNameSelected}).then(()=> {
-
-        })
+        console.log("send message")
+        invoke('send_message', {message:inMessageContent, channel:channelNameSelected})
+        .then(()=> {})
+        .catch(e=>console.error(e));
         listMessages = listMessages;
     }
     else {
         let command = inMessageContent.split(" ");
         const commandName = command.at(0)?.substring(1);
-        console.log(command.slice(1), commandName)
         invoke('send_irc_command', {command:commandName, args:command.slice(1)}).then(()=> {
 
         })
@@ -197,10 +195,10 @@ function sendCurrentMessage(inMessageContent : string) {
 }
 
 function getUsers() {
-    return new Promise(resolve=> {
-        invoke('get_users').then((data)=> {
-        resolve(data)
-    })
+    return new Promise((resolve, reject)=> {
+        invoke('get_users')
+        .then((data)=> {resolve(data)})
+        .catch(e=>{reject(e)})
     })
 }
 
@@ -262,27 +260,15 @@ function changeChannel(inChannel : string) {
     
         <div class="wrapper-writter">
             <div class="write-section">
-                <input type="text" bind:value={messageToSend} 
-                on:keyup={(e)=>{
-                    if(e.key==='Enter') {
-                        sendCurrentMessage(messageToSend)
-                        messageToSend = "";
-                    }
-                    }}>
-                <button on:click={(event)=> {
-                   sendCurrentMessage(messageToSend)
-                   messageToSend = ""
-    
-                }}>
-                    <PlusSign width=15 height=15></PlusSign>
-                </button>
+                <MessageInput on:send_message={(event)=>{sendCurrentMessage(event.detail)}}>
+                </MessageInput>
             </div>
         </div>
     
     </div>
 
     <div class="list-users">
-        <User on:channel_changed={()=>{changeChannel(channel)}}
+        <User on:channel_changed={()=>{changeChannel(channel);}}
         channelName={channel}
         isSelectable={true}
         unread={messagesUnreadChannel.has(channel)}
@@ -366,19 +352,6 @@ function changeChannel(inChannel : string) {
         display: flex;
         flex-direction: column;
         max-width: calc(100vw - 120px);
-    }
-
-    input {
-        width: 100%;
-    }
-
-    button {
-        padding: 0px;
-        border-radius: 4px;
-        padding-left: 4px;
-        padding-right: 4px;
-        margin-left: 2px;
-        color: var(--text-color-control);
     }
 
     .write-section {

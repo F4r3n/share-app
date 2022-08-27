@@ -4,8 +4,19 @@
   line-height: 24px;
   font-weight: 400;
 
-  color-scheme: light dark;
+  color-scheme: light dark normal;
   
+  --background-color:#f4f4f4;
+  --primary-accent-color:#8657d3;
+  --secondary-accent-color:#0081CF;
+  --highlight-color:#B39CD0;
+  --hover-color:#FBEAFF;
+  --press-color:#296073;
+  --outline-color:#0081CF;
+  --text-color:rgb(21, 21, 21);
+  --label-color:rgb(40,40,40);
+  --text-color-control:#fafafa;
+  --overflow-color:#d0d0d0;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
