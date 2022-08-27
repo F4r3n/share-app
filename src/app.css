@@ -28,7 +28,6 @@
   --outline-color:#0081CF;
   --text-color:rgb(21, 21, 21);
   --label-color:rgb(40,40,40);
-  --tertiary-accent-color:#a1dbff;
   --text-color-control:#fafafa;
   --overflow-color:#d0d0d0;
   }
@@ -45,8 +44,7 @@
     --outline-color:#0081CF;
     --text-color:rgb(222, 222, 222);
     --label-color:rgb(202, 202, 202);
-    --tertiary-accent-color:#a1dbff;
-    --text-color-control:#cccccc;
+    --text-color-control:#dddddd;
     --overflow-color:#000000;
     }
   }

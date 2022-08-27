@@ -428,7 +428,7 @@ function changeChannel(inChannel : string) {
     }
 
     .message-content-highlight {
-        background-color: var(--tertiary-accent-color);
+        background-color: var(--highlight-color);
     }
 
     .date {
@@ -439,7 +439,7 @@ function changeChannel(inChannel : string) {
 
     .username {
         font-weight: bold;
-        color: var(--primary-accent-color)
+        color: var(--secondary-accent-color)
     }
 
     .username-me {
