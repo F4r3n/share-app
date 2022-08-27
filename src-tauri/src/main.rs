@@ -45,11 +45,11 @@ pub struct IRC {
 impl IRC {
 
   pub fn send_message(&self, message : &str, channel :&str) -> Result<(), String> {
+    
     let mut current_channel = String::from(channel);
     if current_channel.is_empty() {
       current_channel = self.channel.to_owned();
     }
-
     match self.client.as_ref().unwrap().send_privmsg(current_channel, 
     String::from(message.to_owned())) {
       Ok(()) => Ok(()),
@@ -141,7 +141,6 @@ pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStr
         
       },
       Command::NAMES(_channel, target) => {
-        print!("{}", target.unwrap());
       },
       _ =>()
      }
@@ -167,7 +166,7 @@ pub async fn irc_login(nick_name : &str, server : &str, channel : &str, password
 
   let client = Client::from_config(config).await?;
   client.identify()?;
-  
+
   return Ok(client);
 }
 
@@ -195,15 +194,17 @@ fn read_messages(window: tauri::Window, irc : tauri::State<'_, IRCState>) -> Res
 #[tauri::command]
 fn loggin(nick_name : &str, server : &str, channel : &str, password : &str, irc : tauri::State<'_, IRCState>)->Result<(), String> {
   let mut state_guard = irc.0.try_lock().expect("ERROR");
-  println!("{}{}{}", nick_name, server, channel);
-  state_guard.channel = channel.to_owned();
-  state_guard.client = tauri::async_runtime::block_on(async {
-    let client = match irc_login(nick_name, server, channel, password).await {
-        Ok(client) => Some(client),
-        Err(_e) => None
-    };
+  if state_guard.client.is_none() {
+
+    state_guard.channel = channel.to_owned();
+    state_guard.client = tauri::async_runtime::block_on(async {
+      let client = match irc_login(nick_name, server, channel, password).await {
+          Ok(client) => Some(client),
+          Err(_e) => None
+      };
     return client;
   });
+  }
 
   match &state_guard.client {
     Some(_) => Ok(()),
@@ -222,6 +223,7 @@ fn get_users(irc : tauri::State<'_, IRCState>) -> Vec<User> {
   let state_guard = irc.0.try_lock().expect("ERROR");
   let users = state_guard.get_users();
   let mut js_users : Vec<User> = Vec::new();
+
   if let Some(users) = users {
     for user in users.iter() {
       js_users.push(User{nick_name:user.get_nickname().to_owned(), user_mode:(user.highest_access_level() as u8)})
@@ -233,8 +235,15 @@ fn get_users(irc : tauri::State<'_, IRCState>) -> Vec<User> {
 #[tauri::command]
 fn disconnect(message : &str, irc : tauri::State<'_, IRCState>) -> Result<(), String>
 {
-  let client = irc.0.try_lock().expect("ERROR");
-  client.send_quit(message)
+  let mut client = irc.0.try_lock().expect("ERROR");
+  let result : Result<(), String> = match client.send_quit(message) {
+    Ok(())=>Ok(()),
+    Err(e)=>Err(e)
+  };
+  if result.is_ok() {
+    client.client = None;
+  }
+  Ok(())
 }
 
 #[tauri::command]
