@@ -262,7 +262,9 @@ function changeChannel(inChannel : string) {
                    sendCurrentMessage(messageToSend)
                    messageToSend = ""
     
-                }}><PlusSign width=15 height=15></PlusSign></button>
+                }}>
+                    <PlusSign width=15 height=15></PlusSign>
+                </button>
             </div>
         </div>
     
@@ -365,6 +367,7 @@ function changeChannel(inChannel : string) {
         padding-left: 4px;
         padding-right: 4px;
         margin-left: 2px;
+        color: var(--text-color-control);
     }
 
     .write-section {
@@ -414,7 +417,7 @@ function changeChannel(inChannel : string) {
     }
 
     .message-content-highlight {
-        background-color: var(--secondary-accent-color-light);
+        background-color: var(--tertiary-accent-color);
     }
 
     .date {

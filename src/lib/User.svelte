@@ -1,11 +1,11 @@
-<script>
+<script lang="ts">
 import { createEventDispatcher } from 'svelte';
 
 const dispatch = createEventDispatcher();
-export let channelName;
-export let isSelected;
-export let isSelectable;
-export let unread;
+export let channelName : string;
+export let isSelected : boolean;
+export let isSelectable : boolean;
+export let unread : boolean;
 </script>
 <div class="channel"
 class:channel-selected={isSelected}
@@ -20,10 +20,11 @@ on:click={()=>{dispatch("channel_changed", channelName)}}>
         border: 2px solid;
         border-color: transparent;
         border-radius: 5px;
+        color: var(--text-color-control)
     }
 
     .channel-selected {
-        border-color: var(--background-color);
+        border-color: var(--text-color-control);
         transition: border-color 200ms ease-out;
     }
 
