@@ -103,6 +103,7 @@ button {
   font-weight: 500;
   font-family: inherit;
   background-color: var(--outline-color);
+  color:var(--text-color-control);
   cursor: pointer;
   transition: border-color 0.25s;
 }
