@@ -4,8 +4,8 @@ import { invoke } from '@tauri-apps/api'
 import { onMount, onDestroy } from 'svelte';
 import { afterUpdate } from 'svelte';
 import { Jumper } from 'svelte-loading-spinners'
-import PlusSign from '../assets/plus-sign-svg.svelte';
 import MessageContent from "./MessageContent.svelte"
+import MessageInput from './MessageInput.svelte';
 import type {Message} from "./channel";
 import {Channel} from "./channel";
 import User from './User.svelte';
@@ -35,7 +35,6 @@ export let channel : string;
 
 let listMessages : Map<string, Channel> = new Map<string, Channel>([[
     channel, new Channel]]);
-let messageToSend :string = ""
 let topic :string = ""
 let channelNameSelected :string = channel ?? "";
 
@@ -71,7 +70,6 @@ function refreshScroll() {
 }
 
 onMount(async () => {
-
     await listen('irc-recieved', (event) => {
     let data : MessageFromIRC = event.payload as MessageFromIRC
 
@@ -181,7 +179,7 @@ function sendCurrentMessage(inMessageContent : string) {
             messagesSelected.push(message);
         }
         console.log("send message")
-        invoke('send_message', {message:messageToSend, channel:channelNameSelected})
+        invoke('send_message', {message:inMessageContent, channel:channelNameSelected})
         .then(()=> {})
         .catch(e=>console.error(e));
         listMessages = listMessages;
@@ -262,20 +260,8 @@ function changeChannel(inChannel : string) {
     
         <div class="wrapper-writter">
             <div class="write-section">
-                <input type="text" bind:value={messageToSend} 
-                on:keyup={(e)=>{
-                    if(e.key==='Enter') {
-                        sendCurrentMessage(messageToSend)
-                        messageToSend = "";
-                    }
-                    }}>
-                <button on:click={(event)=> {
-                   sendCurrentMessage(messageToSend)
-                   messageToSend = ""
-    
-                }}>
-                    <PlusSign width=15 height=15></PlusSign>
-                </button>
+                <MessageInput on:send_message={(event)=>{sendCurrentMessage(event.detail)}}>
+                </MessageInput>
             </div>
         </div>
     
@@ -366,19 +352,6 @@ function changeChannel(inChannel : string) {
         display: flex;
         flex-direction: column;
         max-width: calc(100vw - 120px);
-    }
-
-    input {
-        width: 100%;
-    }
-
-    button {
-        padding: 0px;
-        border-radius: 4px;
-        padding-left: 4px;
-        padding-right: 4px;
-        margin-left: 2px;
-        color: var(--text-color-control);
     }
 
     .write-section {

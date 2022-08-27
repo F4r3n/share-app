@@ -29,7 +29,7 @@ const dispatch = createEventDispatcher();
 
     function parseContent(inContent : string) : string {
         //add a tag as link
-        let regex : RegExp = /(?<!>)(http:\/\/|https:\/\/){1}(www.)?([a-zA-Z0-9]+).[a-zA-Z0-9]*.[‌​a-z]{3}\.([a-z]+)?(?!<\/a>)$/g
+        let regex : RegExp = /(?<!>)(http:\/\/|https:\/\/){1}(www.)?.[^\s]+(?!<\/a>)/g
         const content = inContent.replaceAll(regex, (inValue : string)=> {
             return `<a target="_blank" href="${inValue}">${inValue}</a>`
         })
