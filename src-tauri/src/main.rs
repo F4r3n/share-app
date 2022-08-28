@@ -3,6 +3,7 @@
   windows_subsystem = "windows"
 )]
 use irc::{client::{prelude::*}};
+use irc::proto::colors;
 use futures::{prelude::*, lock::Mutex};
 
 #[derive(Clone, serde::Serialize)]
@@ -79,7 +80,6 @@ impl IRC {
 pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStream) -> Result<(), irc::error::Error> {
   while let Some(message) = stream.next().await.transpose()? {
      print!("{}", message);
-      
      let mut pay_load = Payload{content : String::from(""),
                                     nick_name : String::from(""),
                                     command : String::from(""),
@@ -93,14 +93,14 @@ pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStr
         if let Some(nick_name) = message.source_nickname() {
           pay_load.nick_name = String::from(nick_name);
         }
-        pay_load.content = msg.to_owned();
+        pay_load.content = irc::proto::FormattedStringExt::strip_formatting(msg.as_str()).to_string();
       },
       Command::NOTICE(ref _target, ref msg) => {
         pay_load.command = String::from("NOTICE");
         if let Some(nick_name) = message.source_nickname() {
           pay_load.nick_name = String::from(nick_name);
         }
-        pay_load.content = msg.to_owned();
+        pay_load.content = irc::proto::FormattedStringExt::strip_formatting(msg.as_str()).to_string();
       },
       Command::Response(response, ref msg) => {
         pay_load.command = String::from("RESPONSE");

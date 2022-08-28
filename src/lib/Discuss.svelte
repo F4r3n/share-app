@@ -72,7 +72,6 @@ function refreshScroll() {
 onMount(async () => {
     await listen('irc-recieved', (event) => {
     let data : MessageFromIRC = event.payload as MessageFromIRC
-
     let message : Message = {} as Message;
     message.content = data.content;
     message.nick_name = data.nick_name;

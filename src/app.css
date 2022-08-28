@@ -56,7 +56,7 @@
 
 /* Track */
 ::-webkit-scrollbar-track {
-  background: var(--background-color);
+  background: transparent;
 }
 
 /* Handle */
