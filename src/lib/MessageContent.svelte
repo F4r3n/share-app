@@ -1,14 +1,19 @@
 <script lang="ts">
 import { invoke } from "@tauri-apps/api/tauri";
-import { onMount, onDestroy } from 'svelte';
-import { open } from '@tauri-apps/api/shell';
+import { onMount } from 'svelte';
 import { createEventDispatcher } from 'svelte';
+import MessageRenderer from "./MessageRenderer/MessageRenderer.svelte"
 
-const dispatch = createEventDispatcher();
+type Token = {
+        type: string,
+        href: string,
+        content: string
+    }
+    const dispatch = createEventDispatcher();
 
-    let messageWrapper : Element;
     let isASCII = false;
     export let content = ""
+    let regex : RegExp = /(http:\/\/|https:\/\/){1}(www.)?.[^\s]+/g
 
     async function clean(inContent : string) : Promise<string> {
         return invoke("sanitize_html", {message:inContent});
@@ -27,35 +32,40 @@ const dispatch = createEventDispatcher();
         return !isNormal;
     }
 
-    function parseContent(inContent : string) : string {
-        //add a tag as link
-        let regex : RegExp = /(?<!>)(http:\/\/|https:\/\/){1}(www.)?.[^\s]+(?!<\/a>)/g
-        const content = inContent.replaceAll(regex, (inValue : string)=> {
-            return `<a target="_blank" href="${inValue}">${inValue}</a>`
-        })
-        return content;
-    }
 
     onMount(async () => {
-        const html = await clean(parseContent(content));
-        messageWrapper.innerHTML = html;
-        const externalLinks = messageWrapper.getElementsByTagName('a');
-
-
-        for (let link of externalLinks) {
-            link.addEventListener("click", function(event) {
-                let isURL = /^(htpp:\/\/|https:\/\/)/
-                if(link.href.match(isURL))
-                    open(link.href);
-                event.preventDefault();
-            }, false);
-        }
         isASCII = isASCIIArt(content);
         dispatch("message-formatted");
     });
 
+    function createTokens(inContent : string) : Token[] {
+        let tokens : Token[] = [] as Token[];
+        console.log("createTokens ", inContent)
+        let match = null;
+        let start = 0;
+        let end = inContent.length;
+        while((match = regex.exec(inContent)) != null) {
+            if(match.index != start) {
+                tokens.push({type:"RAW", content:inContent.substring(start, match.index), href:""})
+            }
+            console.log(match)
+            start = match.index;
+            const url = inContent.substring(match.index, match.index + match[0].length)
+            start = match.index + match[0].length;
+
+            tokens.push({type:"ATag", content:url, href:url})
+        }
+
+        if(end !== start) {
+            tokens.push({type:"RAW", content:inContent.substring(start, end), href:""})
+        }
+        console.log(tokens)
+        return tokens;
+    }
+
 </script>
-<div class="message" class:message-ascii={isASCII} bind:this={messageWrapper}>
+<div class="message" class:message-ascii={isASCII}>
+    <MessageRenderer tokens={createTokens(content)}></MessageRenderer>
 </div>
 <style>
     .message {
