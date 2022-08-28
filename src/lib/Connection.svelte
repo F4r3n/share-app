@@ -49,7 +49,6 @@
 
     input {
         font-family: inherit;
-        color:inherit;
         border-radius: 5px;
     }
 
