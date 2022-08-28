@@ -253,10 +253,6 @@ fn send_irc_command(command : &str, args : Vec<String>, irc : tauri::State<'_, I
   client.send_irc_command(command, args)
 }
 
-#[tauri::command]
-fn sanitize_html(message : &str) -> String {
-  return ammonia::clean(message);
-}
 fn main() {
 
   tauri::Builder::default()
@@ -265,7 +261,6 @@ fn main() {
     read_messages, 
     send_message,
     disconnect,
-    sanitize_html,
     send_irc_command,
     get_users])
   .manage(IRCState(Mutex::new(IRC{client : None, channel : String::from("")})))
