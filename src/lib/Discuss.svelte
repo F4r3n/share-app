@@ -9,7 +9,8 @@ import MessageInput from './MessageInput.svelte';
 import type {Message} from "./channel";
 import {Channel} from "./channel";
 import User from './User.svelte';
-
+const dispatch = createEventDispatcher();
+import { createEventDispatcher } from 'svelte';
 
 type Response = {
     kind : number,
@@ -135,11 +136,22 @@ onMount(async () => {
         updateUsers();
     }
     else if(data.command === "RESPONSE"){
+        
         if(data.response?.kind === 353) { //users
             updateUsers();
         }
         else if(data.response?.kind === 332) {
             topic = data.response?.content.at(-1) ?? ""
+        }
+        else if(data.response?.kind === 1) {
+            isLoaded = true;
+        }
+    }
+    else if(data.command === "ERROR"){
+        if(!isLoaded) {
+            invoke("disconnect", {message:"", shallSendMessage: false, wrongIdentifier:true }).then(()=> {
+                dispatch("connection_status", false)
+            })
         }
     }
     })
@@ -148,7 +160,6 @@ onMount(async () => {
     .catch(e=>console.error(e))
     .finally(()=> {
         updateUsers();
-        isLoaded = true;
     })
 
 });
@@ -177,7 +188,6 @@ function sendCurrentMessage(inMessageContent : string) {
         else {
             messagesSelected.push(message);
         }
-        console.log("send message")
         invoke('send_message', {message:inMessageContent, channel:channelNameSelected})
         .then(()=> {})
         .catch(e=>console.error(e));

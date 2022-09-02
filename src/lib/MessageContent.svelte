@@ -15,10 +15,6 @@ type Token = {
     export let content = ""
     let regex : RegExp = /(http:\/\/|https:\/\/){1}(www.)?.[^\s]+/g
 
-    async function clean(inContent : string) : Promise<string> {
-        return invoke("sanitize_html", {message:inContent});
-    }
-
     function isASCIIArt(inLine : string) {
         let isNormal = false;
         for(let c of inLine) {

@@ -4,7 +4,7 @@
 )]
 use irc::{client::{prelude::*}};
 use irc::proto::colors;
-use futures::{prelude::*, lock::Mutex};
+use futures::{prelude::*, lock::Mutex, future::OrElse};
 
 #[derive(Clone, serde::Serialize)]
 struct ResponseMessage {
@@ -24,6 +24,7 @@ struct Payload {
 #[derive(Clone, serde::Serialize)]
 enum EVENT {
   Quit,
+  ErrorConnection
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -78,6 +79,8 @@ impl IRC {
 
 
 pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStream) -> Result<(), irc::error::Error> {
+  
+  println!("READ");
   while let Some(message) = stream.next().await.transpose()? {
      print!("{}", message);
      let mut pay_load = Payload{content : String::from(""),
@@ -104,7 +107,7 @@ pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStr
       },
       Command::Response(response, ref msg) => {
         pay_load.command = String::from("RESPONSE");
-        pay_load.response = Some(ResponseMessage{kind:response as u16, content: msg.clone()});
+        pay_load.response = Some(ResponseMessage{kind:response as u16, content: msg.clone()}); 
       },
       Command::QUIT(ref comment) => {
         pay_load.command = String::from("QUIT");
@@ -142,13 +145,16 @@ pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStr
       },
       Command::NAMES(_channel, target) => {
       },
+      Command::ERROR(err) => {
+        pay_load.command = String::from("ERROR");
+        pay_load.content = err.to_string();
+      },
       _ =>()
      }
      window.emit("irc-recieved", pay_load);
  }
 
-  window.emit("irc-event", Event{kind:EVENT::Quit});
-
+ println!("QUITTTTT");
 
  Ok(())
 }
@@ -195,7 +201,7 @@ fn read_messages(window: tauri::Window, irc : tauri::State<'_, IRCState>) -> Res
 fn loggin(nick_name : &str, server : &str, channel : &str, password : &str, irc : tauri::State<'_, IRCState>)->Result<(), String> {
   let mut state_guard = irc.0.try_lock().expect("ERROR");
   if state_guard.client.is_none() {
-
+    println!("Connect");
     state_guard.channel = channel.to_owned();
     state_guard.client = tauri::async_runtime::block_on(async {
       let client = match irc_login(nick_name, server, channel, password).await {
@@ -203,7 +209,7 @@ fn loggin(nick_name : &str, server : &str, channel : &str, password : &str, irc 
           Err(_e) => None
       };
     return client;
-  });
+    });
   }
 
   match &state_guard.client {
@@ -233,18 +239,27 @@ fn get_users(irc : tauri::State<'_, IRCState>) -> Vec<User> {
 }
 
 #[tauri::command]
-fn disconnect(message : &str, irc : tauri::State<'_, IRCState>) -> Result<(), String>
+fn disconnect(window: tauri::Window, message : &str, shall_send_message : bool, wrong_identifier : bool, irc : tauri::State<'_, IRCState>) -> Result<(), String>
 {
   let mut client = irc.0.try_lock().expect("ERROR");
-  let result : Result<(), String> = match client.send_quit(message) {
-    Ok(())=>Ok(()),
-    Err(e)=>Err(e)
-  };
-  if result.is_ok() {
-    client.client = None;
+  if shall_send_message {
+    let result : Result<(), String> = match client.send_quit(message) {
+      Ok(())=>Ok(()),
+      Err(e)=>Err(e)
+    };
   }
+
+  client.client = None;
+  if wrong_identifier {
+    window.emit("irc-event", Event{kind:EVENT::ErrorConnection});
+  }
+  else {
+    window.emit("irc-event", Event{kind:EVENT::Quit});
+  }
+
   Ok(())
 }
+
 
 #[tauri::command]
 fn send_irc_command(command : &str, args : Vec<String>, irc : tauri::State<'_, IRCState>) -> Result<(), String>

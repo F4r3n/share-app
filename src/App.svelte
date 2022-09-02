@@ -5,14 +5,14 @@
   import {config} from './lib/config'
   import { createEventDispatcher } from 'svelte';
   import { listen } from '@tauri-apps/api/event'
+import { invoke } from '@tauri-apps/api/tauri';
 
-  const dispatch = createEventDispatcher();
   let nickName="pickles"
   let server="chat.freenode.net" 
   let channel="#rust-spam"
   let password=""
 
-
+  let hasFailed = false;
 
   type Event = {
 
@@ -24,9 +24,15 @@
   onMount(async () => {
 
     await listen('irc-event', (event : Event)=> {
+      console.log(event)
         if(event.payload.kind =="Quit")
         {
           isConnected = false;
+        }
+        else if(event.payload.kind =="ErrorConnection")
+        {
+          isConnected = false;
+          hasFailed = true;
         }
     })
 
@@ -45,6 +51,7 @@
   });
 
   onDestroy(async () => {
+    invoke("disconnect", {message:"bye", shallSendMessage:true, wrongIdentifer:false});
     config.write();
   });
 
@@ -59,6 +66,7 @@
   bind:server={server} 
   bind:channel={channel}
   bind:password={password}
+  {hasFailed}
   on:connected={() => {
     isConnected = true;
     config.setConnectionSettings(nickName, server, channel, password);
@@ -67,7 +75,9 @@
   </Connection>
 
   {:else}
-  <Discuss nickName={nickName} channel={channel}></Discuss>
+  <Discuss  on:connection_status={(event)=> {isConnected = event.detail;}}
+  nickName={nickName} 
+  channel={channel}></Discuss>
   {/if}
 </main>
 
