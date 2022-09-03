@@ -9,21 +9,10 @@ import MessageInput from './MessageInput.svelte';
 import type {Message} from "./channel";
 import {Channel} from "./channel";
 import User from './User.svelte';
-const dispatch = createEventDispatcher();
 import { createEventDispatcher } from 'svelte';
+const dispatch = createEventDispatcher();
 
-type Response = {
-    kind : number,
-    content : string[];
-}
-
-type MessageFromIRC = {
-    nick_name: string;
-    content: string;
-    command : string;
-    channel : string;
-    response?: Response
-}
+import type {MessageFromIRC} from './MessageType';
 
 
 type User = {
@@ -147,11 +136,19 @@ onMount(async () => {
             isLoaded = true;
         }
     }
+    else if(data.command === "NICK") {
+        nickName = data.content;
+        updateUsers();
+    }
     else if(data.command === "ERROR"){
         if(!isLoaded) {
-            invoke("disconnect", {message:"", shallSendMessage: false, wrongIdentifier:true }).then(()=> {
+            setTimeout(()=> {
+                console.log("disconnect")
+                invoke("disconnect", {message:"", shallSendMessage: false, wrongIdentifier:true }).then(()=> {
                 dispatch("connection_status", false)
             })
+            }, 1000)
+
         }
     }
     })

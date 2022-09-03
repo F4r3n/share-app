@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {fade} from "svelte/transition"
   import { invoke } from '@tauri-apps/api/tauri';
 	import { createEventDispatcher } from 'svelte';
 
@@ -20,7 +21,7 @@
 </script>
 
 <main>
-  <div class="form_position">
+  <div in:fade={{duration:100}} class="form_position">
     <form on:submit|preventDefault={connect} class="form">
       <label for="nickname" class="">
         NickName

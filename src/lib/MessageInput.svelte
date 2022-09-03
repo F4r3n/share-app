@@ -9,10 +9,15 @@ let input : HTMLInputElement;
 
     onMount(async()=> {
         input.focus();
+        addEventListener('paste', async (event) => {
+
+
+         });
+
     })
 </script>
 
-<input type="text" bind:this={input} bind:value={messageToSend} 
+<input type="text" bind:this={input} bind:value={messageToSend}
 on:keyup={(e)=>{
     if(e.key==='Enter') {
         dispatch("send_message", messageToSend)

@@ -24,7 +24,6 @@ import { invoke } from '@tauri-apps/api/tauri';
   onMount(async () => {
 
     await listen('irc-event', (event : Event)=> {
-      console.log(event)
         if(event.payload.kind =="Quit")
         {
           isConnected = false;
@@ -38,7 +37,6 @@ import { invoke } from '@tauri-apps/api/tauri';
 
     await config.read();
     const c = config.getConnectionConfig();
-    console.log(c)
     if(c.hasOwnProperty("nickName"))
       nickName = c.nickName;
     if(c.hasOwnProperty("server"))
@@ -61,7 +59,7 @@ import { invoke } from '@tauri-apps/api/tauri';
 <main>
   {#if !isConnected}
 
-  <Connection 
+  <Connection
   bind:nickName={nickName} 
   bind:server={server} 
   bind:channel={channel}

@@ -3,8 +3,11 @@
   windows_subsystem = "windows"
 )]
 use irc::{client::{prelude::*}};
-use irc::proto::colors;
-use futures::{prelude::*, lock::Mutex, future::OrElse};
+use futures::{prelude::*, lock::Mutex};
+use tauri::{
+  AboutMetadata, AppHandle, CustomMenuItem, Manager, Menu, MenuEntry, MenuItem, Submenu,
+  WindowBuilder, WindowUrl,
+};
 
 #[derive(Clone, serde::Serialize)]
 struct ResponseMessage {
@@ -62,6 +65,8 @@ impl IRC {
   pub fn get_users(& self)-> Option<Vec<irc::client::data::User>> {
     return self.client.as_ref().unwrap().list_users(&self.channel);
   }
+
+
   pub fn send_quit(& self, message : &str)-> Result<(), String> {
     match self.client.as_ref().unwrap().send_quit(message) {
       Ok(()) => Ok(()),
@@ -141,20 +146,24 @@ pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStr
         if let Some(nick_name) = message.source_nickname() {
           pay_load.nick_name = nick_name.to_owned();
         }
-        
       },
-      Command::NAMES(_channel, target) => {
+      Command::NAMES(_channel, _target) => {
       },
       Command::ERROR(err) => {
         pay_load.command = String::from("ERROR");
         pay_load.content = err.to_string();
       },
+      Command::NICK(ref new_nick_name) => {
+        pay_load.command = String::from("NICK");
+        if let Some(nick_name) = message.source_nickname() {
+          pay_load.nick_name = nick_name.to_owned();
+        }        
+        pay_load.content = new_nick_name.to_owned();
+      },
       _ =>()
      }
      window.emit("irc-recieved", pay_load);
  }
-
- println!("QUITTTTT");
 
  Ok(())
 }
@@ -224,6 +233,8 @@ fn send_message( message : &str, channel : &str, irc : tauri::State<'_, IRCState
   state_guard.send_message(message, channel)
 }
 
+
+
 #[tauri::command]
 fn get_users(irc : tauri::State<'_, IRCState>) -> Vec<User> {
   let state_guard = irc.0.try_lock().expect("ERROR");
@@ -278,6 +289,63 @@ fn main() {
     disconnect,
     send_irc_command,
     get_users])
+    .menu(Menu::with_items([
+      #[cfg(target_os = "macos")]
+      MenuEntry::Submenu(Submenu::new(
+        &ctx.package_info().name,
+        Menu::with_items([
+          MenuItem::About(ctx.package_info().name.clone(), AboutMetadata::default()).into(),
+          MenuItem::Separator.into(),
+          MenuItem::Services.into(),
+          MenuItem::Separator.into(),
+          MenuItem::Hide.into(),
+          MenuItem::HideOthers.into(),
+          MenuItem::ShowAll.into(),
+          MenuItem::Separator.into(),
+          MenuItem::Quit.into(),
+        ]),
+      )),
+      MenuEntry::Submenu(Submenu::new(
+        "File",
+        Menu::with_items([
+          CustomMenuItem::new("Open...", "Open...")
+            .accelerator("cmdOrControl+O")
+            .into(),
+          MenuItem::Separator.into(),
+          CustomMenuItem::new("Close", "Close")
+            .accelerator("cmdOrControl+W")
+            .into(),
+        ]),
+      )),
+      MenuEntry::Submenu(Submenu::new(
+        "Edit",
+        Menu::with_items([
+          MenuItem::Undo.into(),
+          MenuItem::Redo.into(),
+          MenuItem::Separator.into(),
+          MenuItem::Cut.into(),
+          MenuItem::Copy.into(),
+          MenuItem::Paste.into(),
+          #[cfg(not(target_os = "macos"))]
+          MenuItem::Separator.into(),
+          MenuItem::SelectAll.into(),
+        ]),
+      )),
+      MenuEntry::Submenu(Submenu::new(
+        "View",
+        Menu::with_items([MenuItem::EnterFullScreen.into()]),
+      )),
+      MenuEntry::Submenu(Submenu::new(
+        "Window",
+        Menu::with_items([MenuItem::Minimize.into(), MenuItem::Zoom.into()]),
+      )),
+      // You should always have a Help menu on macOS because it will automatically
+      // show a menu search field
+      MenuEntry::Submenu(Submenu::new(
+        "Help",
+        Menu::with_items([CustomMenuItem::new("Learn More", "Learn More").into()]),
+      )),
+    ]))
   .manage(IRCState(Mutex::new(IRC{client : None, channel : String::from("")})))
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
