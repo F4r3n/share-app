@@ -4,18 +4,20 @@
   line-height: 24px;
   font-weight: 400;
 
-  color-scheme: light dark;
-  --background-color:rgba(255, 255, 255, 0.87);
-  --dark-primary-color:#4B0082;
-  --primary-accent-color:#845EC2;
+  color-scheme: light dark normal;
+  
+  --background-color:#f4f4f4;
+  --primary-accent-color:#8657d3;
   --secondary-accent-color:#0081CF;
   --highlight-color:#B39CD0;
   --hover-color:#FBEAFF;
   --press-color:#296073;
   --outline-color:#0081CF;
-  --primary-color:rgb(21, 21, 21);
-  --secondary-color:rgb(40,40,40);
-  --secondary-accent-color-light:#a1dbff;
+  --text-color:rgb(21, 21, 21);
+  --label-color:rgb(40,40,40);
+  --text-color-control:#fafafa;
+  --overflow-color:#d0d0d0;
+
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -24,6 +26,39 @@
 
   
 }
+
+@media (prefers-color-scheme: light) {
+  :root {
+
+  --background-color:#f4f4f4;
+  --primary-accent-color:#8657d3;
+  --secondary-accent-color:#0081CF;
+  --highlight-color:#B39CD0;
+  --hover-color:#FBEAFF;
+  --press-color:#296073;
+  --outline-color:#0081CF;
+  --text-color:rgb(21, 21, 21);
+  --label-color:rgb(40,40,40);
+  --text-color-control:#fafafa;
+  --overflow-color:#d0d0d0;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-color:rgba(63, 63, 63, 0.87);
+    --primary-accent-color:#4e1f9a;
+    --secondary-accent-color:#0081CF;
+    --highlight-color:#7847b5;
+    --hover-color:#FBEAFF;
+    --press-color:#296073;
+    --outline-color:#0081CF;
+    --text-color:rgb(222, 222, 222);
+    --label-color:rgb(202, 202, 202);
+    --text-color-control:#dddddd;
+    --overflow-color:#000000;
+    }
+  }
 
 /* width */
 ::-webkit-scrollbar {
@@ -37,7 +72,7 @@
 
 /* Handle */
 ::-webkit-scrollbar-thumb {
-  background: var(--dark-primary-color);
+  background: var(--overflow-color);
 }
 
 /* Handle on hover */
@@ -54,7 +89,8 @@ html, body {
 body {
 	margin: 0;
 	box-sizing: border-box;
-  color:var(--primary-color);
+  color:var(--text-color);
+  background-color: var(--background-color);
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }
 
@@ -76,6 +112,7 @@ button {
   font-weight: 500;
   font-family: inherit;
   background-color: var(--outline-color);
+  color:var(--text-color-control);
   cursor: pointer;
   transition: border-color 0.25s;
 }
@@ -93,17 +130,4 @@ hr {
 	border-top: 1px solid var(--primary-accent-color);
 	margin: 1em 0;
 	padding: 0;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    background-color: var(--background-color);
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: var(--primary-accent-color);
-    color: var(--background-color);
-  }
 }

@@ -4,11 +4,12 @@ import { invoke } from '@tauri-apps/api'
 import { onMount, onDestroy } from 'svelte';
 import { afterUpdate } from 'svelte';
 import { Jumper } from 'svelte-loading-spinners'
-import PlusSign from './plus-sign-svg.svelte';
 import MessageContent from "./MessageContent.svelte"
+import MessageInput from './MessageInput.svelte';
 import type {Message} from "./channel";
 import {Channel} from "./channel";
 import User from './User.svelte';
+
 
 type Response = {
     kind : number,
@@ -34,7 +35,6 @@ export let channel : string;
 
 let listMessages : Map<string, Channel> = new Map<string, Channel>([[
     channel, new Channel]]);
-let messageToSend :string = ""
 let topic :string = ""
 let channelNameSelected :string = channel ?? "";
 
@@ -98,9 +98,20 @@ onMount(async () => {
         listMessages = listMessages;
 
         if(channelNameSelected !== channelOrigin) {
-        messagesUnreadChannel.add(channelOrigin);
-        messagesUnreadChannel = messagesUnreadChannel;
+            messagesUnreadChannel.add(channelOrigin);
+            messagesUnreadChannel = messagesUnreadChannel;
+        }
     }
+    else if(data.command === "NOTICE") {
+        message.date = new Date();
+        message.highlight = isMessageHighlight(message.content);
+        currentChannel?.pushMessage(message)
+        listMessages = listMessages;
+
+        if(channelNameSelected !== channelOrigin) {
+            messagesUnreadChannel.add(channelOrigin);
+            messagesUnreadChannel = messagesUnreadChannel;
+        }
     }
     else if(data.command === "JOIN") {
         if(message.nick_name === nickName)
@@ -134,46 +145,60 @@ onMount(async () => {
     }
     })
 
-    invoke('read_messages').finally(()=> {
-        getUsers().then((data)=> {
-            users = data as User[];
-        })
+    invoke('read_messages')
+    .catch(e=>console.error(e))
+    .finally(()=> {
+        updateUsers();
         isLoaded = true;
     })
 
 });
 
 onDestroy(async ()=> {
-    //invoke('disconnect', {message:"Bye"});
+   // invoke('disconnect', {message:"Bye"});
 })
 
 function updateUsers() {
     getUsers().then((data)=> {
         users = data as User[];
-    })
+    }).catch(e=>{console.error(e)});
+    
 }
 
 function sendCurrentMessage(inMessageContent : string) {
     let message : Message;
-    message = {nick_name:nickName, content:inMessageContent, date: new Date(), highlight:false}
 
-    if(!listMessages.has(channelNameSelected)) {
-        listMessages.set(channelNameSelected, new Channel(message))
+    const isCommand : boolean = inMessageContent.at(0) == "/"
+    message = {nick_name:nickName, content:inMessageContent, date: new Date(), highlight:false}
+    
+    if(!isCommand) {
+        if(!listMessages.has(channelNameSelected)) {
+            listMessages.set(channelNameSelected, new Channel(message))
+        }
+        else {
+            messagesSelected.push(message);
+        }
+        console.log("send message")
+        invoke('send_message', {message:inMessageContent, channel:channelNameSelected})
+        .then(()=> {})
+        .catch(e=>console.error(e));
+        listMessages = listMessages;
     }
     else {
-        messagesSelected.push(message);
-    }
-    invoke('send_message', {message:messageToSend, channel:channelNameSelected}).then(()=> {
+        let command = inMessageContent.split(" ");
+        const commandName = command.at(0)?.substring(1);
+        invoke('send_irc_command', {command:commandName, args:command.slice(1)}).then(()=> {
 
-    })
-    listMessages = listMessages;
+        })
+    }
+
 }
 
 function getUsers() {
-    return new Promise(resolve=> {
-        invoke('get_users').then((data)=> {
-        resolve(data)
-    })
+    return new Promise((resolve, reject)=> {
+        invoke('get_users')
+        .then((data)=> {resolve(data)})
+        .catch(e=>{reject(e)})
     })
 }
 
@@ -235,25 +260,15 @@ function changeChannel(inChannel : string) {
     
         <div class="wrapper-writter">
             <div class="write-section">
-                <input type="text" bind:value={messageToSend} 
-                on:keyup={(e)=>{
-                    if(e.key==='Enter') {
-                        sendCurrentMessage(messageToSend)
-                        messageToSend = "";
-                    }
-                    }}>
-                <button on:click={(event)=> {
-                   sendCurrentMessage(messageToSend)
-                   messageToSend = ""
-    
-                }}><PlusSign width=15 height=15></PlusSign></button>
+                <MessageInput on:send_message={(event)=>{sendCurrentMessage(event.detail)}}>
+                </MessageInput>
             </div>
         </div>
     
     </div>
 
     <div class="list-users">
-        <User on:channel_changed={()=>{changeChannel(channel)}}
+        <User on:channel_changed={()=>{changeChannel(channel);}}
         channelName={channel}
         isSelectable={true}
         unread={messagesUnreadChannel.has(channel)}
@@ -339,18 +354,6 @@ function changeChannel(inChannel : string) {
         max-width: calc(100vw - 120px);
     }
 
-    input {
-        width: 100%;
-    }
-
-    button {
-        padding: 0px;
-        border-radius: 4px;
-        padding-left: 4px;
-        padding-right: 4px;
-        margin-left: 2px;
-    }
-
     .write-section {
         display: flex;
         flex-direction: row;
@@ -398,7 +401,7 @@ function changeChannel(inChannel : string) {
     }
 
     .message-content-highlight {
-        background-color: var(--secondary-accent-color-light);
+        background-color: var(--highlight-color);
     }
 
     .date {
@@ -409,7 +412,7 @@ function changeChannel(inChannel : string) {
 
     .username {
         font-weight: bold;
-        color: var(--primary-accent-color)
+        color: var(--secondary-accent-color)
     }
 
     .username-me {

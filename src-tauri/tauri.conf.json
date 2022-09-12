@@ -12,13 +12,18 @@
   },
   "tauri": {
     "allowlist": {
-      "all": true,
+      "all":false,
       "fs": {
-        "all":true,
+        "readFile":true,
+        "writeFile":true, 
+        "createDir":true,
         "scope": ["$CONFIG/share-app", "$CONFIG/share-app/*"]
       },
       "path": {
         "all": true
+      },
+      "shell": {
+        "open": true
       }
     },
     "bundle": {
