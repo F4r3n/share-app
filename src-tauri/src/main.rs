@@ -4,6 +4,10 @@
 )]
 use irc::{client::{prelude::*}};
 use futures::{prelude::*, lock::Mutex};
+use tauri::{
+  AboutMetadata, AppHandle, CustomMenuItem, Manager, Menu, MenuEntry, MenuItem, Submenu,
+  WindowBuilder, WindowUrl,
+};
 
 #[derive(Clone, serde::Serialize)]
 struct ResponseMessage {
@@ -23,6 +27,7 @@ struct Payload {
 #[derive(Clone, serde::Serialize)]
 enum EVENT {
   Quit,
+  ErrorConnection
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -60,6 +65,8 @@ impl IRC {
   pub fn get_users(& self)-> Option<Vec<irc::client::data::User>> {
     return self.client.as_ref().unwrap().list_users(&self.channel);
   }
+
+
   pub fn send_quit(& self, message : &str)-> Result<(), String> {
     match self.client.as_ref().unwrap().send_quit(message) {
       Ok(()) => Ok(()),
@@ -77,9 +84,10 @@ impl IRC {
 
 
 pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStream) -> Result<(), irc::error::Error> {
+  
+  println!("READ");
   while let Some(message) = stream.next().await.transpose()? {
      print!("{}", message);
-      
      let mut pay_load = Payload{content : String::from(""),
                                     nick_name : String::from(""),
                                     command : String::from(""),
@@ -93,18 +101,18 @@ pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStr
         if let Some(nick_name) = message.source_nickname() {
           pay_load.nick_name = String::from(nick_name);
         }
-        pay_load.content = msg.to_owned();
+        pay_load.content = irc::proto::FormattedStringExt::strip_formatting(msg.as_str()).to_string();
       },
       Command::NOTICE(ref _target, ref msg) => {
         pay_load.command = String::from("NOTICE");
         if let Some(nick_name) = message.source_nickname() {
           pay_load.nick_name = String::from(nick_name);
         }
-        pay_load.content = msg.to_owned();
+        pay_load.content = irc::proto::FormattedStringExt::strip_formatting(msg.as_str()).to_string();
       },
       Command::Response(response, ref msg) => {
         pay_load.command = String::from("RESPONSE");
-        pay_load.response = Some(ResponseMessage{kind:response as u16, content: msg.clone()});
+        pay_load.response = Some(ResponseMessage{kind:response as u16, content: msg.clone()}); 
       },
       Command::QUIT(ref comment) => {
         pay_load.command = String::from("QUIT");
@@ -138,17 +146,24 @@ pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStr
         if let Some(nick_name) = message.source_nickname() {
           pay_load.nick_name = nick_name.to_owned();
         }
-        
       },
-      Command::NAMES(_channel, target) => {
+      Command::NAMES(_channel, _target) => {
+      },
+      Command::ERROR(err) => {
+        pay_load.command = String::from("ERROR");
+        pay_load.content = err.to_string();
+      },
+      Command::NICK(ref new_nick_name) => {
+        pay_load.command = String::from("NICK");
+        if let Some(nick_name) = message.source_nickname() {
+          pay_load.nick_name = nick_name.to_owned();
+        }        
+        pay_load.content = new_nick_name.to_owned();
       },
       _ =>()
      }
      window.emit("irc-recieved", pay_load);
  }
-
-  window.emit("irc-event", Event{kind:EVENT::Quit});
-
 
  Ok(())
 }
@@ -195,7 +210,7 @@ fn read_messages(window: tauri::Window, irc : tauri::State<'_, IRCState>) -> Res
 fn loggin(nick_name : &str, server : &str, channel : &str, password : &str, irc : tauri::State<'_, IRCState>)->Result<(), String> {
   let mut state_guard = irc.0.try_lock().expect("ERROR");
   if state_guard.client.is_none() {
-
+    println!("Connect");
     state_guard.channel = channel.to_owned();
     state_guard.client = tauri::async_runtime::block_on(async {
       let client = match irc_login(nick_name, server, channel, password).await {
@@ -203,7 +218,7 @@ fn loggin(nick_name : &str, server : &str, channel : &str, password : &str, irc 
           Err(_e) => None
       };
     return client;
-  });
+    });
   }
 
   match &state_guard.client {
@@ -217,6 +232,8 @@ fn send_message( message : &str, channel : &str, irc : tauri::State<'_, IRCState
   let state_guard = irc.0.try_lock().expect("ERROR");
   state_guard.send_message(message, channel)
 }
+
+
 
 #[tauri::command]
 fn get_users(irc : tauri::State<'_, IRCState>) -> Vec<User> {
@@ -233,18 +250,27 @@ fn get_users(irc : tauri::State<'_, IRCState>) -> Vec<User> {
 }
 
 #[tauri::command]
-fn disconnect(message : &str, irc : tauri::State<'_, IRCState>) -> Result<(), String>
+fn disconnect(window: tauri::Window, message : &str, shall_send_message : bool, wrong_identifier : bool, irc : tauri::State<'_, IRCState>) -> Result<(), String>
 {
   let mut client = irc.0.try_lock().expect("ERROR");
-  let result : Result<(), String> = match client.send_quit(message) {
-    Ok(())=>Ok(()),
-    Err(e)=>Err(e)
-  };
-  if result.is_ok() {
-    client.client = None;
+  if shall_send_message {
+    let result : Result<(), String> = match client.send_quit(message) {
+      Ok(())=>Ok(()),
+      Err(e)=>Err(e)
+    };
   }
+
+  client.client = None;
+  if wrong_identifier {
+    window.emit("irc-event", Event{kind:EVENT::ErrorConnection});
+  }
+  else {
+    window.emit("irc-event", Event{kind:EVENT::Quit});
+  }
+
   Ok(())
 }
+
 
 #[tauri::command]
 fn send_irc_command(command : &str, args : Vec<String>, irc : tauri::State<'_, IRCState>) -> Result<(), String>
@@ -263,6 +289,63 @@ fn main() {
     disconnect,
     send_irc_command,
     get_users])
+    .menu(Menu::with_items([
+      #[cfg(target_os = "macos")]
+      MenuEntry::Submenu(Submenu::new(
+        &ctx.package_info().name,
+        Menu::with_items([
+          MenuItem::About(ctx.package_info().name.clone(), AboutMetadata::default()).into(),
+          MenuItem::Separator.into(),
+          MenuItem::Services.into(),
+          MenuItem::Separator.into(),
+          MenuItem::Hide.into(),
+          MenuItem::HideOthers.into(),
+          MenuItem::ShowAll.into(),
+          MenuItem::Separator.into(),
+          MenuItem::Quit.into(),
+        ]),
+      )),
+      MenuEntry::Submenu(Submenu::new(
+        "File",
+        Menu::with_items([
+          CustomMenuItem::new("Open...", "Open...")
+            .accelerator("cmdOrControl+O")
+            .into(),
+          MenuItem::Separator.into(),
+          CustomMenuItem::new("Close", "Close")
+            .accelerator("cmdOrControl+W")
+            .into(),
+        ]),
+      )),
+      MenuEntry::Submenu(Submenu::new(
+        "Edit",
+        Menu::with_items([
+          MenuItem::Undo.into(),
+          MenuItem::Redo.into(),
+          MenuItem::Separator.into(),
+          MenuItem::Cut.into(),
+          MenuItem::Copy.into(),
+          MenuItem::Paste.into(),
+          #[cfg(not(target_os = "macos"))]
+          MenuItem::Separator.into(),
+          MenuItem::SelectAll.into(),
+        ]),
+      )),
+      MenuEntry::Submenu(Submenu::new(
+        "View",
+        Menu::with_items([MenuItem::EnterFullScreen.into()]),
+      )),
+      MenuEntry::Submenu(Submenu::new(
+        "Window",
+        Menu::with_items([MenuItem::Minimize.into(), MenuItem::Zoom.into()]),
+      )),
+      // You should always have a Help menu on macOS because it will automatically
+      // show a menu search field
+      MenuEntry::Submenu(Submenu::new(
+        "Help",
+        Menu::with_items([CustomMenuItem::new("Learn More", "Learn More").into()]),
+      )),
+    ]))
   .manage(IRCState(Mutex::new(IRC{client : None, channel : String::from("")})))
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

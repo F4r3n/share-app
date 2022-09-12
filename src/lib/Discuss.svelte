@@ -9,20 +9,10 @@ import MessageInput from './MessageInput.svelte';
 import type {Message} from "./channel";
 import {Channel} from "./channel";
 import User from './User.svelte';
+import { createEventDispatcher } from 'svelte';
+const dispatch = createEventDispatcher();
 
-
-type Response = {
-    kind : number,
-    content : string[];
-}
-
-type MessageFromIRC = {
-    nick_name: string;
-    content: string;
-    command : string;
-    channel : string;
-    response?: Response
-}
+import type {MessageFromIRC} from './MessageType';
 
 
 type User = {
@@ -72,7 +62,6 @@ function refreshScroll() {
 onMount(async () => {
     await listen('irc-recieved', (event) => {
     let data : MessageFromIRC = event.payload as MessageFromIRC
-
     let message : Message = {} as Message;
     message.content = data.content;
     message.nick_name = data.nick_name;
@@ -136,11 +125,30 @@ onMount(async () => {
         updateUsers();
     }
     else if(data.command === "RESPONSE"){
+        
         if(data.response?.kind === 353) { //users
             updateUsers();
         }
         else if(data.response?.kind === 332) {
             topic = data.response?.content.at(-1) ?? ""
+        }
+        else if(data.response?.kind === 1) {
+            isLoaded = true;
+        }
+    }
+    else if(data.command === "NICK") {
+        nickName = data.content;
+        updateUsers();
+    }
+    else if(data.command === "ERROR"){
+        if(!isLoaded) {
+            setTimeout(()=> {
+                console.log("disconnect")
+                invoke("disconnect", {message:"", shallSendMessage: false, wrongIdentifier:true }).then(()=> {
+                dispatch("connection_status", false)
+            })
+            }, 1000)
+
         }
     }
     })
@@ -149,7 +157,6 @@ onMount(async () => {
     .catch(e=>console.error(e))
     .finally(()=> {
         updateUsers();
-        isLoaded = true;
     })
 
 });
@@ -178,7 +185,6 @@ function sendCurrentMessage(inMessageContent : string) {
         else {
             messagesSelected.push(message);
         }
-        console.log("send message")
         invoke('send_message', {message:inMessageContent, channel:channelNameSelected})
         .then(()=> {})
         .catch(e=>console.error(e));

@@ -15,10 +15,6 @@ type Token = {
     export let content = ""
     let regex : RegExp = /(http:\/\/|https:\/\/){1}(www.)?.[^\s]+/g
 
-    async function clean(inContent : string) : Promise<string> {
-        return invoke("sanitize_html", {message:inContent});
-    }
-
     function isASCIIArt(inLine : string) {
         let isNormal = false;
         for(let c of inLine) {
@@ -40,7 +36,6 @@ type Token = {
 
     function createTokens(inContent : string) : Token[] {
         let tokens : Token[] = [] as Token[];
-        console.log("createTokens ", inContent)
         let match = null;
         let start = 0;
         let end = inContent.length;
@@ -48,7 +43,6 @@ type Token = {
             if(match.index != start) {
                 tokens.push({type:"RAW", content:inContent.substring(start, match.index), href:""})
             }
-            console.log(match)
             start = match.index;
             const url = inContent.substring(match.index, match.index + match[0].length)
             start = match.index + match[0].length;
@@ -59,7 +53,6 @@ type Token = {
         if(end !== start) {
             tokens.push({type:"RAW", content:inContent.substring(start, end), href:""})
         }
-        console.log(tokens)
         return tokens;
     }
 
