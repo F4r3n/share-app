@@ -10,6 +10,8 @@ import type {Message} from "./channel";
 import {Channel} from "./channel";
 import User from './User.svelte';
 import { createEventDispatcher } from 'svelte';
+import { appWindow, UserAttentionType } from '@tauri-apps/api/window';
+
 const dispatch = createEventDispatcher();
 
 import type {MessageFromIRC} from './MessageType';
@@ -60,7 +62,7 @@ function refreshScroll() {
 }
 
 onMount(async () => {
-    await listen('irc-recieved', (event) => {
+    await listen('irc-recieved', async (event) => {
     let data : MessageFromIRC = event.payload as MessageFromIRC
     let message : Message = {} as Message;
     message.content = data.content;
@@ -89,6 +91,15 @@ onMount(async () => {
         if(channelNameSelected !== channelOrigin) {
             messagesUnreadChannel.add(channelOrigin);
             messagesUnreadChannel = messagesUnreadChannel;
+        }
+
+        if(message.highlight)
+        {
+            await appWindow.requestUserAttention(UserAttentionType.Critical);
+        }
+        else
+        {
+            await appWindow.requestUserAttention(UserAttentionType.Informational);
         }
     }
     else if(data.command === "NOTICE") {

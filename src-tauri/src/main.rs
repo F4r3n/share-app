@@ -280,6 +280,7 @@ fn send_irc_command(command : &str, args : Vec<String>, irc : tauri::State<'_, I
 }
 
 fn main() {
+  let context = tauri::generate_context!();
 
   tauri::Builder::default()
   .invoke_handler(tauri::generate_handler![
@@ -292,9 +293,9 @@ fn main() {
     .menu(Menu::with_items([
       #[cfg(target_os = "macos")]
       MenuEntry::Submenu(Submenu::new(
-        &ctx.package_info().name,
+        &context.package_info().name,
         Menu::with_items([
-          MenuItem::About(ctx.package_info().name.clone(), AboutMetadata::default()).into(),
+          MenuItem::About(context.package_info().name.clone(), AboutMetadata::default()).into(),
           MenuItem::Separator.into(),
           MenuItem::Services.into(),
           MenuItem::Separator.into(),
@@ -347,6 +348,6 @@ fn main() {
       )),
     ]))
   .manage(IRCState(Mutex::new(IRC{client : None, channel : String::from("")})))
-    .run(tauri::generate_context!())
+    .run(context)
     .expect("error while running tauri application");
 }
