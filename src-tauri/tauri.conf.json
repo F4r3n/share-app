@@ -23,7 +23,7 @@
         "all": true
       },
       "shell": {
-        "open": true
+        "open": false
       },
       "window": {
         "all": false,
@@ -51,6 +51,11 @@
         "startDragging": false,
         "unmaximize": false,
         "unminimize": false
+      },
+      "http": {
+        "all": false,
+        "request": true,
+        "scope": ["https://**"]
       }
     },
     "bundle": {
