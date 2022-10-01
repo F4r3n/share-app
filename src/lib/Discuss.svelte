@@ -125,15 +125,15 @@ onMount(async () => {
         updateUsers();
     }
     else if(data.command === "QUIT") {
-        currentChannel?.pushMessage({nick_name:"", content:`${message.nick_name} has quit`, date:new Date() } as Message)
+        let quitMessage = message.content.replace("Quit:", "")
+        currentChannel?.pushMessage({nick_name:"", content:`${message.nick_name} has quit (${quitMessage})`, date:new Date() } as Message)
         listMessages = listMessages;
         updateUsers();
     }
     else if(data.command === "TOPIC") {
-        message.date = new Date();
-        currentChannel?.pushMessage(message)
+        currentChannel?.pushMessage({nick_name:"", content:`${message.nick_name} has changed the topic to: '${data.content}' `, date:new Date() } as Message)
         listMessages = listMessages;
-        updateUsers();
+        topic = data.content;
     }
     else if(data.command === "RESPONSE"){
         
