@@ -1,8 +1,8 @@
 <script lang="ts">
-import { invoke } from "@tauri-apps/api/tauri";
 import { onMount } from 'svelte';
 import { createEventDispatcher } from 'svelte';
 import MessageRenderer from "./MessageRenderer/MessageRenderer.svelte"
+import { afterUpdate } from 'svelte';
 
 type Token = {
         type: string,
@@ -14,10 +14,6 @@ type Token = {
     let isASCII = false;
     export let content = ""
     let regex : RegExp = /(http:\/\/|https:\/\/){1}(www.)?.[^\s]+/g
-
-    async function clean(inContent : string) : Promise<string> {
-        return invoke("sanitize_html", {message:inContent});
-    }
 
     function isASCIIArt(inLine : string) {
         let isNormal = false;
@@ -35,12 +31,13 @@ type Token = {
 
     onMount(async () => {
         isASCII = isASCIIArt(content);
-        dispatch("message-formatted");
     });
+
+    afterUpdate(() => {
+  });
 
     function createTokens(inContent : string) : Token[] {
         let tokens : Token[] = [] as Token[];
-        console.log("createTokens ", inContent)
         let match = null;
         let start = 0;
         let end = inContent.length;
@@ -48,7 +45,6 @@ type Token = {
             if(match.index != start) {
                 tokens.push({type:"RAW", content:inContent.substring(start, match.index), href:""})
             }
-            console.log(match)
             start = match.index;
             const url = inContent.substring(match.index, match.index + match[0].length)
             start = match.index + match[0].length;
@@ -59,13 +55,12 @@ type Token = {
         if(end !== start) {
             tokens.push({type:"RAW", content:inContent.substring(start, end), href:""})
         }
-        console.log(tokens)
         return tokens;
     }
 
 </script>
 <div class="message" class:message-ascii={isASCII}>
-    <MessageRenderer tokens={createTokens(content)}></MessageRenderer>
+    <MessageRenderer on:message_formatted={() => {dispatch("message_formatted")}} tokens={createTokens(content)}></MessageRenderer>
 </div>
 <style>
     .message {

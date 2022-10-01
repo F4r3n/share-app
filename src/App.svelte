@@ -5,14 +5,14 @@
   import {config} from './lib/config'
   import { createEventDispatcher } from 'svelte';
   import { listen } from '@tauri-apps/api/event'
+import { invoke } from '@tauri-apps/api/tauri';
 
-  const dispatch = createEventDispatcher();
   let nickName="pickles"
   let server="chat.freenode.net" 
   let channel="#rust-spam"
   let password=""
 
-
+  let hasFailed = false;
 
   type Event = {
 
@@ -28,11 +28,15 @@
         {
           isConnected = false;
         }
+        else if(event.payload.kind =="ErrorConnection")
+        {
+          isConnected = false;
+          hasFailed = true;
+        }
     })
 
     await config.read();
     const c = config.getConnectionConfig();
-    console.log(c)
     if(c.hasOwnProperty("nickName"))
       nickName = c.nickName;
     if(c.hasOwnProperty("server"))
@@ -45,6 +49,7 @@
   });
 
   onDestroy(async () => {
+    invoke("disconnect", {message:"bye", shallSendMessage:true, wrongIdentifer:false});
     config.write();
   });
 
@@ -54,11 +59,12 @@
 <main>
   {#if !isConnected}
 
-  <Connection 
+  <Connection
   bind:nickName={nickName} 
   bind:server={server} 
   bind:channel={channel}
   bind:password={password}
+  {hasFailed}
   on:connected={() => {
     isConnected = true;
     config.setConnectionSettings(nickName, server, channel, password);
@@ -67,7 +73,9 @@
   </Connection>
 
   {:else}
-  <Discuss nickName={nickName} channel={channel}></Discuss>
+  <Discuss  on:connection_status={(event)=> {isConnected = event.detail;}}
+  nickName={nickName} 
+  channel={channel}></Discuss>
   {/if}
 </main>
 

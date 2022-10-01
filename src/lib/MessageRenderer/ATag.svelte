@@ -3,19 +3,20 @@
     import { onMount, onDestroy } from 'svelte';
 
     export let href : string;
-
+    
     onMount(async ()=> {
         link.addEventListener("click", function(event) {
                 open(link.href);
                 event.preventDefault();
-            }, false);
+        }, false);
     })
 
     onDestroy(async ()=> {
 
     })
 
+
     let link : HTMLAnchorElement;
 </script>
 
-<a target="_blank" bind:this={link} href={href}><slot></slot></a>
+<a target="" bind:this={link} href={href}><slot></slot></a>
