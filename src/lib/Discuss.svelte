@@ -10,6 +10,8 @@ import type {Message} from "./channel";
 import {Channel} from "./channel";
 import User from './User.svelte';
 import { createEventDispatcher } from 'svelte';
+import { appWindow, UserAttentionType } from '@tauri-apps/api/window';
+
 const dispatch = createEventDispatcher();
 
 import type {MessageFromIRC} from './MessageType';
@@ -60,7 +62,7 @@ function refreshScroll() {
 }
 
 onMount(async () => {
-    await listen('irc-recieved', (event) => {
+    await listen('irc-recieved', async (event) => {
     let data : MessageFromIRC = event.payload as MessageFromIRC
     let message : Message = {} as Message;
     message.content = data.content;
@@ -90,6 +92,15 @@ onMount(async () => {
             messagesUnreadChannel.add(channelOrigin);
             messagesUnreadChannel = messagesUnreadChannel;
         }
+
+        if(message.highlight)
+        {
+            await appWindow.requestUserAttention(UserAttentionType.Critical);
+        }
+        else
+        {
+            await appWindow.requestUserAttention(UserAttentionType.Informational);
+        }
     }
     else if(data.command === "NOTICE") {
         message.date = new Date();
@@ -114,15 +125,15 @@ onMount(async () => {
         updateUsers();
     }
     else if(data.command === "QUIT") {
-        currentChannel?.pushMessage({nick_name:"", content:`${message.nick_name} has quit`, date:new Date() } as Message)
+        let quitMessage = message.content.replace("Quit:", "")
+        currentChannel?.pushMessage({nick_name:"", content:`${message.nick_name} has quit (${quitMessage})`, date:new Date() } as Message)
         listMessages = listMessages;
         updateUsers();
     }
     else if(data.command === "TOPIC") {
-        message.date = new Date();
-        currentChannel?.pushMessage(message)
+        currentChannel?.pushMessage({nick_name:"", content:`${message.nick_name} has changed the topic to: '${data.content}' `, date:new Date() } as Message)
         listMessages = listMessages;
-        updateUsers();
+        topic = data.content;
     }
     else if(data.command === "RESPONSE"){
         
@@ -253,7 +264,7 @@ function changeChannel(inChannel : string) {
                     <div class="message-content"
                     class:message-content-highlight={message.highlight}
                     class:message-content-system={message.nick_name === ""}>
-                        <MessageContent on:message-formatted={()=>{
+                        <MessageContent on:message_formatted={()=>{
                            updateScroll = isScrollAtTheEnd(); refreshScroll();}}
                            content={message.content}></MessageContent>
                     </div>

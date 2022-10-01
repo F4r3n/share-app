@@ -1,8 +1,8 @@
 <script lang="ts">
-import { invoke } from "@tauri-apps/api/tauri";
 import { onMount } from 'svelte';
 import { createEventDispatcher } from 'svelte';
 import MessageRenderer from "./MessageRenderer/MessageRenderer.svelte"
+import { afterUpdate } from 'svelte';
 
 type Token = {
         type: string,
@@ -31,8 +31,10 @@ type Token = {
 
     onMount(async () => {
         isASCII = isASCIIArt(content);
-        dispatch("message-formatted");
     });
+
+    afterUpdate(() => {
+  });
 
     function createTokens(inContent : string) : Token[] {
         let tokens : Token[] = [] as Token[];
@@ -58,7 +60,7 @@ type Token = {
 
 </script>
 <div class="message" class:message-ascii={isASCII}>
-    <MessageRenderer tokens={createTokens(content)}></MessageRenderer>
+    <MessageRenderer on:message_formatted={() => {dispatch("message_formatted")}} tokens={createTokens(content)}></MessageRenderer>
 </div>
 <style>
     .message {
