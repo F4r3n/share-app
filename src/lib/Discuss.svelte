@@ -264,7 +264,7 @@ function changeChannel(inChannel : string) {
                     <div class="message-content"
                     class:message-content-highlight={message.highlight}
                     class:message-content-system={message.nick_name === ""}>
-                        <MessageContent on:message-formatted={()=>{
+                        <MessageContent on:message_formatted={()=>{
                            updateScroll = isScrollAtTheEnd(); refreshScroll();}}
                            content={message.content}></MessageContent>
                     </div>

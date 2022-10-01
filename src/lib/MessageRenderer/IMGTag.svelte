@@ -1,32 +1,14 @@
 <script lang="ts">
-import ATag from "./ATag.svelte";
-export let href : string;
+    import { createEventDispatcher } from 'svelte';
+    const dispatch = createEventDispatcher();
+
+    export let href : string;
 </script>
 
-<div class="image-container">
-    <ATag {href}>{href}</ATag>
-    <div class="image">
-        <img src={href} alt={href}>
-    </div>
+<div class="image">
+    <img width=300px on:load={()=> {dispatch("message_formatted")}} src={href} alt={href}>
 </div>
 
 <style>
-
-.image-container {
-    display: flex;
-    flex-direction: column;
-
-    border-style: solid;
-    border-radius: 5px;
-    border-width: 2px;
-    border-color: var(--secondary-accent-color);
-    padding: 10px;
-}
-
-.image {
-    margin: auto;
-    width: 30%;
-    height: 30%;
-}
 
 </style>

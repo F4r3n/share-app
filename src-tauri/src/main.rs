@@ -126,6 +126,18 @@ pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStr
         }
         
       },
+      Command::PART(ref _channel, ref comment) => {
+        pay_load.command = String::from("QUIT");
+
+        if let Some(comment) = comment {
+          pay_load.content = comment.to_string();
+        }
+        
+        if let Some(nick_name) = message.source_nickname() {
+          pay_load.nick_name = nick_name.to_owned();
+        }
+        
+      },
       Command::JOIN(ref _channel, ref _chan_keys, ref name) => {
         pay_load.command = String::from("JOIN");
         if let Some(name) = name {
