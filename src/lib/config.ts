@@ -1,5 +1,6 @@
 import { configDir, join, BaseDirectory } from '@tauri-apps/api/path';
 import { readTextFile, writeTextFile, createDir } from '@tauri-apps/api/fs';
+import { invoke } from '@tauri-apps/api'
 import { load, dump } from "js-yaml";
 
 type ConnectionConfig = {
@@ -9,8 +10,14 @@ type ConnectionConfig = {
     password : string;
 }
 
+type UploadImageConfig = {
+    url : string;
+    token : string
+}
+
 type Setting = {
-    connectionConfig : ConnectionConfig
+    connectionConfig : ConnectionConfig;
+    uploadImage : UploadImageConfig;
 }
 
 class Config {
@@ -24,13 +31,19 @@ class Config {
             channel: "",
             password: ""
         } as ConnectionConfig
+
+        this.config.uploadImage = {
+            url: "",
+            token: ""
+        } as UploadImageConfig
+
     }
     
     async init() {
 
     }
 
-    setConnectionSettings(inNickName, inServer, inChannel, inPassword) {
+    setConnectionSettings(inNickName : string, inServer : string, inChannel : string, inPassword : string) {
         this.config.connectionConfig  = {
             nickName: inNickName,
             server: inServer,
@@ -43,9 +56,8 @@ class Config {
         return this.config.connectionConfig;
     }
 
-    async _getConfigDir() {
-        const configDirPath = await configDir();
-        return await join(configDirPath, 'share-app');
+    async _getConfigDir() : Promise<string> {
+        return invoke("get_config_dir_command")
     }
     
     async _getConfigPath() {
@@ -57,7 +69,7 @@ class Config {
         return this.config;
     }
     
-    setConfig(inConfig) {
+    setConfig(inConfig : Setting) {
         this.config = inConfig;
     }
     
@@ -68,9 +80,8 @@ class Config {
             let data = load(content);
             if(data.hasOwnProperty("connectionConfig"))
                 this.config.connectionConfig = data["connectionConfig"]
-            //this.config = data;
         }catch(e) {
-            //console.log(e);
+            console.error(e);
         }
     }
     

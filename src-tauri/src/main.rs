@@ -2,11 +2,20 @@
   all(not(debug_assertions), target_os = "windows"),
   windows_subsystem = "windows"
 )]
+
+mod clipboard;
+mod path;
 use irc::{client::{prelude::*}};
 use futures::{prelude::*, lock::Mutex};
+
+use tauri::{ 
+  CustomMenuItem,
+   Menu, MenuEntry, MenuItem, Submenu,
+};
+
+#[cfg(target_os = "macos")]
 use tauri::{
-  AboutMetadata, AppHandle, CustomMenuItem, Manager, Menu, MenuEntry, MenuItem, Submenu,
-  WindowBuilder, WindowUrl,
+  AboutMetadata
 };
 
 #[derive(Clone, serde::Serialize)]
@@ -266,7 +275,7 @@ fn disconnect(window: tauri::Window, message : &str, shall_send_message : bool, 
 {
   let mut client = irc.0.try_lock().expect("ERROR");
   if shall_send_message {
-    let result : Result<(), String> = match client.send_quit(message) {
+    match client.send_quit(message) {
       Ok(())=>Ok(()),
       Err(e)=>Err(e)
     };
@@ -291,6 +300,25 @@ fn send_irc_command(command : &str, args : Vec<String>, irc : tauri::State<'_, I
   client.send_irc_command(command, args)
 }
 
+
+
+#[tauri::command]
+fn get_config_dir_command() -> Result<String, String>
+{
+  if let Some(config_dir) = path::get_config_dir() {
+   return Ok(String::from(config_dir.to_str().unwrap()))
+  }
+  return Err(String::from("Path not found"));
+}
+
+
+
+#[tauri::command]
+fn get_image_clipboard() -> Result<String, String>
+{
+  clipboard::get_image_clipboard().map_err(|e|e.to_string())
+}
+
 fn main() {
   let context = tauri::generate_context!();
 
@@ -301,6 +329,8 @@ fn main() {
     send_message,
     disconnect,
     send_irc_command,
+    get_config_dir_command,
+    get_image_clipboard,
     get_users])
     .menu(Menu::with_items([
       #[cfg(target_os = "macos")]
