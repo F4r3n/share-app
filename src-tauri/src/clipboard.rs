@@ -1,7 +1,6 @@
 
-use arboard::{Clipboard, ImageData};
+use arboard::{Clipboard};
 use uuid::Uuid;
-use anyhow::Error;
 
 #[path = "./path.rs"]
 mod path;

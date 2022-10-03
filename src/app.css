@@ -72,7 +72,7 @@
 html, body {
 	position: relative;
 	width: 100%;
-	height: 100%;
+  height: 100vh;
 }
 
 body {
@@ -119,8 +119,4 @@ hr {
 	border-top: 1px solid var(--primary-accent-color);
 	margin: 1em 0;
 	padding: 0;
-}
-
-
-input{
 }

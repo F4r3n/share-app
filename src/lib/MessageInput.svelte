@@ -46,11 +46,6 @@ let listImages : string[] = []
 </script>
 
 <main>
-<div>TEST</div>
-<div>TEST</div>
-<div>TEST</div>
-<div>TEST</div>
-
 <div class="main-input">
     <input type="text" bind:this={input} bind:value={messageToSend}
     on:keyup={(e)=>{
@@ -78,6 +73,7 @@ let listImages : string[] = []
         flex-direction: column;
 
         width: 100%;
+        margin: auto;
     }
 
     .main-input {
@@ -87,7 +83,7 @@ let listImages : string[] = []
     }
 
     input {
-        width: 100%;
+        flex-grow: 1;
     }
 
     button {

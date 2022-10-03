@@ -1,7 +1,6 @@
 
 use std::path::PathBuf;
 use std::fs;
-use anyhow::Error;
 
 pub fn get_config_dir() -> Option<PathBuf>
 {

@@ -92,7 +92,7 @@ impl IRC {
 }
 
 
-pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStream) -> Result<(), irc::error::Error> {
+pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStream) -> Result<(), anyhow::Error> {
   
   println!("READ");
   while let Some(message) = stream.next().await.transpose()? {
@@ -183,7 +183,7 @@ pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStr
       },
       _ =>()
      }
-     window.emit("irc-recieved", pay_load);
+     window.emit("irc-recieved", pay_load)?;
  }
 
  Ok(())
@@ -275,18 +275,15 @@ fn disconnect(window: tauri::Window, message : &str, shall_send_message : bool, 
 {
   let mut client = irc.0.try_lock().expect("ERROR");
   if shall_send_message {
-    match client.send_quit(message) {
-      Ok(())=>Ok(()),
-      Err(e)=>Err(e)
-    };
+    client.send_quit(message)?
   }
 
   client.client = None;
   if wrong_identifier {
-    window.emit("irc-event", Event{kind:EVENT::ErrorConnection});
+    window.emit("irc-event", Event{kind:EVENT::ErrorConnection}).map_err(|e|e.to_string());
   }
   else {
-    window.emit("irc-event", Event{kind:EVENT::Quit});
+    window.emit("irc-event", Event{kind:EVENT::Quit}).map_err(|e|e.to_string());
   }
 
   Ok(())
