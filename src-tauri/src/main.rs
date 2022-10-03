@@ -316,6 +316,15 @@ fn get_image_clipboard() -> Result<String, String>
   clipboard::get_image_clipboard().map_err(|e|e.to_string())
 }
 
+#[tauri::command]
+fn decode_base64(message : &str) -> Result<Vec<u8>, String>
+{
+  match base64::decode(message) {
+    Ok(vector) => Ok(vector),
+    Err(e) => Err(e.to_string())
+  }
+}
+
 fn main() {
   let context = tauri::generate_context!();
 
@@ -328,6 +337,7 @@ fn main() {
     send_irc_command,
     get_config_dir_command,
     get_image_clipboard,
+    decode_base64,
     get_users])
     .menu(Menu::with_items([
       #[cfg(target_os = "macos")]

@@ -11,8 +11,8 @@ type ConnectionConfig = {
 }
 
 type UploadImageConfig = {
-    url : string;
-    token : string
+    url_post : string;
+    url_get : string
 }
 
 type Setting = {
@@ -33,8 +33,8 @@ class Config {
         } as ConnectionConfig
 
         this.config.uploadImage = {
-            url: "",
-            token: ""
+            url_post: "",
+            url_get: "",
         } as UploadImageConfig
 
     }
@@ -80,6 +80,8 @@ class Config {
             let data = load(content);
             if(data.hasOwnProperty("connectionConfig"))
                 this.config.connectionConfig = data["connectionConfig"]
+            if(data.hasOwnProperty("uploadImage"))
+                this.config.uploadImage = data["uploadImage"]
         }catch(e) {
             console.error(e);
         }
