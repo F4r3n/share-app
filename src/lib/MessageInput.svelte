@@ -7,6 +7,7 @@ import { fetch, ResponseType } from '@tauri-apps/api/http';
 import { convertFileSrc } from '@tauri-apps/api/tauri';
 import {config} from './config'
 import { Body } from "@tauri-apps/api/http"
+import CloseButton from '../assets/circle-close.svelte'
 
 const dispatch = createEventDispatcher();
 let messageToSend : string;
@@ -72,9 +73,20 @@ let listImages : Image[] = []
 
 <main>
 
-{#each listImages as image}
-    <img width=150px src={"data:image/png;base64,"+ image.base64}>
-{/each}
+    <div class="row">
+        {#each listImages as image}
+        <div class="pasted-image">
+            <div class="top close" on:click={()=> {
+                messageToSend = messageToSend.replace(image.name, "")
+                listImages = listImages.filter((i)=>{i.name !== image.name})
+            }}>
+                <CloseButton width=20 height=20></CloseButton>
+            </div>
+            <img class="pasted-image" src={"data:image/png;base64,"+ image.base64} alt="current-paster {image.name}">
+        </div>
+    {/each}
+    </div>
+
 
 <div class="main-input">
     <input type="text" bind:this={input} bind:value={messageToSend}
@@ -101,6 +113,36 @@ let listImages : Image[] = []
 
 
 <style>
+
+    .pasted-image {
+        width: 150px;
+        max-height: 150px;
+        position: relative;
+    }
+
+    .row {
+        display: flex;
+        flex-direction: row;
+    }
+
+    .row img {
+        padding-right: 5px;
+    }
+
+    .top {
+        position: absolute;
+        left: calc(100% - 25px);
+        top:0px;
+        z-index: 10;
+    }
+
+    .close {
+        color: var(--text-color-control);
+    }
+
+    .close:hover {
+        color: rgb(255, 62, 62);
+    }
 
 
     main {

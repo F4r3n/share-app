@@ -20,6 +20,13 @@
 
 </script>
 
+<svelte:window on:keyup={(e) => {
+  console.log(e)
+  if(e.key == "Enter")
+    connect()
+}}/>
+
+
 <main>
   <div in:fade={{duration:100}} class="form_position">
     <form on:submit|preventDefault={connect} class="form">
