@@ -245,8 +245,8 @@ function changeChannel(inChannel : string) {
     {:else}
     <div class="discuss-section">
         <div class="topic">{topic}</div>
-        <div class="wrapper-messages" >
-            <div class="messages" bind:this={discussSection}>
+        <div class="wrapper-messages" bind:this={discussSection}>
+            <div class="messages" >
                 {#each getListMessages(listMessages, channelNameSelected) as message, id}
                 <div class="message" style="--space:{isSameMessage(id, message.nick_name) && id !== 0 ? "10px" : "0px"}">
                     {#if isSameMessage(id, message.nick_name)}
@@ -320,6 +320,7 @@ function changeChannel(inChannel : string) {
         display:inline-block;
         text-overflow: ellipsis;
         overflow: hidden;
+        min-height: 20px;
     }
 
     .loading {
@@ -332,6 +333,23 @@ function changeChannel(inChannel : string) {
 
     .loading-hide {
         visibility: hidden;
+    }
+
+
+
+    .user-item {
+        padding-left: 5px;
+        margin-top: 5px;
+        padding-right: 20px;
+    }
+
+
+    main {
+        max-height: 100%;
+        max-width: 100%;
+        position: relative;
+        display: flex;
+        flex-direction: row;
     }
 
     .list-users {
@@ -347,34 +365,30 @@ function changeChannel(inChannel : string) {
         max-width: 120px;
     }
 
-    .user-item {
-        padding-left: 5px;
-        margin-top: 5px;
-        padding-right: 20px;
-    }
-
-
-    main {
-        height: 100%;
-        position: relative;
-        display: flex;
-        flex-direction: row;
-        max-width: 100vw;
-    }
-
     .discuss-section {
-        flex: 1;
-        height: 100%;
+        flex-grow: 1;
+        max-width: calc(100vw - 130px);
+
+        height: 100vh;
         position: relative;
         display: flex;
         flex-direction: column;
-        max-width: calc(100vw - 120px);
     }
 
     .write-section {
         display: flex;
         flex-direction: row;
+    }
+
+    .wrapper-writter {
         width: 100%;
+        max-width: calc(100vw - 180px);
+        align-items: center;
+        justify-content: center;
+        margin: auto;
+        margin-top: 7px;
+        margin-bottom: 7px;
+        margin-left: 10px;
     }
 
     .messages {
@@ -382,27 +396,16 @@ function changeChannel(inChannel : string) {
         flex-direction: column;
         justify-content: left;
         justify-items: left;
-        overflow-y: scroll;
-        height: 100%;
-        width: 100%;
     }
 
     .wrapper-messages {
-        flex: 1;
-        height: calc(100vh - 62px);
+        flex-grow: 1;
+        min-height: 0;
         margin-left: 8px;
+        overflow-y: scroll;
     }
 
-    .wrapper-writter {
-        align-items: center;
-        justify-content: center;
-        margin: auto;
-        width:95%;
-        flex: 0 1 auto;
-        height: 30px;
-        margin-top: 7px;
-        margin-bottom: 7px;
-    }
+
 
     .message {
         margin-top: var(--space);
