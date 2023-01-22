@@ -13,11 +13,16 @@
   "tauri": {
     "allowlist": {
       "all":false,
+      "protocol": {
+        "all": false,
+        "asset": true,
+        "assetScope": ["$CONFIG/share-app/temp/*"]
+      },
       "fs": {
         "readFile":true,
         "writeFile":true, 
         "createDir":true,
-        "scope": ["$CONFIG/share-app", "$CONFIG/share-app/*"]
+        "scope": ["$CONFIG/share-app", "$CONFIG/share-app/*", "$CONFIG/share-app/temp/*"]
       },
       "path": {
         "all": true
@@ -55,7 +60,7 @@
       "http": {
         "all": false,
         "request": true,
-        "scope": ["https://**"]
+        "scope": ["https://**", "file://**"]
       }
     },
     "bundle": {
@@ -92,7 +97,7 @@
       }
     },
     "security": {
-      "csp": null
+      "csp":null
     },
     "updater": {
       "active": false
