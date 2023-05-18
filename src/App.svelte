@@ -56,6 +56,7 @@ import { invoke } from '@tauri-apps/api/tauri';
   let isConnected = false;
 </script>
 
+
 <main>
   {#if !isConnected}
 

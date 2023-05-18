@@ -5,6 +5,7 @@
 
 mod clipboard;
 mod path;
+use base64::Engine;
 use irc::{client::{prelude::*}};
 use futures::{prelude::*, lock::Mutex};
 
@@ -279,14 +280,13 @@ fn disconnect(window: tauri::Window, message : &str, shall_send_message : bool, 
   }
 
   client.client = None;
+  let mut event = EVENT::Quit;
   if wrong_identifier {
-    window.emit("irc-event", Event{kind:EVENT::ErrorConnection}).map_err(|e|e.to_string());
-  }
-  else {
-    window.emit("irc-event", Event{kind:EVENT::Quit}).map_err(|e|e.to_string());
+    event = EVENT::ErrorConnection;
   }
 
-  Ok(())
+  window.emit("irc-event", Event{kind:event}).map_err(|e|e.to_string())
+
 }
 
 
@@ -319,14 +319,14 @@ fn get_image_clipboard() -> Result<String, String>
 #[tauri::command]
 fn decode_base64(message : &str) -> Result<Vec<u8>, String>
 {
-  match base64::decode(message) {
+  let engine = base64::engine::general_purpose::STANDARD_NO_PAD;
+  match engine.decode(message) {
     Ok(vector) => Ok(vector),
     Err(e) => Err(e.to_string())
   }
 }
 
 fn main() {
-  let context = tauri::generate_context!();
 
   tauri::Builder::default()
   .invoke_handler(tauri::generate_handler![
@@ -339,64 +339,7 @@ fn main() {
     get_image_clipboard,
     decode_base64,
     get_users])
-    .menu(Menu::with_items([
-      #[cfg(target_os = "macos")]
-      MenuEntry::Submenu(Submenu::new(
-        &context.package_info().name,
-        Menu::with_items([
-          MenuItem::About(context.package_info().name.clone(), AboutMetadata::default()).into(),
-          MenuItem::Separator.into(),
-          MenuItem::Services.into(),
-          MenuItem::Separator.into(),
-          MenuItem::Hide.into(),
-          MenuItem::HideOthers.into(),
-          MenuItem::ShowAll.into(),
-          MenuItem::Separator.into(),
-          MenuItem::Quit.into(),
-        ]),
-      )),
-      MenuEntry::Submenu(Submenu::new(
-        "File",
-        Menu::with_items([
-          CustomMenuItem::new("Open...", "Open...")
-            .accelerator("cmdOrControl+O")
-            .into(),
-          MenuItem::Separator.into(),
-          CustomMenuItem::new("Close", "Close")
-            .accelerator("cmdOrControl+W")
-            .into(),
-        ]),
-      )),
-      MenuEntry::Submenu(Submenu::new(
-        "Edit",
-        Menu::with_items([
-          MenuItem::Undo.into(),
-          MenuItem::Redo.into(),
-          MenuItem::Separator.into(),
-          MenuItem::Cut.into(),
-          MenuItem::Copy.into(),
-          MenuItem::Paste.into(),
-          #[cfg(not(target_os = "macos"))]
-          MenuItem::Separator.into(),
-          MenuItem::SelectAll.into(),
-        ]),
-      )),
-      MenuEntry::Submenu(Submenu::new(
-        "View",
-        Menu::with_items([MenuItem::EnterFullScreen.into()]),
-      )),
-      MenuEntry::Submenu(Submenu::new(
-        "Window",
-        Menu::with_items([MenuItem::Minimize.into(), MenuItem::Zoom.into()]),
-      )),
-      // You should always have a Help menu on macOS because it will automatically
-      // show a menu search field
-      MenuEntry::Submenu(Submenu::new(
-        "Help",
-        Menu::with_items([CustomMenuItem::new("Learn More", "Learn More").into()]),
-      )),
-    ]))
   .manage(IRCState(Mutex::new(IRC{client : None, channel : String::from("")})))
-    .run(context)
+    .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

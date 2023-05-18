@@ -1,10 +1,9 @@
 {
-  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
   "build": {
     "beforeBuildCommand": "npm run build",
     "beforeDevCommand": "npm run dev",
     "devPath": "http://localhost:5173",
-    "distDir": "../dist"
+    "distDir": "../build"
   },
   "package": {
     "productName": "share-app",
@@ -78,7 +77,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "ovh.faren.share-app",
+      "identifier": "ovh.faren.share-app.dev",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
