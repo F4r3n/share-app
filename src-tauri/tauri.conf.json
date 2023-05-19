@@ -17,12 +17,6 @@
         "asset": true,
         "assetScope": ["$CONFIG/share-app/temp/*"]
       },
-      "fs": {
-        "readFile":true,
-        "writeFile":true, 
-        "createDir":true,
-        "scope": ["$CONFIG/share-app", "$CONFIG/share-app/*", "$CONFIG/share-app/temp/*"]
-      },
       "path": {
         "all": true
       },

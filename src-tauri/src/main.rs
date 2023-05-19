@@ -8,16 +8,9 @@ mod path;
 use base64::Engine;
 use irc::{client::{prelude::*}};
 use futures::{prelude::*, lock::Mutex};
+use settings::Settings;
+mod settings;
 
-use tauri::{ 
-  CustomMenuItem,
-   Menu, MenuEntry, MenuItem, Submenu,
-};
-
-#[cfg(target_os = "macos")]
-use tauri::{
-  AboutMetadata
-};
 
 #[derive(Clone, serde::Serialize)]
 struct ResponseMessage {
@@ -300,20 +293,21 @@ fn send_irc_command(command : &str, args : Vec<String>, irc : tauri::State<'_, I
 
 
 #[tauri::command]
-fn get_config_dir_command() -> Result<String, String>
-{
-  if let Some(config_dir) = path::get_config_dir() {
-   return Ok(String::from(config_dir.to_str().unwrap()))
-  }
-  return Err(String::from("Path not found"));
-}
-
-
-
-#[tauri::command]
 fn get_image_clipboard() -> Result<String, String>
 {
   clipboard::get_image_clipboard().map_err(|e|e.to_string())
+}
+
+#[tauri::command]
+fn load_settings() -> Result<settings::Settings, String>
+{
+  settings::load_settings().map_err(|e|e.to_string())
+}
+
+#[tauri::command]
+fn save_settings(settings : Settings) -> Result<(), String>
+{
+  settings::save_settings(&settings).map_err(|e|e.to_string())
 }
 
 #[tauri::command]
@@ -335,9 +329,10 @@ fn main() {
     send_message,
     disconnect,
     send_irc_command,
-    get_config_dir_command,
     get_image_clipboard,
     decode_base64,
+    load_settings,
+    save_settings,
     get_users])
   .manage(IRCState(Mutex::new(IRC{client : None, channel : String::from("")})))
     .run(tauri::generate_context!())

@@ -3,9 +3,8 @@
   import Connection from './lib/Connection.svelte'
   import { onMount, onDestroy } from 'svelte';
   import {config} from './lib/config'
-  import { createEventDispatcher } from 'svelte';
   import { listen } from '@tauri-apps/api/event'
-import { invoke } from '@tauri-apps/api/tauri';
+  import { invoke } from '@tauri-apps/api/tauri';
 
   let nickName="pickles"
   let server="chat.freenode.net" 
@@ -37,8 +36,8 @@ import { invoke } from '@tauri-apps/api/tauri';
 
     await config.read();
     const c = config.getConnectionConfig();
-    if(c.hasOwnProperty("nickName"))
-      nickName = c.nickName;
+    if(c.hasOwnProperty("nick_name"))
+      nickName = c.nick_name;
     if(c.hasOwnProperty("server"))
       server = c.server;
     if(c.hasOwnProperty("channel"))
