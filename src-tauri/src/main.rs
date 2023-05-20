@@ -5,18 +5,16 @@
 
 mod clipboard;
 mod path;
+use std::fs::{File, OpenOptions};
+use std::io::{Write};
+
+use base64::Engine;
 use irc::{client::{prelude::*}};
 use futures::{prelude::*, lock::Mutex};
+use path::get_config_dir;
+use settings::Settings;
+mod settings;
 
-use tauri::{ 
-  CustomMenuItem,
-   Menu, MenuEntry, MenuItem, Submenu,
-};
-
-#[cfg(target_os = "macos")]
-use tauri::{
-  AboutMetadata
-};
 
 #[derive(Clone, serde::Serialize)]
 struct ResponseMessage {
@@ -53,7 +51,8 @@ struct User {
 pub struct IRCState(pub Mutex<IRC>);
 pub struct IRC {
   client : Option<irc::client::Client>,
-  channel : String
+  channel : String,
+  log_file : File
 }
 
 impl IRC {
@@ -92,11 +91,15 @@ impl IRC {
 }
 
 
-pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStream) -> Result<(), anyhow::Error> {
+pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStream, mut log_file : File) -> Result<(), anyhow::Error> {
   
   println!("READ");
   while let Some(message) = stream.next().await.transpose()? {
      print!("{}", message);
+     match write!(log_file, "{}", message) {
+      Ok(()) => (),
+      Err(_) => ()
+     }
      let mut pay_load = Payload{content : String::from(""),
                                     nick_name : String::from(""),
                                     command : String::from(""),
@@ -213,10 +216,11 @@ fn read_messages(window: tauri::Window, irc : tauri::State<'_, IRCState>) -> Res
   let mut state_guard = irc.0.try_lock().expect("ERROR");
 
   let stream = state_guard.client.as_mut().unwrap().stream();
+  let log = state_guard.log_file.try_clone();
   match stream {
       Ok(s) => {
         tauri::async_runtime::spawn(async {
-          match irc_read(window, s).await {
+          match irc_read(window, s, log.unwrap()).await {
             Ok(()) => Ok(()),
             Err(e) => Err(e.to_string())
           }
@@ -279,14 +283,13 @@ fn disconnect(window: tauri::Window, message : &str, shall_send_message : bool, 
   }
 
   client.client = None;
+  let mut event = EVENT::Quit;
   if wrong_identifier {
-    window.emit("irc-event", Event{kind:EVENT::ErrorConnection}).map_err(|e|e.to_string());
-  }
-  else {
-    window.emit("irc-event", Event{kind:EVENT::Quit}).map_err(|e|e.to_string());
+    event = EVENT::ErrorConnection;
   }
 
-  Ok(())
+  window.emit("irc-event", Event{kind:event}).map_err(|e|e.to_string())
+
 }
 
 
@@ -300,33 +303,35 @@ fn send_irc_command(command : &str, args : Vec<String>, irc : tauri::State<'_, I
 
 
 #[tauri::command]
-fn get_config_dir_command() -> Result<String, String>
-{
-  if let Some(config_dir) = path::get_config_dir() {
-   return Ok(String::from(config_dir.to_str().unwrap()))
-  }
-  return Err(String::from("Path not found"));
-}
-
-
-
-#[tauri::command]
 fn get_image_clipboard() -> Result<String, String>
 {
   clipboard::get_image_clipboard().map_err(|e|e.to_string())
 }
 
 #[tauri::command]
+fn load_settings() -> Result<settings::Settings, String>
+{
+  settings::load_settings().map_err(|e|e.to_string())
+}
+
+#[tauri::command]
+fn save_settings(settings : Settings) -> Result<(), String>
+{
+  settings::save_settings(&settings).map_err(|e|e.to_string())
+}
+
+#[tauri::command]
 fn decode_base64(message : &str) -> Result<Vec<u8>, String>
 {
-  match base64::decode(message) {
+  let engine = base64::engine::general_purpose::STANDARD_NO_PAD;
+  match engine.decode(message) {
     Ok(vector) => Ok(vector),
     Err(e) => Err(e.to_string())
   }
 }
 
 fn main() {
-  let context = tauri::generate_context!();
+  let log_file = OpenOptions::new().write(true).append(true).create(true).open(get_config_dir().unwrap().join("log.txt"));
 
   tauri::Builder::default()
   .invoke_handler(tauri::generate_handler![
@@ -335,68 +340,14 @@ fn main() {
     send_message,
     disconnect,
     send_irc_command,
-    get_config_dir_command,
     get_image_clipboard,
     decode_base64,
+    load_settings,
+    save_settings,
     get_users])
-    .menu(Menu::with_items([
-      #[cfg(target_os = "macos")]
-      MenuEntry::Submenu(Submenu::new(
-        &context.package_info().name,
-        Menu::with_items([
-          MenuItem::About(context.package_info().name.clone(), AboutMetadata::default()).into(),
-          MenuItem::Separator.into(),
-          MenuItem::Services.into(),
-          MenuItem::Separator.into(),
-          MenuItem::Hide.into(),
-          MenuItem::HideOthers.into(),
-          MenuItem::ShowAll.into(),
-          MenuItem::Separator.into(),
-          MenuItem::Quit.into(),
-        ]),
-      )),
-      MenuEntry::Submenu(Submenu::new(
-        "File",
-        Menu::with_items([
-          CustomMenuItem::new("Open...", "Open...")
-            .accelerator("cmdOrControl+O")
-            .into(),
-          MenuItem::Separator.into(),
-          CustomMenuItem::new("Close", "Close")
-            .accelerator("cmdOrControl+W")
-            .into(),
-        ]),
-      )),
-      MenuEntry::Submenu(Submenu::new(
-        "Edit",
-        Menu::with_items([
-          MenuItem::Undo.into(),
-          MenuItem::Redo.into(),
-          MenuItem::Separator.into(),
-          MenuItem::Cut.into(),
-          MenuItem::Copy.into(),
-          MenuItem::Paste.into(),
-          #[cfg(not(target_os = "macos"))]
-          MenuItem::Separator.into(),
-          MenuItem::SelectAll.into(),
-        ]),
-      )),
-      MenuEntry::Submenu(Submenu::new(
-        "View",
-        Menu::with_items([MenuItem::EnterFullScreen.into()]),
-      )),
-      MenuEntry::Submenu(Submenu::new(
-        "Window",
-        Menu::with_items([MenuItem::Minimize.into(), MenuItem::Zoom.into()]),
-      )),
-      // You should always have a Help menu on macOS because it will automatically
-      // show a menu search field
-      MenuEntry::Submenu(Submenu::new(
-        "Help",
-        Menu::with_items([CustomMenuItem::new("Learn More", "Learn More").into()]),
-      )),
-    ]))
-  .manage(IRCState(Mutex::new(IRC{client : None, channel : String::from("")})))
-    .run(context)
+  .manage(IRCState(Mutex::new(IRC{client : None, 
+    channel : String::from(""), 
+    log_file: log_file.unwrap()})))
+    .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

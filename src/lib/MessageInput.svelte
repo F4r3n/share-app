@@ -53,7 +53,7 @@ let listImages : Image[] = []
     async function uploadImage(image : Image) : Promise<string> {
         let imageData : Uint8Array = await invoke("decode_base64", {message:image.base64});
         
-        const response = await fetch(`${config.getConfig().uploadImage.url_post}`, {
+        const response = await fetch(`${config.getConfig().upload_image.url_post}`, {
             method: 'POST',
             responseType: ResponseType.Text,
             headers:{"Content-Type": "multipart/form-data"},
@@ -67,7 +67,7 @@ let listImages : Image[] = []
               title:"title"
             })
         });
-        return config.getConfig().uploadImage.url_get + response.data as string;
+        return config.getConfig().upload_image.url_get + response.data as string;
     }
 </script>
 
