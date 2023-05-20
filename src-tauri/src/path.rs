@@ -1,26 +1,29 @@
 
 use std::path::PathBuf;
 use std::fs;
+use anyhow::{anyhow};
 
-pub fn get_config_dir() -> Option<PathBuf>
+
+pub fn get_config_dir() -> Result<PathBuf, anyhow::Error>
 {
   if let Some(config_dir) = tauri::api::path::config_dir() {
-    return Some(config_dir.join("share-app"));
+    return Ok(config_dir.join("share-app"));
   }
-  None
+  Err(anyhow!("No config path"))
 }
 
-pub fn get_config_dir_temp() -> Option<PathBuf>
+pub fn get_config_dir_temp() -> Result<PathBuf, anyhow::Error>
 {
-  if let Some(config_dir) = get_config_dir() {
-    return Some(config_dir.join("temp"));
+  if let Ok(config_dir) = get_config_dir() {
+    return Ok(config_dir.join("temp"));
   }
-  None
+  Err(anyhow!("No config path"))
+
 }
 
 pub fn create_config_temp() -> Result<(), anyhow::Error>
 {
-  if let Some(config_dir) = get_config_dir_temp() {
+  if let Ok(config_dir) = get_config_dir_temp() {
     if config_dir.is_dir() == false {
         return fs::create_dir(config_dir).map_err(Into::into)
     }
@@ -30,7 +33,7 @@ pub fn create_config_temp() -> Result<(), anyhow::Error>
 
 pub fn delete_config_temp() -> Result<(), anyhow::Error>
 {
-  if let Some(config_dir) = get_config_dir_temp() {
+  if let Ok(config_dir) = get_config_dir_temp() {
     return fs::remove_dir(config_dir).map_err(Into::into)
   }
   Ok(())
