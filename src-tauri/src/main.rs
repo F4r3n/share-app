@@ -5,9 +5,13 @@
 
 mod clipboard;
 mod path;
+use std::fs::{File, OpenOptions};
+use std::io::{Write};
+
 use base64::Engine;
 use irc::{client::{prelude::*}};
 use futures::{prelude::*, lock::Mutex};
+use path::get_config_dir;
 use settings::Settings;
 mod settings;
 
@@ -47,7 +51,8 @@ struct User {
 pub struct IRCState(pub Mutex<IRC>);
 pub struct IRC {
   client : Option<irc::client::Client>,
-  channel : String
+  channel : String,
+  log_file : File
 }
 
 impl IRC {
@@ -86,11 +91,15 @@ impl IRC {
 }
 
 
-pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStream) -> Result<(), anyhow::Error> {
+pub async fn irc_read(window: tauri::Window, mut stream : irc::client::ClientStream, mut log_file : File) -> Result<(), anyhow::Error> {
   
   println!("READ");
   while let Some(message) = stream.next().await.transpose()? {
      print!("{}", message);
+     match write!(log_file, "{}", message) {
+      Ok(()) => (),
+      Err(_) => ()
+     }
      let mut pay_load = Payload{content : String::from(""),
                                     nick_name : String::from(""),
                                     command : String::from(""),
@@ -207,10 +216,11 @@ fn read_messages(window: tauri::Window, irc : tauri::State<'_, IRCState>) -> Res
   let mut state_guard = irc.0.try_lock().expect("ERROR");
 
   let stream = state_guard.client.as_mut().unwrap().stream();
+  let log = state_guard.log_file.try_clone();
   match stream {
       Ok(s) => {
         tauri::async_runtime::spawn(async {
-          match irc_read(window, s).await {
+          match irc_read(window, s, log.unwrap()).await {
             Ok(()) => Ok(()),
             Err(e) => Err(e.to_string())
           }
@@ -321,6 +331,7 @@ fn decode_base64(message : &str) -> Result<Vec<u8>, String>
 }
 
 fn main() {
+  let log_file = OpenOptions::new().write(true).append(true).create(true).open(get_config_dir().unwrap().join("log.txt"));
 
   tauri::Builder::default()
   .invoke_handler(tauri::generate_handler![
@@ -334,7 +345,9 @@ fn main() {
     load_settings,
     save_settings,
     get_users])
-  .manage(IRCState(Mutex::new(IRC{client : None, channel : String::from("")})))
+  .manage(IRCState(Mutex::new(IRC{client : None, 
+    channel : String::from(""), 
+    log_file: log_file.unwrap()})))
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

@@ -45,9 +45,18 @@ class Config {
         }
     }
 
+    setUploadImageConfig( option : UploadImageConfig) {
+        this.config.upload_image = option;
+    }
+
     getConnectionConfig () : ConnectionConfig{
         return this.config.connection_config; 
     }
+
+    getUploadImageConfig () : UploadImageConfig{
+        return this.config.upload_image; 
+    }
+
 
     
     getConfig() {
