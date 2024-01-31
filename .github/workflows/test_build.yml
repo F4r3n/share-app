@@ -1,5 +1,5 @@
 name: "test-build"
-on: [pull_request]
+on: [pull_request, push]
 
 jobs:
   test-tauri:
@@ -30,3 +30,6 @@ jobs:
     - uses: tauri-apps/tauri-action@v0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        includeUpdaterJson: true
+
