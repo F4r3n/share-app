@@ -69,6 +69,7 @@ dependencies = [
  "anyhow",
  "arboard",
  "base64 0.21.7",
+ "chrono",
  "futures",
  "image",
  "irc",
