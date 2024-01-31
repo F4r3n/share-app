@@ -12,6 +12,7 @@ jobs:
         platform: [macos-latest, ubuntu-20.04, windows-latest]
 
     runs-on: ${{ matrix.platform }}
+    environment: updater
     steps:
     - uses: actions/checkout@v2
     - name: setup node
