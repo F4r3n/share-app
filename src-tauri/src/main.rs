@@ -12,7 +12,7 @@ use anyhow::Error;
 use base64::Engine;
 use futures::{lock::Mutex, prelude::*};
 use irc::client::prelude::*;
-use irc::proto::message;
+use irc::proto::FormattedStringExt;
 use path::get_config_dir;
 use settings::Settings;
 mod settings;
@@ -130,8 +130,7 @@ pub async fn irc_read(
                 if let Some(nick_name) = message.source_nickname() {
                     pay_load.nick_name = String::from(nick_name);
                 }
-                pay_load.content =
-                    irc::proto::FormattedStringExt::strip_formatting(msg.as_str()).to_string();
+                pay_load.content = msg.as_str().to_string();
                 write_in_log(&log_file, pay_load.nick_name.as_str(), pay_load.content.as_str());
 
             }
@@ -140,8 +139,8 @@ pub async fn irc_read(
                 if let Some(nick_name) = message.source_nickname() {
                     pay_load.nick_name = String::from(nick_name);
                 }
-                pay_load.content =
-                    irc::proto::FormattedStringExt::strip_formatting(msg.as_str()).to_string();
+                pay_load.content = String::from(msg.as_str().to_string().strip_formatting());
+
             }
             Command::Response(response, ref msg) => {
                 pay_load.command = String::from("RESPONSE");
@@ -209,8 +208,6 @@ pub async fn irc_read(
 
         window.emit("irc-recieved", pay_load)?;
     }
-
-    Ok(())
 }
 
 pub async fn irc_login(
