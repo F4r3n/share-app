@@ -1,9 +1,6 @@
 
-use arboard::{Clipboard};
+use arboard::Clipboard;
 use base64::Engine;
-
-#[path = "./path.rs"]
-mod path;
 
 
 pub fn get_image_clipboard() -> Result<String, anyhow::Error>
