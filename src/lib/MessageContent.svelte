@@ -34,7 +34,52 @@
 
     afterUpdate(() => {});
 
-    function parseColors(inContent: string): Token[] {
+    function parseElement(inContent : string) : Token[]
+    {
+        let match = null;
+        let start = 0;
+        let tokens: Token[] = [] as Token[];
+        let end = inContent.length;
+
+        const content = inContent;
+        let hasFoundLink = false;
+        let previousStart = 0;
+        
+        while ((match = regex.exec(content)) != null) {
+            hasFoundLink = true;
+            start = match.index;
+            
+            if(previousStart < start)
+            {
+                tokens.push({ type: "RAW", value: { content: content.substring(
+                previousStart,
+                start,
+            ) } });
+            }
+
+            previousStart = start;
+            const url = content.substring(
+                match.index,
+                match.index + match[0].length,
+            );
+            start = match.index + match[0].length
+            tokens.push({
+                type: "ATag",
+                value: { content: url, href: url },
+            });
+        }
+
+        if(start < end)
+            {
+                tokens.push({ type: "RAW", value: { content: content.substring(
+                start,
+                end,
+            ) } });
+            }
+        return tokens;
+    }
+
+    function parse(inContent: string): Token[] {
         let tokens: Token[] = [] as Token[];
 
         let buffer = "";
@@ -48,7 +93,8 @@
                     buffer = "";
                 }
                 if (buffer !== "") {
-                    tokens.push({ type: "RAW", value: { content: buffer } });
+                    const tokensParsed = parseElement(buffer);
+                    tokensParsed.forEach(e => tokens.push(e));
                     buffer = "";
                 }
 
@@ -92,7 +138,8 @@
         }
 
         if (buffer !== "") {
-            tokens.push({ type: "RAW", value: { content: buffer } });
+            const tokensParsed = parseElement(buffer);
+            tokensParsed.forEach(e => tokens.push(e));
             buffer = "";
         }
 
@@ -101,36 +148,7 @@
 
     function createTokens(inContent: string): Token[] {
         let tokens: Token[] = [] as Token[];
-        tokens = parseColors(inContent);
-        console.log(tokens)
-        let match = null;
-        let start = 0;
-        let end = inContent.length;
-        
-        for (let index = 0; index < tokens.length; index++) {
-            let token = tokens[index];
-            if (token.type === "RAW") {
-                const content = token.value.content;
-                let hasFoundLink = false;
-                while ((match = regex.exec(content)) != null) {
-                    hasFoundLink = true;
-                    start = match.index;
-                    const url = content.substring(
-                        match.index,
-                        match.index + match[0].length,
-                    );
-                    start = match.index + match[0].length;
-
-                    tokens.push({
-                        type: "ATag",
-                        value: { content: url, href: url },
-                    });
-                }
-
-                if(hasFoundLink)
-                    token.value=""
-            }
-        }
+        tokens = parse(inContent);
         console.log(tokens)
 
         return tokens;
