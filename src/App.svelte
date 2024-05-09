@@ -79,6 +79,7 @@
       bind:password
       {hasFailed}
       on:connected={() => {
+        console.log("Is Connected");
         isConnected = true;
         config.setConnectionSettings(nickName, server, channel, password);
         config.write();

@@ -5,6 +5,7 @@
 
 mod clipboard;
 mod path;
+use std::alloc::System;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
 
@@ -124,6 +125,20 @@ pub async fn irc_read(
             response: None,
         };
         match message.command {
+            Command::PING(server1, server2) => {
+                pay_load.command = String::from("PING");
+                pay_load.content = match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
+                    Ok(n) => {n.as_secs().to_string()},
+                    Err(e) => {String::from("0")}
+                }
+            }
+            Command::PONG(server1, server2) => {
+                pay_load.command = String::from("PONG");
+                pay_load.content = match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
+                    Ok(n) => {n.as_secs().to_string()},
+                    Err(e) => {String::from("0")}
+                }
+            }
             Command::PRIVMSG(ref target, ref msg) => {
                 pay_load.command = String::from("PRIVMSG");
                 pay_load.channel = String::from(target);
@@ -260,6 +275,11 @@ fn loggin(
     irc: tauri::State<'_, IRCState>,
 ) -> Result<(), String> {
     let mut state_guard = irc.0.try_lock().expect("ERROR");
+
+    if state_guard.client.is_some() {
+        return Ok(());
+    }
+
     if state_guard.client.is_none() {
         println!("Connect");
         state_guard.channel = channel.to_owned();

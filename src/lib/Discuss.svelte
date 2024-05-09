@@ -15,6 +15,7 @@
     const dispatch = createEventDispatcher();
 
     import type { MessageFromIRC } from "./MessageType";
+    import Info from "./Module/info.svelte";
 
     type User = {
         nick_name: string;
@@ -35,7 +36,10 @@
     let updateScroll = true;
     let messagesUnreadChannel: Set<string> = new Set<string>();
     let isLoaded = false;
-
+    let lastPingTime : number= 0;
+    let lastPongTime : number = 0;
+    let intervalID : NodeJS.Timer;
+    let needReconnection = false;
     function isScrollAtTheEnd(): boolean {
         if (discussSection == undefined) return true;
 
@@ -67,7 +71,9 @@
     }
 
     async function read_messages() {
-        await invoke("read_messages")
+        try {
+            await invoke("read_messages");
+        } catch (e) {}
         updateUsers();
     }
 
@@ -93,6 +99,7 @@
             let currentChannel: Channel | undefined =
                 listMessages.get(channelOrigin);
 
+            isLoaded = true;
             if (data.command === "PRIVMSG") {
                 updateUsers();
                 message.date = new Date();
@@ -114,6 +121,12 @@
                         UserAttentionType.Informational,
                     );
                 }
+            } else if (data.command === "PING") {
+                lastPingTime =Number(message.content);
+                isLoaded = true;
+            } else if (data.command === "PONG") {
+                lastPongTime =Number(message.content);
+                isLoaded = true;
             } else if (data.command === "NOTICE") {
                 message.date = new Date();
                 message.highlight = isMessageHighlight(message.content);
@@ -200,22 +213,33 @@
         });
     }
 
+    function check_ping_pong() : boolean{
+        let currentTime = (new Date()).getTime() /1000;
+        if(lastPingTime > 0 && currentTime - lastPingTime > 180) {
+            return false;
+        }
+        return true;
+    }
+
     onMount(async () => {
         irc_received();
         read_messages();
         irc_event();
+        intervalID = setInterval(() => {
+            if(!check_ping_pong()) {
+                needReconnection = true;
+        }}, 6000)
     });
 
     onDestroy(async () => {
+        clearInterval(intervalID)
         // invoke('disconnect', {message:"Bye"});
     });
 
     async function updateUsers() {
-        try
-        {
-            users = await getUsers() as User[];
-        }
-        catch(e) {}
+        try {
+            users = (await getUsers()) as User[];
+        } catch (e) {}
     }
 
     function sendCurrentMessage(inMessageContent: string) {
@@ -290,12 +314,16 @@
 </script>
 
 <main>
+
     {#if !isLoaded}
         <div class="loading" class:loading-hide={isLoaded}>
             <Jumper size="60" color="#845EC2" unit="px" duration="1s"></Jumper>
         </div>
     {:else}
         <div class="discuss-section">
+            {#if needReconnection}
+                <div class="warning-message">Need reconnection</div>
+            {/if}
             <div class="topic">{topic}</div>
             <div class="wrapper-messages" bind:this={discussSection}>
                 <div class="messages">
@@ -384,14 +412,18 @@
                 </div>
             {/each}
         </div>
-
-        <div class="widgets">
-            
-        </div>
     {/if}
 </main>
 
 <style>
+
+    .warning-message {
+        z-index: 1000;
+        position: relative;
+        background-color: rgba(236, 233, 30, 0.87);
+        margin-left: auto;
+    }
+
     .topic {
         margin-left: 10px;
         display: inline-block;
@@ -517,8 +549,7 @@
         align-items: baseline;
     }
 
-    .widgets
-    {
+    .widgets {
         display: flex;
         flex-direction: row;
     }
