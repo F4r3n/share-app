@@ -149,8 +149,6 @@
     function createTokens(inContent: string): Token[] {
         let tokens: Token[] = [] as Token[];
         tokens = parse(inContent);
-        console.log(tokens)
-
         return tokens;
     }
 </script>
