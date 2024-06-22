@@ -19,7 +19,7 @@ pub fn get_image_clipboard() -> Result<String, anyhow::Error>
         
         let mut w = std::io::Cursor::new(Vec::new());
 
-        imgbuf.write_to(&mut w, image::ImageOutputFormat::Png)?;
+        imgbuf.write_to(&mut w, image::ImageFormat::Png)?;
         let engine = base64::engine::general_purpose::STANDARD_NO_PAD;
         let res_base64 = engine.encode(&w.into_inner());
         Ok(res_base64)
