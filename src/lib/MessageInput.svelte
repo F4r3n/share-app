@@ -1,119 +1,127 @@
 <script lang="ts">
-import PlusSign from '../assets/plus-sign-svg.svelte';
-import { createEventDispatcher } from 'svelte';
-import { onMount, onDestroy } from 'svelte';
-import { invoke } from '@tauri-apps/api'
-import { fetch, ResponseType } from '@tauri-apps/api/http';
-import { convertFileSrc } from '@tauri-apps/api/tauri';
-import {config} from './config'
-import { Body } from "@tauri-apps/api/http"
-import CloseButton from '../assets/circle-close.svelte'
+    import PlusSign from "../assets/plus-sign-svg.svelte";
+    import { createEventDispatcher } from "svelte";
+    import { onMount, onDestroy } from "svelte";
+    import { invoke } from "@tauri-apps/api";
+    import { fetch, ResponseType } from "@tauri-apps/api/http";
+    import { convertFileSrc } from "@tauri-apps/api/tauri";
+    import { config } from "./config";
+    import { Body } from "@tauri-apps/api/http";
+    import CloseButton from "../assets/circle-close.svelte";
 
-const dispatch = createEventDispatcher();
-let messageToSend : string;
-let input : HTMLInputElement;
+    const dispatch = createEventDispatcher();
+    let messageToSend: string;
+    let input: HTMLInputElement;
 
-type Image = {
-    base64 : string,
-    url : string,
-    name : string
-}
+    type Image = {
+        base64: string;
+        url: string;
+        name: string;
+    };
 
-let listImages : Image[] = []
+    let listImages: Image[] = [];
 
-    async function removeImage(event : Event) {
-        invoke("get_image_clipboard").then(base64 => {
-                let image : Image =  {
-                    base64 : base64 as string,
-                    url:"",
-                    name:"#_image_" + listImages.length
-                }
-                console.log(image)
-                listImages.push( image);
+    async function removeImage(event: Event) {
+        invoke("get_image_clipboard")
+            .then((base64) => {
+                let image: Image = {
+                    base64: base64 as string,
+                    url: "",
+                    name: "#_image_" + listImages.length,
+                };
+                console.log(image);
+                listImages.push(image);
                 listImages = listImages;
 
                 messageToSend += image.name;
-           })
-           .catch(e => {
-            console.error(e)
-           })
+            })
+            .catch((e) => {
+                console.error(e);
+            });
     }
 
-    onMount(async()=> {
+    onMount(async () => {
         input.focus();
-        addEventListener('paste', removeImage)
+        addEventListener("paste", removeImage);
+    });
 
-    })
-
-    onDestroy(()=> {
+    onDestroy(() => {
         removeEventListener("paste", removeImage);
-    })
+    });
 
-
-    async function uploadImage(image : Image) : Promise<string> {
-        let imageData : Uint8Array = await invoke("decode_base64", {message:image.base64});
-        
-        const response = await fetch(`${config.getConfig().upload_image.url_post}`, {
-            method: 'POST',
-            responseType: ResponseType.Text,
-            headers:{"Content-Type": "multipart/form-data"},
-            body: Body.form({ 
-              upload: { 
-                file: imageData,
-                mime: 'image/png', // optional
-                fileName: 'image.png' // optional
-              },
-              duration:"86400",
-              title:"title"
-            })
+    async function uploadImage(image: Image): Promise<string> {
+        let imageData: Uint8Array = await invoke("decode_base64", {
+            message: image.base64,
         });
-        return config.getConfig().upload_image.url_get + response.data as string;
+        let upload_id = await invoke("upload_image", {
+            endpoint: `${config.getConfig().upload_image.url_post}`,
+            imageBytes: imageData
+        });
+        console.log(upload_id);
+        return (config.getConfig().upload_image.url_get + upload_id) as string;
     }
 </script>
 
 <main>
-
     <div class="row">
         {#each listImages as image}
-        <div class="pasted-image">
-            <div class="top close" on:click={()=> {
-                messageToSend = messageToSend.replace(image.name, "")
-                listImages = listImages.filter((i)=>{i.name !== image.name})
-            }}>
-                <CloseButton width=20 height=20></CloseButton>
+            <div class="pasted-image">
+                <div
+                    class="top close"
+                    on:click={() => {
+                        messageToSend = messageToSend.replace(image.name, "");
+                        listImages = listImages.filter((i) => {
+                            i.name !== image.name;
+                        });
+                    }}
+                >
+                    <CloseButton width="20" height="20"></CloseButton>
+                </div>
+                <img
+                    class="pasted-image"
+                    src={"data:image/png;base64," + image.base64}
+                    alt="current-paster {image.name}"
+                />
             </div>
-            <img class="pasted-image" src={"data:image/png;base64,"+ image.base64} alt="current-paster {image.name}">
-        </div>
-    {/each}
+        {/each}
     </div>
 
-
-<div class="main-input">
-    <input type="text" bind:this={input} bind:value={messageToSend}
-    on:keyup={async (e)=>{
-        if(e.key==='Enter') {
-            for(let image of listImages) {
-                let url = await uploadImage(image);
-                messageToSend = messageToSend.replace(image.name, url);
-            }
-            dispatch("send_message", messageToSend)
-            listImages = []
-            messageToSend = "";
-        }
-        }}>
-    <button on:click={(event)=> {
-            dispatch("send_message", messageToSend)
-            messageToSend = ""
-    }}>
-        <PlusSign width=15 height=15></PlusSign>
-    </button>
-</div>
-
+    <div class="main-input">
+        <input
+            type="text"
+            bind:this={input}
+            bind:value={messageToSend}
+            on:keyup={async (e) => {
+                if (e.key === "Enter") {
+                    try {
+                        for (let image of listImages) {
+                            let url = await uploadImage(image);
+                            messageToSend = messageToSend.replace(
+                                image.name,
+                                url,
+                            );
+                        }
+                        dispatch("send_message", messageToSend);
+                        listImages = [];
+                        messageToSend = "";
+                    } catch (e) {
+                        console.log(e)
+                    }
+                }
+            }}
+        />
+        <button
+            on:click={(event) => {
+                dispatch("send_message", messageToSend);
+                messageToSend = "";
+            }}
+        >
+            <PlusSign width="15" height="15"></PlusSign>
+        </button>
+    </div>
 </main>
 
-
 <style>
-
     .pasted-image {
         width: 150px;
         max-height: 150px;
@@ -132,7 +140,7 @@ let listImages : Image[] = []
     .top {
         position: absolute;
         left: calc(100% - 25px);
-        top:0px;
+        top: 0px;
         z-index: 10;
     }
 
@@ -143,7 +151,6 @@ let listImages : Image[] = []
     .close:hover {
         color: rgb(255, 62, 62);
     }
-
 
     main {
         display: flex;
@@ -171,7 +178,4 @@ let listImages : Image[] = []
         margin-left: 2px;
         color: var(--text-color-control);
     }
-
-
 </style>
-

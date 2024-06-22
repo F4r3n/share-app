@@ -401,6 +401,25 @@ fn decode_base64(message: &str) -> Result<Vec<u8>, String> {
     }
 }
 
+#[tauri::command]
+fn upload_image(endpoint: &str, image_bytes: Vec<u8>) -> Result<String, String> {
+    use reqwest::blocking::multipart;
+
+    let form = multipart::Form::new().text("title", "").part(
+        "upload",
+        multipart::Part::bytes(image_bytes)
+        .mime_str("image/png").map_err(|e| e.to_string())?,
+    );
+
+    let client = reqwest::blocking::Client::new();
+    let resp = client
+        .post(endpoint)
+        .multipart(form)
+        .send().map_err(|e| e.to_string())?;
+    dbg!(&resp);
+    Ok(resp.text().map_err(|e| e.to_string())?)
+}
+
 fn main() {
     let log_file = OpenOptions::new()
         .write(true)
@@ -419,7 +438,8 @@ fn main() {
             decode_base64,
             load_settings,
             save_settings,
-            get_users
+            get_users,
+            upload_image
         ])
         .manage(IRCState(Mutex::new(IRC {
             client: None,

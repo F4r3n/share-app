@@ -15,7 +15,6 @@
     const dispatch = createEventDispatcher();
 
     import type { MessageFromIRC } from "./MessageType";
-    import Info from "./Module/info.svelte";
 
     type User = {
         nick_name: string;
@@ -36,9 +35,9 @@
     let updateScroll = true;
     let messagesUnreadChannel: Set<string> = new Set<string>();
     let isLoaded = false;
-    let lastPingTime : number= 0;
-    let lastPongTime : number = 0;
-    let intervalID : NodeJS.Timer;
+    let lastPingTime: number = new Date().getTime() / 1000;
+    let lastPongTime: number = new Date().getTime() / 1000;
+    let intervalID: NodeJS.Timer;
     let needReconnection = false;
     function isScrollAtTheEnd(): boolean {
         if (discussSection == undefined) return true;
@@ -101,6 +100,7 @@
 
             isLoaded = true;
             if (data.command === "PRIVMSG") {
+                lastPingTime = new Date().getTime() / 1000;
                 updateUsers();
                 message.date = new Date();
                 message.highlight = isMessageHighlight(message.content);
@@ -122,10 +122,10 @@
                     );
                 }
             } else if (data.command === "PING") {
-                lastPingTime =Number(message.content);
+                lastPingTime = Number(message.content);
                 isLoaded = true;
             } else if (data.command === "PONG") {
-                lastPongTime =Number(message.content);
+                lastPongTime = Number(message.content);
                 isLoaded = true;
             } else if (data.command === "NOTICE") {
                 message.date = new Date();
@@ -213,9 +213,11 @@
         });
     }
 
-    function check_ping_pong() : boolean{
-        let currentTime = (new Date()).getTime() /1000;
-        if(lastPingTime > 0 && currentTime - lastPingTime > 180) {
+    function check_ping_pong(): boolean {
+        let currentTime = new Date().getTime() / 1000;
+        console.log(currentTime - lastPingTime);
+        if (currentTime - lastPingTime > 300) {
+            console.log("Need reco");
             return false;
         }
         return true;
@@ -226,13 +228,14 @@
         read_messages();
         irc_event();
         intervalID = setInterval(() => {
-            if(!check_ping_pong()) {
+            if (!check_ping_pong()) {
                 needReconnection = true;
-        }}, 6000)
+            }
+        }, 6000);
     });
 
     onDestroy(async () => {
-        clearInterval(intervalID)
+        clearInterval(intervalID);
         // invoke('disconnect', {message:"Bye"});
     });
 
@@ -314,7 +317,6 @@
 </script>
 
 <main>
-
     {#if !isLoaded}
         <div class="loading" class:loading-hide={isLoaded}>
             <Jumper size="60" color="#845EC2" unit="px" duration="1s"></Jumper>
@@ -416,7 +418,6 @@
 </main>
 
 <style>
-
     .warning-message {
         z-index: 1000;
         position: relative;
@@ -547,10 +548,5 @@
         display: flex;
         flex-direction: row;
         align-items: baseline;
-    }
-
-    .widgets {
-        display: flex;
-        flex-direction: row;
     }
 </style>
