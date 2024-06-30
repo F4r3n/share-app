@@ -1,12 +1,13 @@
 <script lang="ts">
     import ATag from "./ATag.svelte";
-    import ImgTag from "./IMGTag.svelte";
     import LinkPreview from "./LinkPreview.svelte";
-    import { fetch } from "@tauri-apps/api/http";
     import { onMount } from "svelte";
     import { createEventDispatcher } from "svelte";
     import { afterUpdate } from "svelte";
     import ColorTag from "./ColorTag.svelte";
+    import { invoke } from "@tauri-apps/api/tauri";
+    import type { MetaData } from "./metaData";
+
     const dispatch = createEventDispatcher();
 
     type Token = {
@@ -27,18 +28,10 @@
         checkLinks = checkLinks;
     });
 
-    function isImage(url: string): Promise<boolean> {
-        return fetch(url, { method: "HEAD" }).then((res) => {
-            let value: boolean = false;
-            if (res != null) {
-                const content = res.headers["content-type"];
-                if (content) {
-                    value = content.startsWith("image");
-                }
-            }
-            return value;
-        });
+    function getPreview(inURL: string): Promise<MetaData> {
+        return invoke("get_url_preview", { endpoint: inURL });
     }
+
     export let tokens: Token[] = [];
     let checkLinks: string[] = [];
 </script>
@@ -49,7 +42,11 @@
             {#if token.type == "ATag"}
                 <ATag href={token.value.href}>{token.value.content}</ATag>
             {:else if token.type == "ColorTag" && token.value.content != ""}
-                <ColorTag background={token.value.background} foreground={token.value.color}>{token.value.content}</ColorTag>
+                <ColorTag
+                    background={token.value.background}
+                    foreground={token.value.color}
+                    >{token.value.content}</ColorTag
+                >
             {:else if token.type == "RAW" && token.value.content != ""}
                 <span>{token.value.content}</span>
             {/if}
@@ -57,22 +54,14 @@
     </div>
 
     {#each checkLinks as link}
-        {#await isImage(link) then value}
-            {#if value}
-                <ImgTag
-                    on:message_formatted={() => {
-                        dispatch("message_formatted");
-                    }}
-                    href={link}
-                ></ImgTag>
-            {:else}
-                <LinkPreview
-                    on:message_formatted={() => {
-                        dispatch("message_formatted");
-                    }}
-                    href={link}
-                ></LinkPreview>
-            {/if}
+        {#await getPreview(link) then preview}
+            <LinkPreview
+                on:message_formatted={() => {
+                    dispatch("message_formatted");
+                }}
+                {preview}
+                {link}
+            ></LinkPreview>
         {/await}
     {/each}
 </main>

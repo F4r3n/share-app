@@ -13,22 +13,23 @@ rust-version = "1.79"
 
 [build-dependencies]
 tauri-build = { version = "1.5.2", features = [] }
-tauri-cli = {version="1.5.4"}
+tauri-cli = {version="1.5.14"}
 
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.6.7", features = ["http-multipart", "http-request", "path-all", "protocol-asset", "shell-open", "updater", "window-request-user-attention"] }
+tauri = { version = "1.6.8", features = ["path-all", "protocol-asset", "shell-open", "updater", "window-request-user-attention"] }
 irc = "1.0.0"
-futures = "0.3.30"
-arboard = "3.3.0"
-image = "0.25.1"
+futures = "0.3"
+arboard = "3.3"
+image = "0.25"
 uuid = { version = "1.7.0", features = ["serde", "v4"] }
-anyhow = "1.0.79"
-base64 = "0.22.1"
-serde_yaml = "0.9.31"
-chrono = "0.4.33"
-reqwest = { version = "0.12.5", features = ["blocking", "multipart"] }
+anyhow = "1.0"
+base64 = "0.22"
+serde_yaml = "0.9"
+chrono = "0.4"
+reqwest = { version = "0.12", features = ["blocking", "multipart"] }
+scraper = "0.19.0"
 
 [features]
 # by default Tauri runs in production mode

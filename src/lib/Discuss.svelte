@@ -215,7 +215,6 @@
 
     function check_ping_pong(): boolean {
         let currentTime = new Date().getTime() / 1000;
-        console.log(currentTime - lastPingTime);
         if (currentTime - lastPingTime > 300) {
             console.log("Need reco");
             return false;

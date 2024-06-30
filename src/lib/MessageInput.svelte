@@ -3,10 +3,7 @@
     import { createEventDispatcher } from "svelte";
     import { onMount, onDestroy } from "svelte";
     import { invoke } from "@tauri-apps/api";
-    import { fetch, ResponseType } from "@tauri-apps/api/http";
-    import { convertFileSrc } from "@tauri-apps/api/tauri";
     import { config } from "./config";
-    import { Body } from "@tauri-apps/api/http";
     import CloseButton from "../assets/circle-close.svelte";
 
     const dispatch = createEventDispatcher();

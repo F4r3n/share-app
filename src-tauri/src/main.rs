@@ -420,6 +420,87 @@ fn upload_image(endpoint: &str, image_bytes: Vec<u8>) -> Result<String, String> 
     Ok(resp.text().map_err(|e| e.to_string())?)
 }
 
+use scraper::Html;
+
+#[derive(Clone, serde::Serialize, Debug)]
+struct MetaData {
+    image_url: String,
+    title: String,
+    description: String,
+    site : String,
+    image_only : bool
+}
+
+impl MetaData {
+    pub fn new(in_html: Html) -> Self{
+
+        let mut meta = MetaData {
+            image_url: String::from(""),
+            title : String::from(""),
+            description : String::from(""),
+            site : String::from(""),
+            image_only : false
+        };
+        use scraper::Selector;
+        let selector = Selector::parse("head meta").unwrap();
+        let s = in_html.select(&selector);
+        for element in s {
+            if let Some(property) = element.attr("property") {
+                if let Some(content) = element.attr("content") {
+                    match property {
+                        "og:title" => {
+                            meta.title = String::from(content);
+                        },
+                        "og:image" => {
+                            meta.image_url = String::from(content);
+                        },
+                        "og:description" => {
+                            meta.description = String::from(content);
+                        },
+                        "og:site" => {
+                            meta.site = String::from(content);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+        meta
+    }
+}
+
+
+#[tauri::command]
+async fn get_url_preview(endpoint: &str) -> Result<MetaData, String>
+{
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(endpoint)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    let headers = resp.headers();
+    let mut has_meta = false;
+
+    if let Some(content) = headers.get("content-type") {
+        has_meta = !content.to_str().map_err(|e| e.to_string())?.starts_with("image");
+    }
+    let text = resp.text().await.map_err(|e| e.to_string())?;
+    let document = Html::parse_document(text.as_str());
+    if has_meta {
+        Ok(MetaData::new(document))
+    }
+    else {
+        Ok(MetaData {
+            image_url: String::from(endpoint),
+            title : String::from(""),
+            description : String::from(""),
+            site : String::from(""),
+            image_only : true
+        })
+    }
+}
+
 fn main() {
     let log_file = OpenOptions::new()
         .write(true)
@@ -439,7 +520,8 @@ fn main() {
             load_settings,
             save_settings,
             get_users,
-            upload_image
+            upload_image,
+            get_url_preview
         ])
         .manage(IRCState(Mutex::new(IRC {
             client: None,
