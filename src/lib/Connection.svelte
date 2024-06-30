@@ -10,12 +10,12 @@
     export let channel:string = "#share-chan"
     export let password : string =""
     const connect = () => {
-        
+        console.log("Try to connect")
         invoke('loggin', {nickName:nickName, server:server, channel:channel, password:password})
         .then(() => {
-            dispatch('connected')
+            dispatch('connected') 
         })
-        .catch(e => console.log("cannot connect"))
+        .catch(e => console.log("cannot connect")) 
     }
 
 </script>
