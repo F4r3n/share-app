@@ -8,6 +8,7 @@ mod path;
 use std::alloc::System;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
+use std::path::PathBuf;
 
 use anyhow::Error;
 use base64::Engine;
@@ -54,7 +55,7 @@ pub struct IRCState(pub Mutex<IRC>);
 pub struct IRC {
     client: Option<irc::client::Client>,
     channel: String,
-    log_file: File,
+    log_file: Option<File>,
 }
 
 impl IRC {
@@ -103,18 +104,17 @@ pub async fn irc_read(
     mut stream: irc::client::ClientStream,
     log_file: File,
 ) -> Result<(), anyhow::Error> {
+    loop {
+        let result = stream.next().await.transpose();
+        let m = match result {
+            Ok(m) => m,
+            Err(e) => return Err(e.into()),
+        };
 
-    loop  {
-      let result = stream.next().await.transpose();
-      let m = match result {
-        Ok(m) => m,
-        Err(e) => return Err(e.into()),
-      };
-
-      let message = match m {
-          Some(m) => m,
-          None => return Err(Error::msg("No messages"))
-      };
+        let message = match m {
+            Some(m) => m,
+            None => return Err(Error::msg("No messages")),
+        };
         print!("{}", message);
 
         let mut pay_load = Payload {
@@ -127,17 +127,19 @@ pub async fn irc_read(
         match message.command {
             Command::PING(server1, server2) => {
                 pay_load.command = String::from("PING");
-                pay_load.content = match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
-                    Ok(n) => {n.as_secs().to_string()},
-                    Err(e) => {String::from("0")}
-                }
+                pay_load.content =
+                    match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
+                        Ok(n) => n.as_secs().to_string(),
+                        Err(e) => String::from("0"),
+                    }
             }
             Command::PONG(server1, server2) => {
                 pay_load.command = String::from("PONG");
-                pay_load.content = match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
-                    Ok(n) => {n.as_secs().to_string()},
-                    Err(e) => {String::from("0")}
-                }
+                pay_load.content =
+                    match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
+                        Ok(n) => n.as_secs().to_string(),
+                        Err(e) => String::from("0"),
+                    }
             }
             Command::PRIVMSG(ref target, ref msg) => {
                 pay_load.command = String::from("PRIVMSG");
@@ -146,8 +148,11 @@ pub async fn irc_read(
                     pay_load.nick_name = String::from(nick_name);
                 }
                 pay_load.content = msg.as_str().to_string();
-                write_in_log(&log_file, pay_load.nick_name.as_str(), pay_load.content.as_str());
-
+                write_in_log(
+                    &log_file,
+                    pay_load.nick_name.as_str(),
+                    pay_load.content.as_str(),
+                );
             }
             Command::NOTICE(ref _target, ref msg) => {
                 pay_load.command = String::from("NOTICE");
@@ -155,7 +160,6 @@ pub async fn irc_read(
                     pay_load.nick_name = String::from(nick_name);
                 }
                 pay_load.content = String::from(msg.as_str().to_string().strip_formatting());
-
             }
             Command::Response(response, ref msg) => {
                 pay_load.command = String::from("RESPONSE");
@@ -251,7 +255,11 @@ fn read_messages(window: tauri::Window, irc: tauri::State<'_, IRCState>) -> Resu
     let mut state_guard = irc.0.try_lock().expect("ERROR");
 
     let stream = state_guard.client.as_mut().unwrap().stream();
-    let log = state_guard.log_file.try_clone();
+    let mut log : Option<File> = None;
+    if let Some(log_file) = &state_guard.log_file {
+        log = Some(log_file.try_clone().unwrap());
+    }
+     
     match stream {
         Ok(s) => {
             tauri::async_runtime::spawn(async {
@@ -268,6 +276,7 @@ fn read_messages(window: tauri::Window, irc: tauri::State<'_, IRCState>) -> Resu
 
 #[tauri::command]
 fn loggin(
+    app_handle: tauri::AppHandle,
     nick_name: &str,
     server: &str,
     channel: &str,
@@ -292,11 +301,12 @@ fn loggin(
         });
     }
     let str = format!("log_{}_{}.txt", server, channel);
-    state_guard.log_file = OpenOptions::new()
-    .write(true)
-    .append(true)
-    .create(true)
-    .open(get_config_dir().unwrap().join(str)).unwrap();
+    state_guard.log_file = Some(OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create(true)
+        .open(get_config_dir(app_handle).map_err(|e| e.to_string())?.join(str))
+        .unwrap());
 
     match &state_guard.client {
         Some(_) => Ok(()),
@@ -305,11 +315,15 @@ fn loggin(
 }
 
 fn write_in_log(mut file: &File, nick_name: &str, message: &str) {
-  let utc: chrono::DateTime<chrono::Utc> = chrono::Utc::now();  
-  match write!(file, "{}", format!("{} {}: {}\n", utc, String::from(nick_name), message)) {
-    Ok(()) => (),
-    Err(_) => (),
-  }
+    let utc: chrono::DateTime<chrono::Utc> = chrono::Utc::now();
+    match write!(
+        file,
+        "{}",
+        format!("{} {}: {}\n", utc, String::from(nick_name), message)
+    ) {
+        Ok(()) => (),
+        Err(_) => (),
+    }
 }
 
 #[tauri::command]
@@ -319,11 +333,12 @@ fn send_message(
     irc: tauri::State<'_, IRCState>,
 ) -> Result<(), String> {
     let state_guard = irc.0.try_lock().expect("ERROR");
-    let file = &state_guard.log_file;
     let nick_name = state_guard.client.as_ref().unwrap().current_nickname();
-    write_in_log(file, nick_name, message);
-    state_guard.send_message(message, channel)
+    if let Some(log_file) = &state_guard.log_file {
+        write_in_log(&log_file, nick_name, message);
 
+    }
+    state_guard.send_message(message, channel)
 }
 
 #[tauri::command]
@@ -383,13 +398,13 @@ fn get_image_clipboard() -> Result<String, String> {
 }
 
 #[tauri::command]
-fn load_settings() -> Result<settings::Settings, String> {
-    settings::load_settings().map_err(|e| e.to_string())
+fn load_settings(app_handle : tauri::AppHandle) -> Result<settings::Settings, String> {
+    settings::load_settings(app_handle).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn save_settings(settings: Settings) -> Result<(), String> {
-    settings::save_settings(&settings).map_err(|e| e.to_string())
+fn save_settings(app_handle : tauri::AppHandle, settings: Settings) -> Result<(), String> {
+    settings::save_settings(app_handle, &settings).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -408,38 +423,40 @@ fn upload_image(endpoint: &str, image_bytes: Vec<u8>) -> Result<String, String> 
     let form = multipart::Form::new().text("title", "").part(
         "upload",
         multipart::Part::bytes(image_bytes)
-        .mime_str("image/png").map_err(|e| e.to_string())?,
+            .mime_str("image/png")
+            .map_err(|e| e.to_string())?,
     );
 
     let client = reqwest::blocking::Client::new();
     let resp = client
         .post(endpoint)
         .multipart(form)
-        .send().map_err(|e| e.to_string())?;
+        .send()
+        .map_err(|e| e.to_string())?;
     dbg!(&resp);
     Ok(resp.text().map_err(|e| e.to_string())?)
 }
 
 use scraper::Html;
+use tauri::Manager;
 
 #[derive(Clone, serde::Serialize, Debug)]
 struct MetaData {
     image_url: String,
     title: String,
     description: String,
-    site : String,
-    image_only : bool
+    site: String,
+    image_only: bool,
 }
 
 impl MetaData {
-    pub fn new(in_html: Html) -> Self{
-
+    pub fn new(in_html: Html) -> Self {
         let mut meta = MetaData {
             image_url: String::from(""),
-            title : String::from(""),
-            description : String::from(""),
-            site : String::from(""),
-            image_only : false
+            title: String::from(""),
+            description: String::from(""),
+            site: String::from(""),
+            image_only: false,
         };
         use scraper::Selector;
         let selector = Selector::parse("head meta").unwrap();
@@ -450,13 +467,13 @@ impl MetaData {
                     match property {
                         "og:title" => {
                             meta.title = String::from(content);
-                        },
+                        }
                         "og:image" => {
                             meta.image_url = String::from(content);
-                        },
+                        }
                         "og:description" => {
                             meta.description = String::from(content);
-                        },
+                        }
                         "og:site" => {
                             meta.site = String::from(content);
                         }
@@ -469,10 +486,8 @@ impl MetaData {
     }
 }
 
-
 #[tauri::command]
-async fn get_url_preview(endpoint: &str) -> Result<MetaData, String>
-{
+async fn get_url_preview(endpoint: &str) -> Result<MetaData, String> {
     let client = reqwest::Client::new();
     let resp = client
         .get(endpoint)
@@ -483,32 +498,30 @@ async fn get_url_preview(endpoint: &str) -> Result<MetaData, String>
     let mut has_meta = false;
 
     if let Some(content) = headers.get("content-type") {
-        has_meta = !content.to_str().map_err(|e| e.to_string())?.starts_with("image");
+        has_meta = !content
+            .to_str()
+            .map_err(|e| e.to_string())?
+            .starts_with("image");
     }
     let text = resp.text().await.map_err(|e| e.to_string())?;
     let document = Html::parse_document(text.as_str());
     if has_meta {
         Ok(MetaData::new(document))
-    }
-    else {
+    } else {
         Ok(MetaData {
             image_url: String::from(endpoint),
-            title : String::from(""),
-            description : String::from(""),
-            site : String::from(""),
-            image_only : true
+            title: String::from(""),
+            description: String::from(""),
+            site: String::from(""),
+            image_only: true,
         })
     }
 }
 
 fn main() {
-    let log_file = OpenOptions::new()
-        .write(true)
-        .append(true)
-        .create(true)
-        .open(get_config_dir().unwrap().join("log.txt"));
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             loggin,
             read_messages,
@@ -526,7 +539,7 @@ fn main() {
         .manage(IRCState(Mutex::new(IRC {
             client: None,
             channel: String::from(""),
-            log_file: log_file.unwrap(),
+            log_file: None,
         })))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

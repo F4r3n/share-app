@@ -1,11 +1,5 @@
-
 use std::path::PathBuf;
-use anyhow::anyhow;
-
-pub fn get_config_dir() -> Result<PathBuf, anyhow::Error>
-{
-  if let Some(config_dir) = tauri::api::path::config_dir() {
-    return Ok(config_dir.join("share-app"));
-  }
-  Err(anyhow!("No config path"))
+use tauri::Manager;
+pub fn get_config_dir(app_handle: tauri::AppHandle) -> Result<PathBuf, anyhow::Error> {
+    app_handle.path().resolve("share-app", tauri::path::BaseDirectory::Config).map_err(|e| anyhow::Error::msg(e))
 }

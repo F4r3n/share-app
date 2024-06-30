@@ -2,7 +2,7 @@
     import PlusSign from "../assets/plus-sign-svg.svelte";
     import { createEventDispatcher } from "svelte";
     import { onMount, onDestroy } from "svelte";
-    import { invoke } from "@tauri-apps/api";
+    import { invoke } from "@tauri-apps/api/core";
     import { config } from "./config";
     import CloseButton from "../assets/circle-close.svelte";
 

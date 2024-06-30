@@ -1,6 +1,6 @@
 <script lang="ts">
     import { listen } from "@tauri-apps/api/event";
-    import { invoke } from "@tauri-apps/api";
+    import { invoke } from "@tauri-apps/api/core";
     import { onMount, onDestroy } from "svelte";
     import { afterUpdate } from "svelte";
     import { Jumper } from "svelte-loading-spinners";
@@ -10,7 +10,7 @@
     import { Channel } from "./channel";
     import User from "./User.svelte";
     import { createEventDispatcher } from "svelte";
-    import { appWindow, UserAttentionType } from "@tauri-apps/api/window";
+    import { Window, UserAttentionType } from "@tauri-apps/api/window";
 
     const dispatch = createEventDispatcher();
 
@@ -36,8 +36,7 @@
     let messagesUnreadChannel: Set<string> = new Set<string>();
     let isLoaded = false;
     let lastPingTime: number = new Date().getTime() / 1000;
-    let lastPongTime: number = new Date().getTime() / 1000;
-    let intervalID: NodeJS.Timer;
+    let intervalID: number;
     let needReconnection = false;
     function isScrollAtTheEnd(): boolean {
         if (discussSection == undefined) return true;
@@ -113,11 +112,11 @@
                 }
 
                 if (message.highlight) {
-                    await appWindow.requestUserAttention(
+                    await Window.getCurrent().requestUserAttention(
                         UserAttentionType.Critical,
                     );
                 } else {
-                    await appWindow.requestUserAttention(
+                    await Window.getCurrent().requestUserAttention(
                         UserAttentionType.Informational,
                     );
                 }
@@ -125,7 +124,6 @@
                 lastPingTime = Number(message.content);
                 isLoaded = true;
             } else if (data.command === "PONG") {
-                lastPongTime = Number(message.content);
                 isLoaded = true;
             } else if (data.command === "NOTICE") {
                 message.date = new Date();

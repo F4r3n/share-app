@@ -1,6 +1,6 @@
 <script lang="ts">
   import {fade} from "svelte/transition"
-  import { invoke } from '@tauri-apps/api/tauri';
+  import { invoke } from '@tauri-apps/api/core';
 	import { createEventDispatcher } from 'svelte';
 
   export let hasFailed = false;

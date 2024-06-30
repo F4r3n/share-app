@@ -4,7 +4,7 @@
   import { onMount, onDestroy } from "svelte";
   import { config } from "./lib/config";
   import { listen } from "@tauri-apps/api/event";
-  import { invoke } from "@tauri-apps/api/tauri";
+  import { invoke } from "@tauri-apps/api/core";
   import SettingsButton from "./lib/SettingsButton.svelte";
   import SettingsPanel from "$lib/SettingsPanel.svelte";
   import { clickOutside } from "./lib/clickOutside";
