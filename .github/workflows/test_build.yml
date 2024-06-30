@@ -11,15 +11,16 @@ jobs:
     runs-on: ${{ matrix.platform }}
     environment: updater
     steps:
-    - uses: actions/checkout
+    - uses: actions/checkout@v4
     - name: setup node
-      uses: actions/setup-node
+      uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: lts/*
     - name: install Rust stable
-      uses: actions-rs/toolchain
+      uses: dtolnay/rust-toolchain@stable
       with:
-        toolchain: stable
+        # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
+        targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
     - name: install dependencies (ubuntu only)
       if: matrix.platform == 'ubuntu-22.04'
       run: |
@@ -27,7 +28,7 @@ jobs:
         sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0 libappindicator3-dev librsvg2-dev patchelf
     - name: install app dependencies and build it
       run: yarn && yarn build
-    - uses: tauri-apps/tauri-action
+    - uses: tauri-apps/tauri-action@v0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TAURI_PRIVATE_KEY: ${{secrets.TAURI_PRIVATE_KEY}}
