@@ -2,6 +2,15 @@ name: "test-build"
 on: [pull_request, push]
 
 jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos-latest, ubuntu-22.04, windows-latest]
+    uses: ./.github/workflows/build.yml
+    with:
+      platform: ${{ matrix.platform }}
+
   test-tauri:
     strategy:
       fail-fast: false
@@ -11,9 +20,6 @@ jobs:
     runs-on: ${{ matrix.platform }}
     environment: updater
     steps:
-    - uses: ./.github/workflows/build.yml
-      with:
-        platform: ${{ matrix.platform }}
     - uses: tauri-apps/tauri-action
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
