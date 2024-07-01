@@ -3,11 +3,12 @@ name = "app"
 version = "0.1.4"
 description = "A Tauri App"
 authors = ["you"]
-license = ""
-repository = ""
-default-run = "app"
 edition = "2021"
 rust-version = "1.79"
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
