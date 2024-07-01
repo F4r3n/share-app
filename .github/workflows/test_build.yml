@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
     environment: updater
     steps:
-    - uses: "./.github/workflows/build.yml"
+    - uses: ./.github/workflows/build.yml
       with:
         platform: ${{ matrix.platform }}
     - uses: tauri-apps/tauri-action
