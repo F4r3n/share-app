@@ -5,10 +5,8 @@
 
 mod clipboard;
 mod path;
-use std::alloc::System;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
-use std::path::PathBuf;
 
 use anyhow::Error;
 use base64::Engine;
