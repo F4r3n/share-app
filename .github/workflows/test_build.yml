@@ -11,6 +11,9 @@ jobs:
           - platform: ubuntu-22.04
             default: false
             android: yes
+          - platform: ubuntu-22.04
+            default: false
+            android: false
 
     runs-on: ${{ matrix.platform }}
     environment: updater
@@ -30,7 +33,7 @@ jobs:
       if: matrix.platform == 'ubuntu-22.04'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+        sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
 
     - name: Setup java
       uses: actions/setup-java@v3
