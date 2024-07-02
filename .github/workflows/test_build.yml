@@ -41,7 +41,7 @@ jobs:
       if: ${{ matrix.object.android }}
       id: setup-ndk
       with:
-        ndk-version: r25b
+        ndk-version: r26d
         local-cache: true
 
     - name: Android Rust target
@@ -62,6 +62,13 @@ jobs:
       run: cargo install tauri-cli --version "^2.0.0-beta" && cargo tauri android build --split-per-abi --verbose
       env:
         NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+
+    - uses: actions/upload-artifact@v3
+      if: ${{ matrix.object.android }}
+      with:
+        name: apks
+        path: |
+          src-tauri/gen/android/app/app/build/outputs/apk/**/**/*.apk
          
     - uses: tauri-apps/tauri-action@v0
       env:
