@@ -7,6 +7,10 @@ jobs:
       fail-fast: false
       matrix:
         platform: [macos-latest, ubuntu-22.04, windows-latest]
+        include:
+          - platform: ubuntu-22.04
+            default: false
+            android: yes
 
     runs-on: ${{ matrix.platform }}
     environment: updater
@@ -16,6 +20,7 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: lts/*
+
     - name: install Rust stable
       uses: dtolnay/rust-toolchain@stable
       with:
@@ -25,9 +30,36 @@ jobs:
       if: matrix.platform == 'ubuntu-22.04'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf    
+        sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf   
+
+    - name: Setup java
+      uses: actions/setup-java@v3
+      if: ${{ matrix.android }}
+      with:
+        distribution: 'temurin'
+        java-version: '11' 
+
+    - name: Setup NDK 
+      uses: nttld/setup-ndk@v1
+      if: ${{ matrix.android }}
+      id: setup-ndk
+      with:
+        ndk-version: r25b
+        local-cache: true
+
+    - name: Android Rust target
+      if: ${{ matrix.android }}
+      run: rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+ 
     - name: install app dependencies and build it
       run: yarn install
+
+    - name: Init Android Studio Project
+      if: ${{ matrix.android }}
+      run: yarn tauri android init
+      env:
+        NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+        
     - uses: tauri-apps/tauri-action@v0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
