@@ -62,12 +62,13 @@ jobs:
 
     - name: Build apk
       if: ${{ matrix.android }}
-      run: cargo tauri android build --split-per-abi --verbose
+      run: cargo install tauri-cli --version "^2.0.0-beta" && cargo tauri android build --split-per-abi --verbose
       env:
         NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
          
     - uses: tauri-apps/tauri-action@v0
       env:
+        if: ${{ !matrix.android }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TAURI_SIGNING_PRIVATE_KEY: ${{secrets.TAURI_PRIVATE_KEY}}
         TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{secrets.TAURI_KEY_PASSWORD}}
