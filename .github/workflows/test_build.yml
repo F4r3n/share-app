@@ -57,6 +57,13 @@ jobs:
       env:
         NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
 
+      
+    - uses: shogo82148/actions-setup-perl@v1
+      if: ${{ matrix.object.android && matrix.object.os == 'windows-latest'}}
+      with:
+        perl-version: latest
+        distribution: strawberry
+
     - name: Build apk
       if: ${{ matrix.object.android }}
       run: cargo install tauri-cli --version "^2.0.0-beta" && cargo tauri android build --split-per-abi --verbose
