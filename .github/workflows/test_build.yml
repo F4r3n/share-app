@@ -6,9 +6,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [macos-latest, ubuntu-22.04, windows-latest]
+        object: [{"os":"macos-latest"}, {"os":"ubuntu-latest"}, {"os":"windows-latest"}, {"os":"windows-latest", "android":true}]
 
-    runs-on: ${{ matrix.platform }}
+
+    runs-on: ${{ matrix.object.os }}
     environment: updater
     steps:
     - uses: actions/checkout@v4
@@ -16,23 +17,59 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: lts/*
+
     - name: install Rust stable
       uses: dtolnay/rust-toolchain@stable
       with:
         # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
-        targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+        targets: ${{ matrix.object.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
     - name: install dependencies (ubuntu only)
-      if: matrix.platform == 'ubuntu-22.04'
+      if: matrix.object.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0 libappindicator3-dev librsvg2-dev patchelf
-    - name: install app dependencies and build it
-      run: yarn && yarn build
+        sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
+
+    - name: Setup java
+      uses: actions/setup-java@v4
+      if: ${{ matrix.object.android }}
+      with:
+        distribution: 'temurin'
+        java-version: '21' 
+
+    - name: Setup NDK 
+      uses: nttld/setup-ndk@v1
+      if: ${{ matrix.object.android }}
+      id: setup-ndk
+      with:
+        ndk-version: r27-beta2
+        local-cache: true
+
+    - name: Android Rust target
+      if: ${{ matrix.object.android }}
+      run: rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+
+    - name: Install app dependencies
+      run: yarn
+
+    - name: Build apk
+      if: ${{ matrix.object.android }}
+      run: cargo install tauri-cli --version "^2.0.0-beta" && cargo tauri android build --split-per-abi --verbose
+      env:
+        NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+
+    - uses: actions/upload-artifact@v4
+      if: ${{ matrix.object.android }}
+      with:
+        name: apks
+        path: |
+          src-tauri/gen/android/app/build/outputs/apk/**/**/*.apk
+         
     - uses: tauri-apps/tauri-action@v0
       env:
+        if: ${{ !matrix.object.android }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        TAURI_PRIVATE_KEY: ${{secrets.TAURI_PRIVATE_KEY}}
-        TAURI_KEY_PASSWORD: ${{secrets.TAURI_KEY_PASSWORD}}
+        TAURI_SIGNING_PRIVATE_KEY: ${{secrets.TAURI_PRIVATE_KEY}}
+        TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{secrets.TAURI_KEY_PASSWORD}}
       with:
         includeUpdaterJson: true
-
+        args: "--features=clipboard"

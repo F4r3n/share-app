@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { open } from '@tauri-apps/api/shell';
+    import { open } from '@tauri-apps/plugin-shell';
     import { onMount, onDestroy } from 'svelte';
 
     export let href : string;

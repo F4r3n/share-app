@@ -5,7 +5,7 @@
     import { createEventDispatcher } from "svelte";
     import { afterUpdate } from "svelte";
     import ColorTag from "./ColorTag.svelte";
-    import { invoke } from "@tauri-apps/api/tauri";
+    import { invoke } from "@tauri-apps/api/core";
     import type { MetaData } from "./metaData";
 
     const dispatch = createEventDispatcher();

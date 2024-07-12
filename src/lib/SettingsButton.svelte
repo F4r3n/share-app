@@ -5,13 +5,10 @@
     const dispatch = createEventDispatcher();
 </script>
 <!-- svelte-ignore a11y-click-events-have-key-events -->
-<div class="settings-icon" on:click={()=>{dispatch("toggle")}}>
+<button class="p-1 border-none hover:text-primary-800" on:click={()=>{dispatch("toggle")}}>
     <SettingsIcon></SettingsIcon>
-</div>
+</button>
 
 <style>
-    .settings-icon:hover {
-        cursor: pointer;
-    }
 
 </style>

@@ -1,20 +1,23 @@
 <script lang="ts">
     import { listen } from "@tauri-apps/api/event";
-    import { invoke } from "@tauri-apps/api";
+    import { invoke } from "@tauri-apps/api/core";
     import { onMount, onDestroy } from "svelte";
     import { afterUpdate } from "svelte";
     import { Jumper } from "svelte-loading-spinners";
     import MessageContent from "./MessageContent.svelte";
     import MessageInput from "./MessageInput.svelte";
     import type { Message } from "./channel";
-    import { Channel } from "./channel";
     import User from "./User.svelte";
     import { createEventDispatcher } from "svelte";
-    import { appWindow, UserAttentionType } from "@tauri-apps/api/window";
+    import { Window, UserAttentionType } from "@tauri-apps/api/window";
+    import { messagesManager } from "./MessagesManager";
+    import { slide } from "svelte/transition";
+    import { linear } from "svelte/easing";
 
     const dispatch = createEventDispatcher();
 
     import type { MessageFromIRC } from "./MessageType";
+    import Arrow from "../assets/arrow.svelte";
 
     type User = {
         nick_name: string;
@@ -24,9 +27,6 @@
     export let nickName: string;
     export let channel: string;
 
-    let listMessages: Map<string, Channel> = new Map<string, Channel>([
-        [channel, new Channel()],
-    ]);
     let topic: string = "";
     let channelNameSelected: string = channel ?? "";
 
@@ -34,11 +34,8 @@
     let users: User[] = [];
     let updateScroll = true;
     let messagesUnreadChannel: Set<string> = new Set<string>();
-    let isLoaded = false;
-    let lastPingTime: number = new Date().getTime() / 1000;
-    let lastPongTime: number = new Date().getTime() / 1000;
-    let intervalID: NodeJS.Timer;
-    let needReconnection = false;
+    let isLoaded = true; //TODO turn to false
+    let irc_received_unsubscribe = () => {};
     function isScrollAtTheEnd(): boolean {
         if (discussSection == undefined) return true;
 
@@ -71,132 +68,127 @@
 
     async function read_messages() {
         try {
+            console.log("Read messages");
             await invoke("read_messages");
-        } catch (e) {}
+        } catch (e) {
+            console.error(e);
+        }
         updateUsers();
     }
 
     async function irc_received() {
-        await listen("irc-recieved", async (event) => {
-            let data: MessageFromIRC = event.payload as MessageFromIRC;
-            let message: Message = {} as Message;
-            message.content = data.content;
-            message.nick_name = data.nick_name;
-            message.highlight = false;
-            let channelOrigin = data.channel;
-            if (channelOrigin === "") {
-                channelOrigin = channel;
-            }
-            if (channelOrigin === nickName) {
+        irc_received_unsubscribe = await listen(
+            "irc-recieved",
+            async (event) => {
+                let data: MessageFromIRC = event.payload as MessageFromIRC;
+                let message: Message = {} as Message;
+                message.content = data.content;
+                message.nick_name = data.nick_name;
+                message.highlight = false;
+                let channelOrigin = data.channel;
+                if (channelOrigin === "") {
+                    channelOrigin = channel;
+                }
                 //Get the origin as source
-                channelOrigin = message.nick_name;
-            }
-
-            if (!listMessages.has(channelOrigin)) {
-                listMessages.set(channelOrigin, new Channel());
-            }
-            let currentChannel: Channel | undefined =
-                listMessages.get(channelOrigin);
-
-            isLoaded = true;
-            if (data.command === "PRIVMSG") {
-                lastPingTime = new Date().getTime() / 1000;
-                updateUsers();
-                message.date = new Date();
-                message.highlight = isMessageHighlight(message.content);
-                currentChannel?.pushMessage(message);
-                listMessages = listMessages;
-
-                if (channelNameSelected !== channelOrigin) {
-                    messagesUnreadChannel.add(channelOrigin);
-                    messagesUnreadChannel = messagesUnreadChannel;
+                if (channelOrigin === nickName) {
+                    channelOrigin = message.nick_name;
                 }
-
-                if (message.highlight) {
-                    await appWindow.requestUserAttention(
-                        UserAttentionType.Critical,
-                    );
-                } else {
-                    await appWindow.requestUserAttention(
-                        UserAttentionType.Informational,
-                    );
-                }
-            } else if (data.command === "PING") {
-                lastPingTime = Number(message.content);
+                if (data.command !== "PRIVMSG") updateUsers();
                 isLoaded = true;
-            } else if (data.command === "PONG") {
-                lastPongTime = Number(message.content);
-                isLoaded = true;
-            } else if (data.command === "NOTICE") {
-                message.date = new Date();
-                message.highlight = isMessageHighlight(message.content);
-                currentChannel?.pushMessage(message);
-                listMessages = listMessages;
-
-                if (channelNameSelected !== channelOrigin) {
-                    messagesUnreadChannel.add(channelOrigin);
-                    messagesUnreadChannel = messagesUnreadChannel;
-                }
-            } else if (data.command === "JOIN") {
-                if (message.nick_name === nickName) {
-                    currentChannel?.pushMessage({
-                        nick_name: "",
-                        content: `you joined`,
-                        date: new Date(),
-                    } as Message);
-                } else {
-                    currentChannel?.pushMessage({
-                        nick_name: "",
-                        content: `${message.nick_name} has joined`,
-                        date: new Date(),
-                    } as Message);
-                }
-                listMessages = listMessages;
-                updateUsers();
-            } else if (data.command === "QUIT") {
-                let quitMessage = message.content.replace("Quit:", "");
-                currentChannel?.pushMessage({
-                    nick_name: "",
-                    content: `${message.nick_name} has quit (${quitMessage})`,
-                    date: new Date(),
-                } as Message);
-                listMessages = listMessages;
-                updateUsers();
-            } else if (data.command === "TOPIC") {
-                currentChannel?.pushMessage({
-                    nick_name: "",
-                    content: `${message.nick_name} has changed the topic to: '${data.content}' `,
-                    date: new Date(),
-                } as Message);
-                listMessages = listMessages;
-                topic = data.content;
-            } else if (data.command === "RESPONSE") {
-                if (data.response?.kind === 353) {
-                    //users
+                if (data.command === "PRIVMSG") {
                     updateUsers();
-                } else if (data.response?.kind === 332) {
-                    topic = data.response?.content.at(-1) ?? "";
-                } else if (data.response?.kind === 1) {
+                    message.date = new Date();
+                    message.highlight = isMessageHighlight(message.content);
+                    messagesManager.putMessageInList(message, channelOrigin);
+
+                    if (channelNameSelected !== channelOrigin) {
+                        messagesUnreadChannel.add(channelOrigin);
+                        messagesUnreadChannel = messagesUnreadChannel;
+                    }
+
+                    if (message.highlight) {
+                        await Window.getCurrent().requestUserAttention(
+                            UserAttentionType.Critical,
+                        );
+                    } else {
+                        await Window.getCurrent().requestUserAttention(
+                            UserAttentionType.Informational,
+                        );
+                    }
+                } else if (data.command === "PING") {
                     isLoaded = true;
-                }
-            } else if (data.command === "NICK") {
-                nickName = data.content;
-                updateUsers();
-            } else if (data.command === "ERROR") {
-                if (!isLoaded) {
-                    setTimeout(() => {
+                } else if (data.command === "PONG") {
+                    isLoaded = true;
+                } else if (data.command === "NOTICE") {
+                    message.date = new Date();
+                    message.highlight = isMessageHighlight(message.content);
+                    messagesManager.putMessageInList(message, channelOrigin);
+
+                    if (channelNameSelected !== channelOrigin) {
+                        messagesUnreadChannel.add(channelOrigin);
+                        messagesUnreadChannel = messagesUnreadChannel;
+                    }
+                } else if (data.command === "JOIN") {
+                    messagesManager.putMessageInList(
+                        {
+                            nick_name: "",
+                            content:
+                                message.nick_name === nickName
+                                    ? `you joined`
+                                    : `${message.nick_name} has joined`,
+                            date: new Date(),
+                        } as Message,
+                        channelOrigin,
+                    );
+                } else if (data.command === "QUIT") {
+                    let quitMessage = message.content.replace("Quit:", "");
+                    messagesManager.putMessageInList(
+                        {
+                            nick_name: "",
+                            content: `${message.nick_name} has quit (${quitMessage})`,
+                            date: new Date(),
+                        } as Message,
+                        channelOrigin,
+                    );
+                } else if (data.command === "TOPIC") {
+                    messagesManager.putMessageInList(
+                        {
+                            nick_name: "",
+                            content: `${message.nick_name} has changed the topic to: '${data.content}' `,
+                            date: new Date(),
+                        } as Message,
+                        channelOrigin,
+                    );
+                    topic = data.content;
+                } else if (data.command === "RESPONSE") {
+                    if (data.response?.kind === 353) {
+                        //users
+                    } else if (data.response?.kind === 332) {
+                        topic = data.response?.content.at(-1) ?? "";
+                    } else if (data.response?.kind === 1) {
+                        isLoaded = true;
+                    }
+                } else if (data.command === "NICK") {
+                    nickName = data.content;
+                } else if (
+                    data.command === "ERROR" ||
+                    data.command === "INTERNAL_ERROR"
+                ) {
+                    if (isLoaded) {
                         console.log("disconnect");
                         invoke("disconnect", {
-                            message: "",
+                            message: data.content,
                             shallSendMessage: false,
-                            wrongIdentifier: true,
                         }).then(() => {
-                            dispatch("connection_status", false);
+                            dispatch("connection_status", {
+                                result: false,
+                                message: data.content,
+                            });
                         });
-                    }, 1000);
+                    }
                 }
-            }
-        });
+            },
+        );
     }
 
     async function irc_event() {
@@ -213,61 +205,70 @@
         });
     }
 
-    function check_ping_pong(): boolean {
-        let currentTime = new Date().getTime() / 1000;
-        if (currentTime - lastPingTime > 300) {
-            console.log("Need reco");
-            return false;
-        }
-        return true;
-    }
-
     onMount(async () => {
         irc_received();
         read_messages();
         irc_event();
-        intervalID = setInterval(() => {
-            if (!check_ping_pong()) {
-                needReconnection = true;
-            }
-        }, 6000);
+        pointerEvent();
     });
 
+    type Pointer = {
+        x : number;
+        y: number;
+    }
+
+    let pointers = new Map<number, Pointer>(); 
+    function pointerEvent() {
+        addEventListener("pointerdown", (event) => {
+            pointers.set(event.pointerId, {x: event.x, y:event.y} as Pointer);
+        });
+
+        addEventListener("pointerup", (event) => {
+            console.log("UP", event)
+            if(pointers.has(event.pointerId))
+            {
+                let pointer = pointers.get(event.pointerId) ?? {x:0, y:0};
+                let distX = event.x - pointer.x;
+                let distY = event.y - pointer.y;
+                if(distX < -50 && Math.tan(distY/distX) < Math.PI/6)
+                {
+                    panelIsOpen = true;
+                }
+                pointers.delete(event.pointerId);
+            }
+        });
+    }
+
     onDestroy(async () => {
-        clearInterval(intervalID);
-        // invoke('disconnect', {message:"Bye"});
+        irc_received_unsubscribe();
     });
 
     async function updateUsers() {
         try {
-            users = (await getUsers()) as User[];
-        } catch (e) {}
+            users = (await invoke("get_users")) as User[];
+        } catch (e) {
+            console.error(e);
+        }
     }
 
     function sendCurrentMessage(inMessageContent: string) {
-        let message: Message;
-
         const isCommand: boolean = inMessageContent.at(0) == "/";
-        message = {
+        let message: Message = {
             nick_name: nickName,
             content: inMessageContent,
             date: new Date(),
             highlight: false,
         };
 
+        messagesManager.putMessageInList(message, channelNameSelected);
+
         if (!isCommand) {
-            if (!listMessages.has(channelNameSelected)) {
-                listMessages.set(channelNameSelected, new Channel(message));
-            } else {
-                messagesSelected.push(message);
-            }
             invoke("send_message", {
                 message: inMessageContent,
                 channel: channelNameSelected,
             })
                 .then(() => {})
                 .catch((e) => console.error(e));
-            listMessages = listMessages;
         } else {
             let command = inMessageContent.split(" ");
             const commandName = command.at(0)?.substring(1);
@@ -278,84 +279,50 @@
         }
     }
 
-    function getUsers() {
-        return new Promise((resolve, reject) => {
-            invoke("get_users")
-                .then((data) => {
-                    resolve(data);
-                })
-                .catch((e) => {
-                    reject(e);
-                });
-        });
-    }
-
-    $: isSameMessage = (id: number, nick_name: string): boolean => {
-        return (
-            id === 0 ||
-            (id > 0 && messagesSelected[id - 1].nick_name !== nick_name)
-        );
-    };
-
-    function getListMessages(
-        inMessagesList: Map<string, Channel>,
-        inChannel: string,
-    ): Message[] {
-        return inMessagesList.has(inChannel)
-            ? inMessagesList!.get(inChannel)!.messages
-            : ([] as Message[]);
-    }
-
-    $: messagesSelected = getListMessages(listMessages, channelNameSelected);
-
     function changeChannel(inChannel: string) {
         channelNameSelected = inChannel;
         messagesUnreadChannel.delete(inChannel);
         messagesUnreadChannel = messagesUnreadChannel;
     }
+    let screen_width = window.screen.width;
+    $: listMessages = messagesManager
+        .getChannel(channelNameSelected)
+        .getListMessages();
+
+    let panelIsOpen = true;
+    $: panel_mode = screen_width < 500;
 </script>
 
-<main>
+<main class="flex flex-row" bind:clientWidth={screen_width}>
     {#if !isLoaded}
         <div class="loading" class:loading-hide={isLoaded}>
             <Jumper size="60" color="#845EC2" unit="px" duration="1s"></Jumper>
         </div>
     {:else}
-        <div class="discuss-section">
-            {#if needReconnection}
-                <div class="warning-message">Need reconnection</div>
-            {/if}
-            <div class="topic">{topic}</div>
-            <div class="wrapper-messages" bind:this={discussSection}>
+        <div class="discuss-section flex-grow-1 min-w-0">
+            <div class="bg-primary-300 text-primary-600">{topic}</div>
+            <div class="flex-grow overflow-y-auto" bind:this={discussSection}>
                 <div class="messages">
-                    {#each getListMessages(listMessages, channelNameSelected) as message, id}
-                        <div
-                            class="message"
-                            style="--space:{isSameMessage(
-                                id,
-                                message.nick_name,
-                            ) && id !== 0
-                                ? '10px'
-                                : '0px'}"
-                        >
-                            {#if isSameMessage(id, message.nick_name)}
-                                <div class="title">
-                                    <div
-                                        class="username"
-                                        class:username-me={message.nick_name ===
-                                            nickName}
-                                    >
-                                        {message.nick_name}
-                                    </div>
-
-                                    <div class="date">
-                                        {message.date.toLocaleTimeString()}
-                                    </div>
+                    {#each $listMessages as message, id}
+                        <div class="message">
+                            <div class="title">
+                                <div
+                                    class="username"
+                                    class:username-me={message.nick_name ===
+                                        nickName}
+                                >
+                                    {message.nick_name}
                                 </div>
-                            {/if}
+                                <div
+                                    class="text-primary-300-400-token text-xs ml-10"
+                                >
+                                    {message.date.toLocaleTimeString()}
+                                </div>
+                            </div>
+
                             {#key channelNameSelected}
                                 <div
-                                    class="message-content"
+                                    class="flex flex-col"
                                     class:message-content-highlight={message.highlight}
                                     class:message-content-system={message.nick_name ===
                                         ""}
@@ -384,25 +351,29 @@
                 </div>
             </div>
         </div>
-
-        <div class="list-users">
-            <User
-                on:channel_changed={() => {
-                    changeChannel(channel);
+        {#if panelIsOpen}
+            <div
+                transition:slide={{
+                    ...{ duration: 100, easing: linear },
+                    axis: "x",
                 }}
-                channelName={channel}
-                isSelectable={true}
-                unread={messagesUnreadChannel.has(channel)}
-                isSelected={channelNameSelected === channel}
-            ></User>
+                class={panel_mode ? "panel-open-mobile" : "list-users-desktop"}
+            >
+                <User
+                    on:channel_changed={() => {
+                        changeChannel(channel);
+                    }}
+                    channelName={channel}
+                    isSelectable={true}
+                    unread={messagesUnreadChannel.has(channel)}
+                    isSelected={channelNameSelected === channel}
+                ></User>
 
-            {#each users as user}
-                <div class="user-item">
+                {#each users as user}
                     <User
                         on:channel_changed={() => {
                             if (nickName !== user.nick_name) {
                                 changeChannel(user.nick_name);
-                                messagesSelected = messagesSelected;
                             }
                         }}
                         isSelectable={nickName !== user.nick_name}
@@ -410,26 +381,40 @@
                         channelName={user.nick_name}
                         isSelected={channelNameSelected === user.nick_name}
                     ></User>
-                </div>
-            {/each}
-        </div>
+                {/each}
+                {#if panel_mode}
+                    <button
+                        type="button"
+                        class="btn"
+                        on:click={() => {
+                            panelIsOpen = false;
+                        }}
+                    >
+                        <Arrow></Arrow>
+                    </button>
+                {/if}
+            </div>
+        {/if}
     {/if}
 </main>
 
 <style>
-    .warning-message {
-        z-index: 1000;
-        position: relative;
-        background-color: rgba(236, 233, 30, 0.87);
-        margin-left: auto;
+    .list-users-desktop {
+        @apply flex flex-col bg-secondary-600 text-secondary-100 flex-grow-0 p-1;
     }
 
-    .topic {
-        margin-left: 10px;
-        display: inline-block;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        min-height: 20px;
+    .panel-open-mobile {
+        display: flex;
+        flex-direction: column;
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Stay on top */
+        top: 0;
+        right: 0;
+        height: 100%;
+        width: 80%;
+        @apply bg-secondary-600 text-secondary-100 p-1;
+        -webkit-box-shadow: 5px 5px 15px 5px rgba(0, 0, 0, 0.48);
+        box-shadow: 5px 5px 15px 5px rgba(0, 0, 0, 0.48);
     }
 
     .loading {
@@ -444,37 +429,8 @@
         visibility: hidden;
     }
 
-    .user-item {
-        padding-left: 5px;
-        margin-top: 5px;
-        padding-right: 20px;
-    }
-
-    main {
-        max-height: 100%;
-        max-width: 100%;
-        position: relative;
-        display: flex;
-        flex-direction: row;
-    }
-
-    .list-users {
-        display: flex;
-        flex-direction: column;
-        padding-top: 10px;
-        padding-left: 5px;
-        padding-right: 20px;
-        min-width: 50px;
-        background-color: var(--primary-accent-color);
-        color: var(--background-color);
-        width: 120px;
-        max-width: 120px;
-    }
-
     .discuss-section {
         flex-grow: 1;
-        max-width: calc(100vw - 130px);
-
         height: 100vh;
         position: relative;
         display: flex;
@@ -488,13 +444,12 @@
 
     .wrapper-writter {
         width: 100%;
-        max-width: calc(100vw - 180px);
         align-items: center;
         justify-content: center;
-        margin: auto;
         margin-top: 7px;
-        margin-bottom: 7px;
-        margin-left: 10px;
+        padding-left: 5px;
+        padding-right: 5px;
+        margin-bottom: calc(7px + env(keyboard-inset-height));
     }
 
     .messages {
@@ -504,43 +459,39 @@
         justify-items: left;
     }
 
-    .wrapper-messages {
-        flex-grow: 1;
-        min-height: 0;
-        margin-left: 8px;
-        overflow-y: scroll;
-    }
-
     .message {
         margin-top: var(--space);
-    }
+        /*color-mix(in srgb,rgba(var(--color-tertiary-100)),#0000 25%);
+        rgba(var(--color-tertiary-100));*/
+        background-color: color-mix(
+            in srgb,
+            rgba(var(--color-tertiary-100)),
+            #0000 40%
+        );
 
-    .message-content {
-        display: flex;
-        flex-direction: column;
+        color: theme("colors.tertiary.800");
+
+        @apply ml-2 mr-2 mt-1;
+        @apply rounded-xl;
+        @apply p-1;
     }
 
     .message-content-system {
-        color: #b0a8b9;
+        color: theme("colors.primary.400");
     }
 
     .message-content-highlight {
-        background-color: var(--highlight-color);
-    }
-
-    .date {
-        font-size: x-small;
-        color: #b0a8b9;
-        margin-left: 10px;
+        background-color: theme("accentColor.primary.700");
+        color: theme("accentColor.primary.300");
     }
 
     .username {
         font-weight: bold;
-        color: var(--secondary-accent-color);
+        color: theme("colors.secondary.700");
     }
 
     .username-me {
-        color: red;
+        color: theme("colors.primary.500");
     }
 
     .title {

@@ -4,7 +4,7 @@
   import { onMount, onDestroy } from "svelte";
   import { config } from "./lib/config";
   import { listen } from "@tauri-apps/api/event";
-  import { invoke } from "@tauri-apps/api/tauri";
+  import { invoke } from "@tauri-apps/api/core";
   import SettingsButton from "./lib/SettingsButton.svelte";
   import SettingsPanel from "$lib/SettingsPanel.svelte";
   import { clickOutside } from "./lib/clickOutside";
@@ -16,36 +16,45 @@
 
   let isSettingsOpened = false;
   let hasFailed = false;
+  let errorMessage = "";
   type Event = {
     payload: {
       kind: string;
     };
   };
-
+  let unlisten: () => void;
   onMount(async () => {
-    await listen("irc-event", (event: Event) => {
-      if (event.payload.kind === "Quit") {
-        isConnected = false;
-      } else if (event.payload.kind === "ErrorConnection") {
-        isConnected = false;
-        hasFailed = true;
-      }
-    });
+    try {
+      unlisten = await listen("irc-event", (event: Event) => {
+        if (event.payload.kind === "Quit") {
+          isConnected = false;
+        } else if (event.payload.kind === "ErrorConnection") {
+          isConnected = false;
+          hasFailed = true;
+        }
+      });
+    } catch (e) {
+      console.error(e);
+    }
 
-    await config.read();
-    const c = config.getConnectionConfig();
+    try {
+      await config.read();
+      const c = config.getConnectionConfig();
 
-    nickName = c.nick_name;
-    server = c.server;
-    channel = c.channel;
-    password = c.password;
+      nickName = c.nick_name;
+      server = c.server;
+      channel = c.channel;
+      password = c.password;
+    } catch (e) {
+      console.error(e);
+    }
   });
 
   onDestroy(async () => {
+    unlisten();
     invoke("disconnect", {
       message: "bye",
       shallSendMessage: true,
-      wrongIdentifer: false,
     });
     config.write();
   });
@@ -57,9 +66,9 @@
   }
 </script>
 
-<main>
+<main class="flex flex-col max-w-full max-h-full min-w-0">
   {#if !isConnected}
-    <div class="settings-button">
+    <div class="m-1 text-primary-600">
       <SettingsButton
         on:toggle={() => {
           isSettingsOpened = true;
@@ -85,10 +94,22 @@
         config.write();
       }}
     ></Connection>
+    {#if errorMessage !== ""}
+
+    <aside class="alert variant-filled-error min-w-[60%] ml-auto mr-auto">
+      <!-- Message -->
+      <div class="alert-message">
+          <h3 class="h3">Connection error</h3>
+          <p>{errorMessage}</p>
+      </div>
+  </aside>
+
+    {/if}
   {:else}
     <Discuss
       on:connection_status={(event) => {
-        isConnected = event.detail;
+        isConnected = event.detail.result;
+        errorMessage = event.detail.message;
       }}
       {nickName}
       {channel}
@@ -97,20 +118,5 @@
 </main>
 
 <style>
-  main {
-    width: 100%;
-    height: 100%;
-  }
 
-  .settings-button {
-    color: var(--outline-color);
-    display: flex;
-    float: right;
-    margin: 5px;
-    cursor: pointer;
-  }
-
-  .settings-button:active {
-    color: var(--press-color);
-  }
 </style>

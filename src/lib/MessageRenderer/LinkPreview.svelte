@@ -12,7 +12,7 @@
 
 {#if preview.image_only}
     <ImgTag href={link}></ImgTag>
-{:else}
+{:else if preview.image_url}
     <div class="image-container">
         {#if preview.site}
             <div class="subtitle">{preview.site}</div>

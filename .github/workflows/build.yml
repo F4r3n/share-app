@@ -1,0 +1,29 @@
+on:
+    workflow_call:
+        inputs:
+            platform:
+                required: true
+                type: string       
+
+jobs:
+  build-tauri:
+    runs-on: ${{ inputs.platform }}
+    environment: updater
+    steps:
+    - uses: actions/checkout@v4
+    - name: setup node
+      uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+    - name: install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
+        targets: ${{ inputs.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+    - name: install dependencies (ubuntu only)
+      if: inputs.platform == 'ubuntu-22.04'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0 libappindicator3-dev librsvg2-dev patchelf
+    - name: install app dependencies and build it
+      run: yarn && yarn build

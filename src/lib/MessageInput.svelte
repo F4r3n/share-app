@@ -2,7 +2,7 @@
     import PlusSign from "../assets/plus-sign-svg.svelte";
     import { createEventDispatcher } from "svelte";
     import { onMount, onDestroy } from "svelte";
-    import { invoke } from "@tauri-apps/api";
+    import { invoke } from "@tauri-apps/api/core";
     import { config } from "./config";
     import CloseButton from "../assets/circle-close.svelte";
 
@@ -52,7 +52,7 @@
         });
         let upload_id = await invoke("upload_image", {
             endpoint: `${config.getConfig().upload_image.url_post}`,
-            imageBytes: imageData
+            imageBytes: imageData,
         });
         console.log(upload_id);
         return (config.getConfig().upload_image.url_get + upload_id) as string;
@@ -60,10 +60,10 @@
 </script>
 
 <main>
-    <div class="row">
+    <div class="flex flex-row">
         {#each listImages as image}
             <div class="pasted-image">
-                <div
+                <button
                     class="top close"
                     on:click={() => {
                         messageToSend = messageToSend.replace(image.name, "");
@@ -73,7 +73,7 @@
                     }}
                 >
                     <CloseButton width="20" height="20"></CloseButton>
-                </div>
+                </button>
                 <img
                     class="pasted-image"
                     src={"data:image/png;base64," + image.base64}
@@ -85,6 +85,7 @@
 
     <div class="main-input">
         <input
+            class="flex-grow"
             type="text"
             bind:this={input}
             bind:value={messageToSend}
@@ -102,12 +103,13 @@
                         listImages = [];
                         messageToSend = "";
                     } catch (e) {
-                        console.log(e)
+                        console.log(e);
                     }
                 }
             }}
         />
         <button
+            class="ml-1 bg-primary-500-400-token text-on-primary-token btn-base"
             on:click={(event) => {
                 dispatch("send_message", messageToSend);
                 messageToSend = "";
@@ -123,11 +125,6 @@
         width: 150px;
         max-height: 150px;
         position: relative;
-    }
-
-    .row {
-        display: flex;
-        flex-direction: row;
     }
 
     .row img {
@@ -161,18 +158,5 @@
         width: 100%;
         display: flex;
         flex-direction: row;
-    }
-
-    input {
-        flex-grow: 1;
-    }
-
-    button {
-        padding: 0px;
-        border-radius: 4px;
-        padding-left: 4px;
-        padding-right: 4px;
-        margin-left: 2px;
-        color: var(--text-color-control);
     }
 </style>
