@@ -1,0 +1,52 @@
+on:
+    workflow_call:
+
+jobs:
+  build-tauri:
+    runs-on: ubuntu-latest
+    environment: updater
+    steps:
+    - uses: actions/checkout@v4
+    - name: setup node
+      uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+    - name: install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Setup java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21' 
+
+    - name: Setup NDK 
+      uses: nttld/setup-ndk@v1
+      id: setup-ndk
+      with:
+        ndk-version: r27-beta2
+        local-cache: true
+
+    - name: Android Rust target
+      run: rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+
+    - name: install dependencies (ubuntu only)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
+
+    - name: Install app dependencies
+      run: yarn
+
+    - name: Build apk
+      run: cargo install tauri-cli --version "^2.0.0-beta" && cargo tauri android build
+      env:
+        NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: apks
+        path: |
+          src-tauri/gen/android/app/build/outputs/apk/**/**/*.apk
+
