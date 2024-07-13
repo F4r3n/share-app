@@ -2,15 +2,19 @@
   import { fade } from "svelte/transition";
   import { invoke } from "@tauri-apps/api/core";
   import { createEventDispatcher } from "svelte";
-
+  import { ProgressRadial } from "@skeletonlabs/skeleton";
   export let hasFailed = false;
   const dispatch = createEventDispatcher();
   export let nickName: string = "pickles";
   export let server: string = "chat.freenode.net";
   export let channel: string = "#share-chan";
   export let password: string = "";
+  let isConnecting = false;
   const connect = () => {
+    if(isConnecting)
+      return;
     console.log("Try to connect");
+    isConnecting = true;
     invoke("loggin", {
       nickName: nickName,
       server: server,
@@ -20,7 +24,10 @@
       .then(() => {
         dispatch("connected");
       })
-      .catch((e) => console.log("cannot connect"));
+      .catch((e) => console.error(e))
+      .finally(() => {
+        isConnecting = false;
+      });
   };
 </script>
 
@@ -79,13 +86,20 @@
           class="group"
         />
       </div>
-
-      <button
-        type="submit"
-        class="bg-primary-500-400-token text-on-primary-token mt-5 btn-md"
-      >
-        Connexion
-      </button>
+      <div class="flex flex-row">
+        <button
+          type="submit"
+          class="bg-primary-500-400-token text-on-primary-token mt-5 btn-md w-[calc(100%)]"
+          disabled={isConnecting}
+        >
+          Connexion
+        </button>
+        {#if isConnecting}
+          <div class="pt-5 pl-3">
+            <ProgressRadial width={"w-10"} value={undefined} />
+          </div>
+        {/if}
+      </div>
     </form>
     <div class="error" class:error-show={hasFailed}>Wrong identifiers!</div>
   </div>
@@ -100,6 +114,11 @@
     padding: 10px 100px 10px 100px;
     margin-top: 10px;
     visibility: hidden;
+  }
+
+  button:disabled,
+  button[disabled] {
+    @apply bg-primary-100 text-on-primary-token;
   }
 
   .error-show {

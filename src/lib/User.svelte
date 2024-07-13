@@ -10,7 +10,7 @@
 
 {#if isSelectable}
     <button
-        class="px-0 mx-0 text-left text-nowrap text-ellipsis"
+        class="px-0 mx-0 text-left text-nowrap text-ellipsis select-none"
         class:channel-selected={isSelected}
         class:channel-missing-messages={unread}
         on:click={() => {
@@ -20,7 +20,7 @@
         {channelName}
     </button>
 {:else}
-    <span class="px-0 mx-0 font-bold text-left text-nowrap text-ellipsis">{channelName}</span>
+    <span class="px-0 mx-0 font-bold text-left text-nowrap text-ellipsis select-none">{channelName}</span>
 {/if}
 
 <style>

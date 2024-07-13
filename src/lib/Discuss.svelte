@@ -209,34 +209,76 @@
         irc_received();
         read_messages();
         irc_event();
-        pointerEvent();
     });
 
     type Pointer = {
-        x : number;
+        x: number;
         y: number;
+    };
+    $: panelOpeningPercentage = 0;
+    const userDistanceToOpen = 100;
+    const maxOpeningUserDistance = 80;
+    $: panelOpeningPercentageAuto = 0;
+    let pointers = new Map<number, Pointer>();
+    let direction = 1;
+
+    function pointerdown(event: any) {
+        if(panelIsOpen) return;
+
+        pointers.set(event.pointerId, {
+            x: event.x,
+            y: event.y,
+        } as Pointer);
     }
 
-    let pointers = new Map<number, Pointer>(); 
-    function pointerEvent() {
-        addEventListener("pointerdown", (event) => {
-            pointers.set(event.pointerId, {x: event.x, y:event.y} as Pointer);
-        });
-
-        addEventListener("pointerup", (event) => {
-            console.log("UP", event)
-            if(pointers.has(event.pointerId))
-            {
-                let pointer = pointers.get(event.pointerId) ?? {x:0, y:0};
-                let distX = event.x - pointer.x;
-                let distY = event.y - pointer.y;
-                if(distX < -50 && Math.tan(distY/distX) < Math.PI/6)
-                {
-                    panelIsOpen = true;
-                }
-                pointers.delete(event.pointerId);
+    function pointermove(event: any) {
+        if(panelIsOpen) return;
+        if (pointers.has(event.pointerId)) {
+            let pointer = pointers.get(event.pointerId) ?? { x: 0, y: 0 };
+            let distX = event.x - pointer.x;
+            direction = Math.sign(distX);
+            if (direction < 0) {
+                panelOpeningPercentage = Math.abs(
+                    (100 * distX) / userDistanceToOpen,
+                );
+                panelOpeningPercentage = Math.max(
+                    0,
+                    Math.min(panelOpeningPercentage, 100),
+                );
+                panelOpeningPercentageAuto = panelOpeningPercentage;
             }
-        });
+        }
+    }
+
+    function pointerup(event: any) {
+        if(panelIsOpen) return;
+
+        if (pointers.has(event.pointerId)) {
+            let pointer = pointers.get(event.pointerId) ?? { x: 0, y: 0 };
+            let distX = event.x - pointer.x;
+            let distY = event.y - pointer.y;
+            if (
+                distX < -userDistanceToOpen &&
+                Math.tan(distY / distX) < Math.PI / 6
+            ) {
+                panelIsOpen = true;
+            }
+            panelOpeningPercentageAuto = panelOpeningPercentage;
+            if (panelOpeningPercentage > 60) panelOpeningPercentageAuto = 100;
+            else if (panelOpeningPercentage < 30)
+                panelOpeningPercentageAuto = 0;
+            else {
+                if (direction < 0) panelOpeningPercentageAuto = 0;
+                else {
+                    panelOpeningPercentageAuto = 100;
+                }
+            }
+            if(panelOpeningPercentageAuto == 100 && direction < 0)
+                panelIsOpen = true;
+            else if(direction < 0)
+                panelIsOpen = false;
+            pointers.delete(event.pointerId);
+        }
     }
 
     onDestroy(async () => {
@@ -289,11 +331,32 @@
         .getChannel(channelNameSelected)
         .getListMessages();
 
-    let panelIsOpen = true;
-    $: panel_mode = screen_width < 500;
-</script>
+    enum Width_Mode {
+        PHONE,
+        DESKTOP,
+    }
 
-<main class="flex flex-row" bind:clientWidth={screen_width}>
+    let currentModeSize =
+        screen_width < 500 ? Width_Mode.PHONE : Width_Mode.DESKTOP;
+    let panelIsOpen = true;
+    $: panel_mode = screen_width < 500 ? Width_Mode.PHONE : Width_Mode.DESKTOP;
+    function hasModeChanged (){
+        if (currentModeSize != panel_mode) {
+            currentModeSize = panel_mode;
+            if (panelIsOpen && currentModeSize == Width_Mode.PHONE) {
+                panelIsOpen = false;
+            }
+        }
+    };
+</script>
+<svelte:window on:resize={hasModeChanged} />
+<main
+    on:pointerdown={pointerdown}
+    on:pointermove={pointermove}
+    on:pointerup={pointerup}
+    class="flex flex-row"
+    bind:clientWidth={screen_width}
+>
     {#if !isLoaded}
         <div class="loading" class:loading-hide={isLoaded}>
             <Jumper size="60" color="#845EC2" unit="px" duration="1s"></Jumper>
@@ -351,50 +414,50 @@
                 </div>
             </div>
         </div>
-        {#if panelIsOpen}
-            <div
-                transition:slide={{
-                    ...{ duration: 100, easing: linear },
-                    axis: "x",
+        <div
+            class:panel-open-mobile-transition={panelOpeningPercentageAuto !=
+                panelOpeningPercentage}
+            class={panel_mode == Width_Mode.PHONE ? "panel-open-mobile" : "list-users-desktop"}
+            style="--opening_width:{panelOpeningPercentageAuto *
+                (maxOpeningUserDistance / 100)}%;"
+        >
+            <User
+                on:channel_changed={() => {
+                    changeChannel(channel);
                 }}
-                class={panel_mode ? "panel-open-mobile" : "list-users-desktop"}
-            >
+                channelName={channel}
+                isSelectable={true}
+                unread={messagesUnreadChannel.has(channel)}
+                isSelected={channelNameSelected === channel}
+            ></User>
+
+            {#each users as user}
                 <User
                     on:channel_changed={() => {
-                        changeChannel(channel);
+                        if (nickName !== user.nick_name) {
+                            changeChannel(user.nick_name);
+                        }
                     }}
-                    channelName={channel}
-                    isSelectable={true}
-                    unread={messagesUnreadChannel.has(channel)}
-                    isSelected={channelNameSelected === channel}
+                    isSelectable={nickName !== user.nick_name}
+                    unread={messagesUnreadChannel.has(user.nick_name)}
+                    channelName={user.nick_name}
+                    isSelected={channelNameSelected === user.nick_name}
                 ></User>
-
-                {#each users as user}
-                    <User
-                        on:channel_changed={() => {
-                            if (nickName !== user.nick_name) {
-                                changeChannel(user.nick_name);
-                            }
-                        }}
-                        isSelectable={nickName !== user.nick_name}
-                        unread={messagesUnreadChannel.has(user.nick_name)}
-                        channelName={user.nick_name}
-                        isSelected={channelNameSelected === user.nick_name}
-                    ></User>
-                {/each}
-                {#if panel_mode}
-                    <button
-                        type="button"
-                        class="btn"
-                        on:click={() => {
-                            panelIsOpen = false;
-                        }}
-                    >
-                        <Arrow></Arrow>
-                    </button>
-                {/if}
-            </div>
-        {/if}
+            {/each}
+            {#if panel_mode == Width_Mode.PHONE}
+                <button
+                    type="button"
+                    class="btn"
+                    on:click={() => {
+                        panelIsOpen = false;
+                        panelOpeningPercentageAuto = 0;
+                        panelOpeningPercentage = 1;
+                    }}
+                >
+                    <Arrow></Arrow>
+                </button>
+            {/if}
+        </div>
     {/if}
 </main>
 
@@ -411,10 +474,14 @@
         top: 0;
         right: 0;
         height: 100%;
-        width: 80%;
+        width: var(--opening_width);
         @apply bg-secondary-600 text-secondary-100 p-1;
         -webkit-box-shadow: 5px 5px 15px 5px rgba(0, 0, 0, 0.48);
         box-shadow: 5px 5px 15px 5px rgba(0, 0, 0, 0.48);
+    }
+
+    .panel-open-mobile-transition {
+        transition: width 0.1s;
     }
 
     .loading {

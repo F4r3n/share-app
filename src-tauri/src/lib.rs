@@ -42,61 +42,63 @@ async fn loggin(
     password: &str,
     irc: tauri::State<'_, IRCState>,
 ) -> Result<(), String> {
-    let mut state_guard = irc.0.try_lock().expect("ERROR");
-    println!("Loggin");
+    if let Some(state_guard) = irc.0.try_lock().as_mut() {
+        println!("Loggin");
 
-    if state_guard.client.is_some() {
-        return Ok(());
-    }
-    let nick_name = nick_name.to_owned();
-    let server = server.to_owned();
-    let channel = channel.to_owned();
-    let password = password.to_owned();
-    let str = format!("log_{}_{}.txt", &server, &channel);
-
-    if state_guard.client.is_none() {
-        println!("Connect");
-
-        state_guard.channel = channel.to_owned();
-        state_guard.client = match share_client::irc_login(nick_name, server, channel, password).await {
-            Ok(client) => Some(client),
-            Err(_e) => None,
+        if state_guard.client.is_some() {
+            return Ok(());
         }
-    }
-
-    println!("End connect");
-
-    if state_guard.client.is_none() {
-        println!("Cannot Connect");
-    }
-
-    if state_guard.client.is_some() {
-        let config_dir = create_config_dir(app_handle);
-        match config_dir {
-            Ok(file) => {
-                state_guard.log_file = Some(
-                    OpenOptions::new()
-                        .write(true)
-                        .append(true)
-                        .create(true)
-                        .open(file.join(str))
-                        .unwrap(),
-                );
-            }
-            Err(e) => {
-                return Err(anyhow::Error::msg(e).to_string());
+        let nick_name = nick_name.to_owned();
+        let server = server.to_owned();
+        let channel = channel.to_owned();
+        let password = password.to_owned();
+        let str = format!("log_{}_{}.txt", &server, &channel);
+    
+        if state_guard.client.is_none() {
+            println!("Connect");
+    
+            state_guard.channel = channel.to_owned();
+            state_guard.client = match share_client::irc_login(nick_name, server, channel, password).await {
+                Ok(client) => Some(client),
+                Err(_e) => None,
             }
         }
+    
+        println!("End connect");
+    
+        if state_guard.client.is_none() {
+            println!("Cannot Connect");
+        }
+    
+        if state_guard.client.is_some() {
+            let config_dir = create_config_dir(app_handle);
+            match config_dir {
+                Ok(file) => {
+                    state_guard.log_file = Some(
+                        OpenOptions::new()
+                            .write(true)
+                            .append(true)
+                            .create(true)
+                            .open(file.join(str))
+                            .unwrap(),
+                    );
+                }
+                Err(e) => {
+                    return Err(anyhow::Error::msg(e).to_string());
+                }
+            }
+        }
+    
+        if state_guard.client.is_none() {
+            println!("Cannot Connect");
+        }
+    
+        return match &state_guard.client {
+            Some(_) => Ok(()),
+            _ => Err(String::from("No client")),
+        };
     }
-
-    if state_guard.client.is_none() {
-        println!("Cannot Connect");
-    }
-
-    match &state_guard.client {
-        Some(_) => Ok(()),
-        _ => Err(String::from("No client")),
-    }
+    Err(String::from("Already trying to connect"))
 }
 
 #[tauri::command]

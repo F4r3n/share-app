@@ -127,10 +127,6 @@
         position: relative;
     }
 
-    .row img {
-        padding-right: 5px;
-    }
-
     .top {
         position: absolute;
         left: calc(100% - 25px);
