@@ -3,7 +3,7 @@ on:
 
 jobs:
   build-tauri:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     environment: updater
     steps:
     - uses: actions/checkout@v4
@@ -37,7 +37,7 @@ jobs:
         sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
 
     - name: Install app dependencies
-      run: yarn
+      run: npm i && npm run build
 
     - name: Build apk
       run: cargo install tauri-cli --version "^2.0.0-beta" && cargo tauri android build
