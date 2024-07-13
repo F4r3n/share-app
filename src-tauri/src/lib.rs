@@ -17,6 +17,14 @@ use util::clipboard;
 use settings::Settings;
 use util::settings;
 
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+enum CommandError {
+    #[error("Already locked")]
+    Locked,
+}
+
 #[derive(Clone, serde::Serialize)]
 struct User {
     nick_name: String,
@@ -107,10 +115,10 @@ fn send_message(
     channel: &str,
     irc: tauri::State<'_, IRCState>,
 ) -> Result<(), String> {
-    let state_guard = irc.0.try_lock().expect("ERROR");
+    let state_guard = irc.0.try_lock().ok_or(CommandError::Locked.to_string())?;
     let nick_name = state_guard.client.as_ref().unwrap().current_nickname();
     if let Some(log_file) = &state_guard.log_file {
-        share_client::write_in_log(log_file, nick_name, message);
+        share_client::write_in_log(log_file, nick_name, message).map_err(|e|e.to_string())?;
     }
     state_guard
         .send_message(message, channel)
@@ -118,9 +126,9 @@ fn send_message(
 }
 
 #[tauri::command]
-fn get_users(irc: tauri::State<'_, IRCState>) -> Vec<User> {
-    let state_guard = irc.0.try_lock().expect("ERROR");
-    let users = state_guard.get_users();
+fn get_users(irc: tauri::State<'_, IRCState>) -> Result<Vec<User>, String> {
+    let state_guard = irc.0.try_lock().ok_or(CommandError::Locked.to_string())?;
+    let users = state_guard.get_users().map_err(|e|e.to_string())?;
     let mut js_users: Vec<User> = Vec::new();
     if let Some(users) = users {
         for user in users.iter() {
@@ -131,7 +139,7 @@ fn get_users(irc: tauri::State<'_, IRCState>) -> Vec<User> {
         }
     }
 
-    return js_users;
+    Ok(js_users)
 }
 
 #[tauri::command]
@@ -140,9 +148,9 @@ fn disconnect(
     shall_send_message: bool,
     irc: tauri::State<'_, IRCState>,
 ) -> Result<(), String> {
-    let mut client = irc.0.try_lock().expect("ERROR");
+    let mut client = irc.0.try_lock().ok_or(CommandError::Locked.to_string())?;
     if shall_send_message {
-        client.send_quit(message)?
+        client.send_quit(message).map_err(|e|e.to_string())?
     }
     client.client = None;
     Ok(())
@@ -154,8 +162,8 @@ fn send_irc_command(
     args: Vec<String>,
     irc: tauri::State<'_, IRCState>,
 ) -> Result<(), String> {
-    let client = irc.0.try_lock().expect("ERROR");
-    client.send_irc_command(command, args)
+    let client = irc.0.try_lock().ok_or(CommandError::Locked.to_string())?;
+    client.send_irc_command(command, args).map_err(|e|e.to_string())
 }
 
 #[tauri::command]

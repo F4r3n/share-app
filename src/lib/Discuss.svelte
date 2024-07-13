@@ -95,6 +95,7 @@
                 }
                 if (data.command !== "PRIVMSG") updateUsers();
                 isLoaded = true;
+                console.log(data)
                 if (data.command === "PRIVMSG") {
                     updateUsers();
                     message.date = new Date();
@@ -176,6 +177,7 @@
                 ) {
                     if (isLoaded) {
                         console.log("disconnect");
+                        irc_received_unsubscribe();
                         invoke("disconnect", {
                             message: data.content,
                             shallSendMessage: false,
@@ -223,8 +225,6 @@
     let direction = 1;
 
     function pointerdown(event: any) {
-        if(panelIsOpen) return;
-
         pointers.set(event.pointerId, {
             x: event.x,
             y: event.y,
@@ -232,37 +232,31 @@
     }
 
     function pointermove(event: any) {
-        if(panelIsOpen) return;
         if (pointers.has(event.pointerId)) {
             let pointer = pointers.get(event.pointerId) ?? { x: 0, y: 0 };
             let distX = event.x - pointer.x;
             direction = Math.sign(distX);
-            if (direction < 0) {
-                panelOpeningPercentage = Math.abs(
-                    (100 * distX) / userDistanceToOpen,
-                );
-                panelOpeningPercentage = Math.max(
-                    0,
-                    Math.min(panelOpeningPercentage, 100),
-                );
-                panelOpeningPercentageAuto = panelOpeningPercentage;
+
+            panelOpeningPercentage = Math.abs(
+                (100 * distX) / userDistanceToOpen,
+            );
+            panelOpeningPercentage = Math.max(
+                0,
+                Math.min(panelOpeningPercentage, 100),
+            );
+
+            if (panelIsOpen) {
+                if (direction > 0)
+                    panelOpeningPercentageAuto = 100 - panelOpeningPercentage;
+            } else {
+                if (direction < 0)
+                    panelOpeningPercentageAuto = panelOpeningPercentage;
             }
         }
     }
 
     function pointerup(event: any) {
-        if(panelIsOpen) return;
-
         if (pointers.has(event.pointerId)) {
-            let pointer = pointers.get(event.pointerId) ?? { x: 0, y: 0 };
-            let distX = event.x - pointer.x;
-            let distY = event.y - pointer.y;
-            if (
-                distX < -userDistanceToOpen &&
-                Math.tan(distY / distX) < Math.PI / 6
-            ) {
-                panelIsOpen = true;
-            }
             panelOpeningPercentageAuto = panelOpeningPercentage;
             if (panelOpeningPercentage > 60) panelOpeningPercentageAuto = 100;
             else if (panelOpeningPercentage < 30)
@@ -273,10 +267,9 @@
                     panelOpeningPercentageAuto = 100;
                 }
             }
-            if(panelOpeningPercentageAuto == 100 && direction < 0)
+            if (panelOpeningPercentageAuto == 100 && direction < 0)
                 panelIsOpen = true;
-            else if(direction < 0)
-                panelIsOpen = false;
+            else if (direction < 0) panelIsOpen = false;
             pointers.delete(event.pointerId);
         }
     }
@@ -340,15 +333,16 @@
         screen_width < 500 ? Width_Mode.PHONE : Width_Mode.DESKTOP;
     let panelIsOpen = true;
     $: panel_mode = screen_width < 500 ? Width_Mode.PHONE : Width_Mode.DESKTOP;
-    function hasModeChanged (){
+    function hasModeChanged() {
         if (currentModeSize != panel_mode) {
             currentModeSize = panel_mode;
             if (panelIsOpen && currentModeSize == Width_Mode.PHONE) {
                 panelIsOpen = false;
             }
         }
-    };
+    }
 </script>
+
 <svelte:window on:resize={hasModeChanged} />
 <main
     on:pointerdown={pointerdown}
@@ -417,7 +411,9 @@
         <div
             class:panel-open-mobile-transition={panelOpeningPercentageAuto !=
                 panelOpeningPercentage}
-            class={panel_mode == Width_Mode.PHONE ? "panel-open-mobile" : "list-users-desktop"}
+            class={panel_mode == Width_Mode.PHONE
+                ? "panel-open-mobile"
+                : "list-users-desktop"}
             style="--opening_width:{panelOpeningPercentageAuto *
                 (maxOpeningUserDistance / 100)}%;"
         >

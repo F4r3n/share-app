@@ -1,98 +1,77 @@
 use crate::communication::message::{Payload, ResponseMessage};
-use anyhow::Error;
+use anyhow::{Error, Ok};
 use futures::prelude::*;
 use irc::client::prelude::*;
 use irc::proto::FormattedStringExt;
 use std::fs::File;
 use std::io::Write;
 use tauri::Manager;
-
+use thiserror::Error;
 pub struct IRC {
     pub client: Option<irc::client::Client>,
     pub channel: String,
     pub log_file: Option<File>,
 }
+#[derive(Debug, Error)]
+enum IRCError {
+    #[error("No client connected")]
+    NoClient,
+    #[error("Stream is broken")]
+    BrokenStream,
+}
 
 impl IRC {
+    fn get_client(&self) -> Result<&Client, anyhow::Error> {
+        let client = self.client.as_ref().ok_or(IRCError::NoClient)?;
+        Ok(client)
+    }
+
     pub fn send_message(&self, message: &str, channel: &str) -> Result<(), anyhow::Error> {
         let mut current_channel = String::from(channel);
         if current_channel.is_empty() {
             current_channel = self.channel.to_owned();
         }
 
-        match self
-            .client
-            .as_ref()
-            .unwrap()
-            .send_privmsg(current_channel, String::from(message.to_owned()))
-        {
-            Ok(()) => Ok(()),
-            Err(e) => Err(anyhow::Error::msg(e.to_string())),
-        }
+        Ok(self
+            .get_client()?
+            .send_privmsg(current_channel, String::from(message.to_owned()))?)
     }
 
-    pub fn get_users(&self) -> Option<Vec<irc::client::data::User>> {
-        return self.client
-        .as_ref()
-        .unwrap()
-        .list_users(&self.channel);
+    pub fn get_users(&self) -> Result<Option<Vec<irc::client::data::User>>, anyhow::Error> {
+        Ok(self.get_client()?.list_users(self.channel.as_str()))
     }
 
-    pub fn send_quit(&self, message: &str) -> Result<(), String> {
-        if let Some(client) = self.client.as_ref() {
-            return match client
-            .send_quit(message) {
-                Ok(()) => Ok(()),
-                Err(e) => Err(e.to_string()),
-            }
-        }
-        else {
-            Err("No client".into())
-        }
-
+    pub fn send_quit(&self, message: &str) -> Result<(), anyhow::Error> {
+        Ok(self.get_client()?.send_quit(message)?)
     }
 
-    pub fn send_irc_command(&self, command: &str, args: Vec<String>) -> Result<(), String> {
-        match self.client
-        .as_ref()
-        .unwrap()
-        .send(Command::Raw(String::from(command), args)) {
-            Ok(()) => Ok(()),
-            Err(e) => Err(e.to_string()),
-        }
+    pub fn send_irc_command(&self, command: &str, args: Vec<String>) -> Result<(), anyhow::Error> {
+        Ok(self
+            .get_client()?
+            .send(Command::Raw(String::from(command), args))?)
     }
 
     pub fn read(&mut self, window: tauri::Window) -> Result<(), anyhow::Error> {
-        let stream: irc::client::ClientStream = self.client
-        .as_mut()
-        .unwrap()
-        .stream()?;
+        let stream: irc::client::ClientStream = self.client.as_mut().unwrap().stream()?;
 
         let mut log: Option<File> = None;
         if let Some(log_file) = &self.log_file {
             log = Some(log_file.try_clone().unwrap());
         }
-        tauri::async_runtime::spawn(async {
-            match irc_read(&log.unwrap(), window, stream).await {
-                Ok(()) => Ok(()),
-                Err(e) => Err(e.to_string()),
-            }
-        });
+        tauri::async_runtime::spawn(async { Ok(irc_read(&log.unwrap(), window, stream).await?) });
 
         Ok(())
     }
 }
 
-pub fn write_in_log(mut file: &File, nick_name: &str, message: &str) {
+pub fn write_in_log(mut file: &File, nick_name: &str, message: &str) -> Result<(), anyhow::Error> {
     let utc: chrono::DateTime<chrono::Utc> = chrono::Utc::now();
-    match write!(
+    write!(
         file,
         "{}",
         format!("{} {}: {}\n", utc, String::from(nick_name), message)
-    ) {
-        Ok(()) => (),
-        Err(_) => (),
-    }
+    )?;
+    Ok(())
 }
 
 async fn irc_read(
@@ -102,31 +81,25 @@ async fn irc_read(
 ) -> Result<(), anyhow::Error> {
     loop {
         let result = stream.next().await.transpose();
+        let is_valid = result.as_ref().map_err(|e| window.emit(
+            "irc-recieved",
+            Payload {
+                content: e.to_string(),
+                nick_name: String::from(""),
+                command: String::from("INTERNAL_ERROR"),
+                channel: String::from(""),
+                response: None,
+            },
+        ));
+        if is_valid.is_err() {
+            break Err(IRCError::BrokenStream.into());
+        }
 
-        let m = match result {
-            Ok(m) => m,
-            Err(e) => {
-                window.emit("irc-recieved", Payload {
-                    content: e.to_string(),
-                    nick_name: String::from(""),
-                    command: String::from("INTERNAL_ERROR"),
-                    channel: String::from(""),
-                    response: None,
-                })?;
-                return Err(e.into())},
-        };
-
-        let message = match m {
+        let message = match result? {
             Some(m) => m,
             None => {
-                window.emit("irc-recieved", Payload {
-                    content: String::from("No Messages"),
-                    nick_name: String::from(""),
-                    command: String::from("INTERNAL_ERROR"),
-                    channel: String::from(""),
-                    response: None,
-                })?;
-                return Err(Error::msg("No messages"))},
+                return Err(Error::msg("No messages"));
+            }
         };
 
         print!("MESSAGE {}", message);
@@ -141,19 +114,11 @@ async fn irc_read(
         match message.command {
             Command::PING(_, _) => {
                 pay_load.command = String::from("PING");
-                pay_load.content =
-                    match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
-                        Ok(n) => n.as_secs().to_string(),
-                        Err(_e) => String::from("0"),
-                    }
+                pay_load.content = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_secs().to_string();
             }
             Command::PONG(_, _) => {
                 pay_load.command = String::from("PONG");
-                pay_load.content =
-                    match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
-                        Ok(n) => n.as_secs().to_string(),
-                        Err(_e) => String::from("0"),
-                    }
+                pay_load.content = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_secs().to_string();
             }
             Command::PRIVMSG(ref target, ref msg) => {
                 pay_load.command = String::from("PRIVMSG");
@@ -162,7 +127,7 @@ async fn irc_read(
                     pay_load.nick_name = String::from(nick_name);
                 }
                 pay_load.content = msg.as_str().to_string();
-                write_in_log(file, pay_load.nick_name.as_str(), pay_load.content.as_str());
+                write_in_log(file, pay_load.nick_name.as_str(), pay_load.content.as_str())?;
             }
             Command::NOTICE(ref _target, ref msg) => {
                 pay_load.command = String::from("NOTICE");
@@ -244,11 +209,14 @@ pub async fn irc_login(
     server: String,
     channel: String,
     password: String,
-) -> Result<irc::client::Client, irc::error::Error> {
+) -> Result<irc::client::Client, anyhow::Error> {
     let mut split = server.split(":");
     let server = split.next().unwrap_or("127.0.0.1").to_string();
     let port_number = split.last().unwrap_or("6697").parse().unwrap_or(6697);
-    println!("Try to connect to {} {} {} {} {}", server, port_number, channel, nick_name, password);
+    println!(
+        "Try to connect to {} {} {} {} {}",
+        server, port_number, channel, nick_name, password
+    );
     let config = Config {
         nickname: Some(nick_name),
         server: Some(server),
