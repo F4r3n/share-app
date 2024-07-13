@@ -11,8 +11,6 @@
     import { createEventDispatcher } from "svelte";
     import { Window, UserAttentionType } from "@tauri-apps/api/window";
     import { messagesManager } from "./MessagesManager";
-    import { slide } from "svelte/transition";
-    import { linear } from "svelte/easing";
 
     const dispatch = createEventDispatcher();
 
@@ -95,7 +93,6 @@
                 }
                 if (data.command !== "PRIVMSG") updateUsers();
                 isLoaded = true;
-                console.log(data)
                 if (data.command === "PRIVMSG") {
                     updateUsers();
                     message.date = new Date();
@@ -177,7 +174,6 @@
                 ) {
                     if (isLoaded) {
                         console.log("disconnect");
-                        irc_received_unsubscribe();
                         invoke("disconnect", {
                             message: data.content,
                             shallSendMessage: false,
@@ -217,10 +213,13 @@
         x: number;
         y: number;
     };
+
+    let screen_width = window.screen.width;
+    const mobile_width = 500;
     $: panelOpeningPercentage = 0;
-    const userDistanceToOpen = 100;
+    let userDistanceToOpen = (screen_width * 100) / mobile_width;
     const maxOpeningUserDistance = 80;
-    $: panelOpeningPercentageAuto = 0;
+    $: panelOpeningPercentageToDisplay = 0;
     let pointers = new Map<number, Pointer>();
     let direction = 1;
 
@@ -247,29 +246,38 @@
 
             if (panelIsOpen) {
                 if (direction > 0)
-                    panelOpeningPercentageAuto = 100 - panelOpeningPercentage;
+                    panelOpeningPercentageToDisplay =
+                        100 - panelOpeningPercentage;
             } else {
                 if (direction < 0)
-                    panelOpeningPercentageAuto = panelOpeningPercentage;
+                    panelOpeningPercentageToDisplay = panelOpeningPercentage;
             }
+            console.log(
+                panelOpeningPercentage,
+                panelOpeningPercentageToDisplay,
+            );
         }
     }
 
     function pointerup(event: any) {
         if (pointers.has(event.pointerId)) {
-            panelOpeningPercentageAuto = panelOpeningPercentage;
-            if (panelOpeningPercentage > 60) panelOpeningPercentageAuto = 100;
-            else if (panelOpeningPercentage < 30)
-                panelOpeningPercentageAuto = 0;
-            else {
-                if (direction < 0) panelOpeningPercentageAuto = 0;
-                else {
-                    panelOpeningPercentageAuto = 100;
-                }
+            panelOpeningPercentageToDisplay = panelOpeningPercentage;
+            if (direction < 0) {
+                if (!panelIsOpen) {
+                    if (panelOpeningPercentage > 60)
+                        panelOpeningPercentageToDisplay = 100;
+                    else panelOpeningPercentageToDisplay = 0;
+                } else panelOpeningPercentageToDisplay = 100;
+            } else {
+                if (panelIsOpen) {
+                    if (panelOpeningPercentage > 60)
+                        panelOpeningPercentageToDisplay = 0;
+                    else panelOpeningPercentageToDisplay = 100;
+                } else panelOpeningPercentageToDisplay = 0;
             }
-            if (panelOpeningPercentageAuto == 100 && direction < 0)
-                panelIsOpen = true;
-            else if (direction < 0) panelIsOpen = false;
+
+            panelIsOpen = panelOpeningPercentageToDisplay == 100;
+
             pointers.delete(event.pointerId);
         }
     }
@@ -319,7 +327,6 @@
         messagesUnreadChannel.delete(inChannel);
         messagesUnreadChannel = messagesUnreadChannel;
     }
-    let screen_width = window.screen.width;
     $: listMessages = messagesManager
         .getChannel(channelNameSelected)
         .getListMessages();
@@ -330,9 +337,10 @@
     }
 
     let currentModeSize =
-        screen_width < 500 ? Width_Mode.PHONE : Width_Mode.DESKTOP;
+        screen_width < mobile_width ? Width_Mode.PHONE : Width_Mode.DESKTOP;
     let panelIsOpen = true;
-    $: panel_mode = screen_width < 500 ? Width_Mode.PHONE : Width_Mode.DESKTOP;
+    $: panel_mode =
+        screen_width < mobile_width ? Width_Mode.PHONE : Width_Mode.DESKTOP;
     function hasModeChanged() {
         if (currentModeSize != panel_mode) {
             currentModeSize = panel_mode;
@@ -409,12 +417,12 @@
             </div>
         </div>
         <div
-            class:panel-open-mobile-transition={panelOpeningPercentageAuto !=
+            class:panel-open-mobile-transition={panelOpeningPercentageToDisplay !=
                 panelOpeningPercentage}
             class={panel_mode == Width_Mode.PHONE
                 ? "panel-open-mobile"
                 : "list-users-desktop"}
-            style="--opening_width:{panelOpeningPercentageAuto *
+            style="--opening_width:{panelOpeningPercentageToDisplay *
                 (maxOpeningUserDistance / 100)}%;"
         >
             <User
@@ -446,7 +454,7 @@
                     class="btn"
                     on:click={() => {
                         panelIsOpen = false;
-                        panelOpeningPercentageAuto = 0;
+                        panelOpeningPercentageToDisplay = 0;
                         panelOpeningPercentage = 1;
                     }}
                 >
