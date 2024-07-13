@@ -3,4 +3,6 @@
   "extends": [
     "config:recommended"
   ]
+  "schedule": "after 3am on Wednesday",
+  "commitMessagePrefix": "chore(deps)"
 }
