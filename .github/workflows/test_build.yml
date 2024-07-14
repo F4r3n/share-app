@@ -2,10 +2,13 @@ name: "test-build"
 on: [pull_request, push]
 
 jobs:
+  create-release:
+    uses: ./.github/workflows/release.yml
   build-android:
     uses: ./.github/workflows/android.yml
     secrets: inherit
   test-tauri:
+    needs: [create-release]
     strategy:
       fail-fast: false
       matrix:
@@ -40,17 +43,12 @@ jobs:
         TAURI_SIGNING_PRIVATE_KEY: ${{secrets.TAURI_PRIVATE_KEY}}
         TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{secrets.TAURI_KEY_PASSWORD}}
       with:
-        tagName: v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version
-        releaseName: "App v__VERSION__"
-        releaseBody: "See the assets to download this version and install."
-        releaseDraft: true
-        prerelease: true
-        includeUpdaterJson: true
+        releaseId: ${{needs.create-release.outputs.release_id}}
         args: "--features=clipboard"
 
   upload-apk:
     runs-on: ubuntu-latest
-    needs: [build-android, test-tauri]
+    needs: [build-android, test-tauri, create-release]
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -58,7 +56,8 @@ jobs:
           name: apks
           path: ./release
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: AButler/upload-release-assets@v3.0
         with:
-          files: |
-            ./release/*.apk
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          release-id: ${{needs.create-release.outputs.release_id}}
+          files: "./release/*.apk"

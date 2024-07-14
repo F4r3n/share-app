@@ -43,7 +43,7 @@ jobs:
         node scripts/encode_decode.js --decode base64.txt --out keystore.jks
       
     - name: Install app dependencies
-      run: npm i && npm run build
+      run: npm i
 
     - name: Build apk
       run: cargo install tauri-cli --version "^2.0.0-beta" && cargo tauri android build
