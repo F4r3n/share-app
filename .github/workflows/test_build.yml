@@ -61,4 +61,4 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           release-id: ${{needs.create-release.outputs.release_id}}
-          files: "./release/*.apk"
+          files: "./release/**/*.apk"
