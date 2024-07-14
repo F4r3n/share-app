@@ -4,6 +4,7 @@ on: [pull_request, push]
 jobs:
   build-android:
     uses: ./.github/workflows/android.yml
+    secrets: inherit
   test-tauri:
     strategy:
       fail-fast: false
