@@ -40,7 +40,7 @@ jobs:
       shell: bash
       run: |
         echo ${{secrets.KEYSTORE}} > base64.txt
-        node scripts/encode_decode.js --decode base64.txt --out ${{github.workspace}}/keystore.jks
+        node scripts/encode_decode.js --decode base64.txt --out keystore.jks
       
     - name: Install app dependencies
       run: npm i && npm run build
