@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [macos-latest, ubuntu-22.04, windows-latest]
+        platform: [macos-latest, ubuntu-latest, windows-latest]
 
     runs-on: ${{ matrix.platform }}
     environment: updater
@@ -43,3 +43,4 @@ jobs:
         releaseDraft: true
         prerelease: false
         includeUpdaterJson: true
+        args: "--features=clipboard"
