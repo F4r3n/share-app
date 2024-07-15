@@ -1,13 +1,24 @@
 on:
     workflow_call:
-        inputs:
-            platform:
-                required: true
-                type: string       
+      outputs:
+        release_id:
+          description: "The first output string"
+          value: ${{ jobs.test-tauri.outputs.release_id }}
+
 
 jobs:
-  build-tauri:
-    runs-on: ${{ inputs.platform }}
+  build-android:
+    uses: ./.github/workflows/android.yml
+    secrets: inherit
+  test-tauri:
+    outputs:
+      release_id: ${{steps.tauri-action.outputs.releaseId}}
+    strategy:
+      fail-fast: false
+      matrix:
+        object: [{"os":"macos-latest"}, {"os":"ubuntu-latest"}, {"os":"windows-latest"}]
+
+    runs-on: ${{ matrix.object.os }}
     environment: updater
     steps:
     - uses: actions/checkout@v4
@@ -15,15 +26,32 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: lts/*
+
     - name: install Rust stable
       uses: dtolnay/rust-toolchain@stable
       with:
         # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
-        targets: ${{ inputs.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+        targets: ${{ matrix.object.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
     - name: install dependencies (ubuntu only)
-      if: inputs.platform == 'ubuntu-22.04'
+      if: matrix.object.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0 libappindicator3-dev librsvg2-dev patchelf
+        sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
+
     - name: install app dependencies and build it
       run: npm i && npm run build
+
+    - uses: tauri-apps/tauri-action@v0
+      id: tauri-action
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAURI_SIGNING_PRIVATE_KEY: ${{secrets.TAURI_PRIVATE_KEY}}
+        TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{secrets.TAURI_KEY_PASSWORD}}
+      with:
+        includeUpdaterJson: true
+        tagName: v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version
+        releaseName: "App v__VERSION__"
+        releaseBody: "See the assets to download this version and install."
+        releaseDraft: true
+        prerelease: false
+        args: "--features=clipboard"
