@@ -11,11 +11,13 @@
     import { createEventDispatcher } from "svelte";
     import { Window, UserAttentionType } from "@tauri-apps/api/window";
     import { messagesManager } from "./MessagesManager";
-
-    const dispatch = createEventDispatcher();
-
     import type { MessageFromIRC } from "./MessageType";
     import Arrow from "../assets/arrow.svelte";
+    import ActionBar from "./ActionBar.svelte";
+    import { panelIsOpen } from "./discussStore";
+    import { get } from "svelte/store";
+
+    const dispatch = createEventDispatcher();
 
     type User = {
         nick_name: string;
@@ -208,6 +210,7 @@
         irc_received();
         read_messages();
         irc_event();
+        panelIsOpen.set(currentModeSize == Width_Mode.DESKTOP);
     });
 
     type Pointer = {
@@ -218,7 +221,7 @@
     let screen_width = window.innerWidth;
     const mobile_width = 500;
     $: panelOpeningPercentage = 0;
-    let userDistanceToOpen = 2*(screen_width * 100) / mobile_width;
+    let userDistanceToOpen = (2 * (screen_width * 100)) / mobile_width;
     const maxOpeningUserDistance = 80;
     $: panelOpeningPercentageToDisplay = 0;
     let pointers = new Map<number, Pointer>();
@@ -231,17 +234,16 @@
 
     let currentModeSize =
         screen_width < mobile_width ? Width_Mode.PHONE : Width_Mode.DESKTOP;
-    let panelIsOpen = currentModeSize == Width_Mode.DESKTOP;
     $: panel_mode =
         screen_width < mobile_width ? Width_Mode.PHONE : Width_Mode.DESKTOP;
     function onResize() {
         if (currentModeSize != panel_mode) {
             currentModeSize = panel_mode;
-            if (panelIsOpen && currentModeSize == Width_Mode.PHONE) {
-                panelIsOpen = false;
+            if (get(panelIsOpen) && currentModeSize == Width_Mode.PHONE) {
+                panelIsOpen.set(false);
             }
         }
-        if(screen_height != window.innerHeight){
+        if (screen_height != window.innerHeight) {
             screen_height = window.innerHeight;
             refreshScroll();
         }
@@ -270,7 +272,7 @@
                 Math.min(panelOpeningPercentage, 100),
             );
 
-            if (panelIsOpen) {
+            if (get(panelIsOpen)) {
                 if (direction > 0)
                     panelOpeningPercentageToDisplay =
                         100 - panelOpeningPercentage;
@@ -286,20 +288,20 @@
         if (pointers.has(event.pointerId)) {
             panelOpeningPercentageToDisplay = panelOpeningPercentage;
             if (direction < 0) {
-                if (!panelIsOpen) {
+                if (!get(panelIsOpen)) {
                     if (panelOpeningPercentage > 60)
                         panelOpeningPercentageToDisplay = 100;
                     else panelOpeningPercentageToDisplay = 0;
                 } else panelOpeningPercentageToDisplay = 100;
             } else {
-                if (panelIsOpen) {
+                if (get(panelIsOpen)) {
                     if (panelOpeningPercentage > 60)
                         panelOpeningPercentageToDisplay = 0;
                     else panelOpeningPercentageToDisplay = 100;
                 } else panelOpeningPercentageToDisplay = 0;
             }
 
-            panelIsOpen = panelOpeningPercentageToDisplay == 100;
+            panelIsOpen.set(panelOpeningPercentageToDisplay == 100);
 
             pointers.delete(event.pointerId);
         }
@@ -353,6 +355,15 @@
     $: listMessages = messagesManager
         .getChannel(channelNameSelected)
         .getListMessages();
+
+    const unsubscribe = panelIsOpen.subscribe((value) => {
+        if (value == true) panelOpeningPercentageToDisplay = 100;
+        else panelOpeningPercentageToDisplay = 0;
+    });
+    $: open =
+        panel_mode == Width_Mode.DESKTOP ||
+        $panelIsOpen ||
+        panelOpeningPercentageToDisplay > 0;
 </script>
 
 <svelte:window on:resize={onResize} />
@@ -369,7 +380,7 @@
         </div>
     {:else}
         <div class="discuss-section flex-grow-1 min-w-0">
-            <div class="bg-primary-300 text-primary-600">{topic}</div>
+            <ActionBar {topic}></ActionBar>
             <div class="flex-grow overflow-y-auto" bind:this={discussSection}>
                 <div class="messages">
                     {#each $listMessages as message, id}
@@ -423,9 +434,7 @@
         <div
             class:panel-open-mobile-transition={panelOpeningPercentageToDisplay !=
                 panelOpeningPercentage}
-            class:panel-opening-mobile={panel_mode == Width_Mode.DESKTOP ||
-                panelIsOpen ||
-                panelOpeningPercentageToDisplay > 0}
+            class:panel-opening-mobile={open}
             class={panel_mode == Width_Mode.PHONE
                 ? "panel-open-mobile"
                 : "list-users-desktop"}
@@ -460,7 +469,8 @@
                     type="button"
                     class="btn"
                     on:click={() => {
-                        panelIsOpen = false;
+                        panelIsOpen.set(false);
+
                         panelOpeningPercentageToDisplay = 0;
                         panelOpeningPercentage = 1;
                     }}
