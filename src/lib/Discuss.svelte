@@ -29,7 +29,6 @@
 
     let topic: string = "";
     let channelNameSelected: string = channel ?? "";
-    let isMobile = __IS_MOBILE__;
 
     let discussSection: HTMLDivElement | null | undefined = null;
     let users: User[] = [];
@@ -213,19 +212,12 @@
         panelIsOpen.set(currentModeSize == Width_Mode.DESKTOP);
     });
 
-    type Pointer = {
-        x: number;
-        y: number;
-    };
     let screen_height = window.innerHeight;
     let screen_width = window.innerWidth;
     const mobile_width = 500;
     $: panelOpeningPercentage = 0;
-    let userDistanceToOpen = (2 * (screen_width * 100)) / mobile_width;
     const maxOpeningUserDistance = 80;
     $: panelOpeningPercentageToDisplay = 0;
-    let pointers = new Map<number, Pointer>();
-    let direction = 1;
 
     enum Width_Mode {
         PHONE,
@@ -246,64 +238,6 @@
         if (screen_height != window.innerHeight) {
             screen_height = window.innerHeight;
             refreshScroll();
-        }
-    }
-
-    function pointerdown(event: any) {
-        if (isMobile) event.preventDefault();
-        pointers.set(event.pointerId, {
-            x: event.x,
-            y: event.y,
-        } as Pointer);
-    }
-
-    function pointermove(event: any) {
-        if (isMobile) event.preventDefault();
-        if (pointers.has(event.pointerId)) {
-            let pointer = pointers.get(event.pointerId) ?? { x: 0, y: 0 };
-            let distX = event.x - pointer.x;
-            direction = Math.sign(distX);
-
-            panelOpeningPercentage = Math.abs(
-                (100 * distX) / userDistanceToOpen,
-            );
-            panelOpeningPercentage = Math.max(
-                0,
-                Math.min(panelOpeningPercentage, 100),
-            );
-
-            if (get(panelIsOpen)) {
-                if (direction > 0)
-                    panelOpeningPercentageToDisplay =
-                        100 - panelOpeningPercentage;
-            } else {
-                if (direction < 0)
-                    panelOpeningPercentageToDisplay = panelOpeningPercentage;
-            }
-        }
-    }
-
-    function pointerup(event: any) {
-        if (isMobile) event.preventDefault();
-        if (pointers.has(event.pointerId)) {
-            panelOpeningPercentageToDisplay = panelOpeningPercentage;
-            if (direction < 0) {
-                if (!get(panelIsOpen)) {
-                    if (panelOpeningPercentage > 60)
-                        panelOpeningPercentageToDisplay = 100;
-                    else panelOpeningPercentageToDisplay = 0;
-                } else panelOpeningPercentageToDisplay = 100;
-            } else {
-                if (get(panelIsOpen)) {
-                    if (panelOpeningPercentage > 60)
-                        panelOpeningPercentageToDisplay = 0;
-                    else panelOpeningPercentageToDisplay = 100;
-                } else panelOpeningPercentageToDisplay = 0;
-            }
-
-            panelIsOpen.set(panelOpeningPercentageToDisplay == 100);
-
-            pointers.delete(event.pointerId);
         }
     }
 
@@ -368,9 +302,6 @@
 
 <svelte:window on:resize={onResize} />
 <main
-    on:pointerdown={pointerdown}
-    on:pointermove={pointermove}
-    on:pointerup={pointerup}
     class="flex flex-row"
     bind:clientWidth={screen_width}
 >
