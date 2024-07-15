@@ -27,12 +27,13 @@
 
     let topic: string = "";
     let channelNameSelected: string = channel ?? "";
+    let isMobile = __IS_MOBILE__;
 
     let discussSection: HTMLDivElement | null | undefined = null;
     let users: User[] = [];
     let updateScroll = true;
     let messagesUnreadChannel: Set<string> = new Set<string>();
-    let isLoaded = true; //TODO turn to false
+    let isLoaded = true;
     let irc_received_unsubscribe = () => {};
     function isScrollAtTheEnd(): boolean {
         if (discussSection == undefined) return true;
@@ -213,17 +214,41 @@
         x: number;
         y: number;
     };
-
-    let screen_width = window.screen.width;
+    let screen_height = window.innerHeight;
+    let screen_width = window.innerWidth;
     const mobile_width = 500;
     $: panelOpeningPercentage = 0;
-    let userDistanceToOpen = (screen_width * 100) / mobile_width;
+    let userDistanceToOpen = 2*(screen_width * 100) / mobile_width;
     const maxOpeningUserDistance = 80;
     $: panelOpeningPercentageToDisplay = 0;
     let pointers = new Map<number, Pointer>();
     let direction = 1;
 
+    enum Width_Mode {
+        PHONE,
+        DESKTOP,
+    }
+
+    let currentModeSize =
+        screen_width < mobile_width ? Width_Mode.PHONE : Width_Mode.DESKTOP;
+    let panelIsOpen = currentModeSize == Width_Mode.DESKTOP;
+    $: panel_mode =
+        screen_width < mobile_width ? Width_Mode.PHONE : Width_Mode.DESKTOP;
+    function onResize() {
+        if (currentModeSize != panel_mode) {
+            currentModeSize = panel_mode;
+            if (panelIsOpen && currentModeSize == Width_Mode.PHONE) {
+                panelIsOpen = false;
+            }
+        }
+        if(screen_height != window.innerHeight){
+            screen_height = window.innerHeight;
+            refreshScroll();
+        }
+    }
+
     function pointerdown(event: any) {
+        if (isMobile) event.preventDefault();
         pointers.set(event.pointerId, {
             x: event.x,
             y: event.y,
@@ -231,6 +256,7 @@
     }
 
     function pointermove(event: any) {
+        if (isMobile) event.preventDefault();
         if (pointers.has(event.pointerId)) {
             let pointer = pointers.get(event.pointerId) ?? { x: 0, y: 0 };
             let distX = event.x - pointer.x;
@@ -252,14 +278,11 @@
                 if (direction < 0)
                     panelOpeningPercentageToDisplay = panelOpeningPercentage;
             }
-            console.log(
-                panelOpeningPercentage,
-                panelOpeningPercentageToDisplay,
-            );
         }
     }
 
     function pointerup(event: any) {
+        if (isMobile) event.preventDefault();
         if (pointers.has(event.pointerId)) {
             panelOpeningPercentageToDisplay = panelOpeningPercentage;
             if (direction < 0) {
@@ -330,28 +353,9 @@
     $: listMessages = messagesManager
         .getChannel(channelNameSelected)
         .getListMessages();
-
-    enum Width_Mode {
-        PHONE,
-        DESKTOP,
-    }
-
-    let currentModeSize =
-        screen_width < mobile_width ? Width_Mode.PHONE : Width_Mode.DESKTOP;
-    let panelIsOpen = true;
-    $: panel_mode =
-        screen_width < mobile_width ? Width_Mode.PHONE : Width_Mode.DESKTOP;
-    function hasModeChanged() {
-        if (currentModeSize != panel_mode) {
-            currentModeSize = panel_mode;
-            if (panelIsOpen && currentModeSize == Width_Mode.PHONE) {
-                panelIsOpen = false;
-            }
-        }
-    }
 </script>
 
-<svelte:window on:resize={hasModeChanged} />
+<svelte:window on:resize={onResize} />
 <main
     on:pointerdown={pointerdown}
     on:pointermove={pointermove}
@@ -419,6 +423,9 @@
         <div
             class:panel-open-mobile-transition={panelOpeningPercentageToDisplay !=
                 panelOpeningPercentage}
+            class:panel-opening-mobile={panel_mode == Width_Mode.DESKTOP ||
+                panelIsOpen ||
+                panelOpeningPercentageToDisplay > 0}
             class={panel_mode == Width_Mode.PHONE
                 ? "panel-open-mobile"
                 : "list-users-desktop"}
@@ -479,9 +486,13 @@
         right: 0;
         height: 100%;
         width: var(--opening_width);
-        @apply bg-secondary-600 text-secondary-100 p-1;
+        @apply bg-secondary-600 text-secondary-100;
+    }
+
+    .panel-opening-mobile {
         -webkit-box-shadow: 5px 5px 15px 5px rgba(0, 0, 0, 0.48);
         box-shadow: 5px 5px 15px 5px rgba(0, 0, 0, 0.48);
+        @apply p-1;
     }
 
     .panel-open-mobile-transition {

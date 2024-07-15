@@ -4,6 +4,9 @@ import { internalIpV4 } from "internal-ip";
 import { purgeCss } from 'vite-plugin-tailwind-purgecss';
 const mobile = !!/android|ios/.exec(process.env.TAURI_ENV_PLATFORM);
 export default defineConfig({
+  define: {
+    __IS_MOBILE__: mobile,
+  },
 	plugins: [sveltekit(), purgeCss()],
 	 // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
