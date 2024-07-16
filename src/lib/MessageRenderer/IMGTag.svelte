@@ -6,7 +6,7 @@
 </script>
 
 <div class="image">
-    <img width=300px on:load={()=> {dispatch("message_formatted")}} src={href} alt={href}>
+    <img width="80%" on:load={()=> {dispatch("message_formatted")}} src={href} alt={href}>
 </div>
 
 <style>

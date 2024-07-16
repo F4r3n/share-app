@@ -51,11 +51,12 @@
         border-color: var(--secondary-accent-color);
         padding: 10px;
 
-        width: 400px;
+        width: 95%;
         margin-top: 10px;
     }
 
     .image {
         margin-top: 5px;
+        width: 100%;
     }
 </style>
