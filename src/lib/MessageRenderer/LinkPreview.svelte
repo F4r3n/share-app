@@ -52,6 +52,7 @@
         padding: 10px;
 
         width: 95%;
+        max-width: 400px;
         margin-top: 10px;
     }
 

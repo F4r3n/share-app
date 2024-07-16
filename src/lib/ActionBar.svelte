@@ -2,13 +2,16 @@
     import LongArrow from "../assets/long-arrow.svelte";
     export let topic = "TEST";
     import {panelIsOpen} from "./discussStore"
-    import { get } from "svelte/store";
+
+    let showTopic = false;
 </script>
 
 <div
-    class="flex flex-row bg-primary-500-400-token text-on-primary-token justify-between text-ellipsis max-w[100%] leading-5 items-center align-middle p-1"
+    class="flex flex-row bg-primary-500-400-token text-on-primary-token justify-between max-w[100%] leading-5 items-center align-middle p-1"
 >
-    <div>{topic}</div>
+    <button class={showTopic ? "topic-show" : "topic-hide"} on:click={()=>{showTopic=!showTopic;}}>
+        {topic}
+    </button>
     <button
         on:click={() => {
             panelIsOpen.set(true)
@@ -20,6 +23,23 @@
 </div>
 
 <style>
+
+    button {
+        all: unset;
+    }
+
+    button:hover {
+        cursor: pointer;
+    }
+
+    .topic-hide {
+        @apply truncate block max-h-4;
+    }
+
+    .topic-show {
+        @apply block;
+    }
+
     .arrow {
         transform: rotate(180deg);
         stroke: theme("colors.primary.50");
