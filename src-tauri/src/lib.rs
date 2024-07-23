@@ -61,30 +61,30 @@ async fn loggin(
         let channel = channel.to_owned();
         let password = password.to_owned();
         let str = format!("log_{}_{}.txt", &server, &channel);
-    
+
         if state_guard.client.is_none() {
             println!("Connect");
-    
-            state_guard.channel = channel.to_owned();
-            state_guard.client = match share_client::irc_login(nick_name, server, channel, password).await {
-                Ok(client) => Some(client),
-                Err(_e) => None,
-            }
+
+            channel.clone_into(&mut state_guard.channel);
+            state_guard.client =
+                match share_client::irc_login(nick_name, server, channel, password).await {
+                    Ok(client) => Some(client),
+                    Err(_e) => None,
+                }
         }
-    
+
         println!("End connect");
-    
+
         if state_guard.client.is_none() {
             println!("Cannot Connect");
         }
-    
+
         if state_guard.client.is_some() {
             let config_dir = create_config_dir(app_handle);
             match config_dir {
                 Ok(file) => {
                     state_guard.log_file = Some(
                         OpenOptions::new()
-                            .write(true)
                             .append(true)
                             .create(true)
                             .open(file.join(str))
@@ -96,11 +96,11 @@ async fn loggin(
                 }
             }
         }
-    
+
         if state_guard.client.is_none() {
             println!("Cannot Connect");
         }
-    
+
         return match &state_guard.client {
             Some(_) => Ok(()),
             _ => Err(String::from("No client")),
@@ -118,7 +118,7 @@ fn send_message(
     let state_guard = irc.0.try_lock().ok_or(CommandError::Locked.to_string())?;
     let nick_name = state_guard.client.as_ref().unwrap().current_nickname();
     if let Some(log_file) = &state_guard.log_file {
-        share_client::write_in_log(log_file, nick_name, message).map_err(|e|e.to_string())?;
+        share_client::write_in_log(log_file, nick_name, message).map_err(|e| e.to_string())?;
     }
     state_guard
         .send_message(message, channel)
@@ -128,7 +128,7 @@ fn send_message(
 #[tauri::command]
 fn get_users(irc: tauri::State<'_, IRCState>) -> Result<Vec<User>, String> {
     let state_guard = irc.0.try_lock().ok_or(CommandError::Locked.to_string())?;
-    let users = state_guard.get_users().map_err(|e|e.to_string())?;
+    let users = state_guard.get_users().map_err(|e| e.to_string())?;
     let mut js_users: Vec<User> = Vec::new();
     if let Some(users) = users {
         for user in users.iter() {
@@ -150,7 +150,7 @@ fn disconnect(
 ) -> Result<(), String> {
     let mut client = irc.0.try_lock().ok_or(CommandError::Locked.to_string())?;
     if shall_send_message {
-        client.send_quit(message).map_err(|e|e.to_string())?
+        client.send_quit(message).map_err(|e| e.to_string())?
     }
     client.client = None;
     Ok(())
@@ -163,7 +163,9 @@ fn send_irc_command(
     irc: tauri::State<'_, IRCState>,
 ) -> Result<(), String> {
     let client = irc.0.try_lock().ok_or(CommandError::Locked.to_string())?;
-    client.send_irc_command(command, args).map_err(|e|e.to_string())
+    client
+        .send_irc_command(command, args)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -208,7 +210,7 @@ fn upload_image(endpoint: &str, image_bytes: Vec<u8>) -> Result<String, String> 
         .send()
         .map_err(|e| e.to_string())?;
     dbg!(&resp);
-    Ok(resp.text().map_err(|e| e.to_string())?)
+    resp.text().map_err(|e| e.to_string())
 }
 
 use scraper::Html;

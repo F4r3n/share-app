@@ -29,12 +29,12 @@ impl IRC {
     pub fn send_message(&self, message: &str, channel: &str) -> Result<(), anyhow::Error> {
         let mut current_channel = String::from(channel);
         if current_channel.is_empty() {
-            current_channel = self.channel.to_owned();
+            self.channel.clone_into(&mut current_channel);
         }
 
         Ok(self
             .get_client()?
-            .send_privmsg(current_channel, String::from(message.to_owned()))?)
+            .send_privmsg(current_channel, message.to_owned())?)
     }
 
     pub fn get_users(&self) -> Result<Option<Vec<irc::client::data::User>>, anyhow::Error> {
@@ -69,7 +69,7 @@ pub fn write_in_log(mut file: &File, nick_name: &str, message: &str) -> Result<(
     write!(
         file,
         "{}",
-        format!("{} {}: {}\n", utc, String::from(nick_name), message)
+        format_args!("{} {}: {}\n", utc, String::from(nick_name), message)
     )?;
     Ok(())
 }
@@ -81,16 +81,18 @@ async fn irc_read(
 ) -> Result<(), anyhow::Error> {
     loop {
         let result = stream.next().await.transpose();
-        let is_valid = result.as_ref().map_err(|e| window.emit(
-            "irc-recieved",
-            Payload {
-                content: e.to_string(),
-                nick_name: String::from(""),
-                command: String::from("INTERNAL_ERROR"),
-                channel: String::from(""),
-                response: None,
-            },
-        ));
+        let is_valid = result.as_ref().map_err(|e| {
+            window.emit(
+                "irc-recieved",
+                Payload {
+                    content: e.to_string(),
+                    nick_name: String::from(""),
+                    command: String::from("INTERNAL_ERROR"),
+                    channel: String::from(""),
+                    response: None,
+                },
+            )
+        });
         if is_valid.is_err() {
             break Err(IRCError::BrokenStream.into());
         }
@@ -114,11 +116,17 @@ async fn irc_read(
         match message.command {
             Command::PING(_, _) => {
                 pay_load.command = String::from("PING");
-                pay_load.content = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_secs().to_string();
+                pay_load.content = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)?
+                    .as_secs()
+                    .to_string();
             }
             Command::PONG(_, _) => {
                 pay_load.command = String::from("PONG");
-                pay_load.content = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_secs().to_string();
+                pay_load.content = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)?
+                    .as_secs()
+                    .to_string();
             }
             Command::PRIVMSG(ref target, ref msg) => {
                 pay_load.command = String::from("PRIVMSG");
@@ -151,7 +159,7 @@ async fn irc_read(
                 }
 
                 if let Some(nick_name) = message.source_nickname() {
-                    pay_load.nick_name = nick_name.to_owned();
+                    nick_name.clone_into(&mut pay_load.nick_name);
                 }
             }
             Command::PART(ref _channel, ref comment) => {
@@ -162,17 +170,15 @@ async fn irc_read(
                 }
 
                 if let Some(nick_name) = message.source_nickname() {
-                    pay_load.nick_name = nick_name.to_owned();
+                    nick_name.clone_into(&mut pay_load.nick_name);
                 }
             }
             Command::JOIN(ref _channel, ref _chan_keys, ref name) => {
                 pay_load.command = String::from("JOIN");
                 if let Some(name) = name {
-                    pay_load.content = name.to_owned();
-                } else {
-                    if let Some(nick_name) = message.source_nickname() {
-                        pay_load.nick_name = nick_name.to_owned();
-                    }
+                    name.clone_into(&mut pay_load.content);
+                } else if let Some(nick_name) = message.source_nickname() {
+                    nick_name.clone_into(&mut pay_load.nick_name);
                 }
             }
             Command::TOPIC(ref _channel, ref topic) => {
@@ -182,7 +188,7 @@ async fn irc_read(
                 }
 
                 if let Some(nick_name) = message.source_nickname() {
-                    pay_load.nick_name = nick_name.to_owned();
+                    nick_name.clone_into(&mut pay_load.nick_name);
                 }
             }
             Command::NAMES(ref _channel, ref _target) => {}
@@ -193,9 +199,9 @@ async fn irc_read(
             Command::NICK(ref new_nick_name) => {
                 pay_load.command = String::from("NICK");
                 if let Some(nick_name) = message.source_nickname() {
-                    pay_load.nick_name = nick_name.to_owned();
+                    nick_name.clone_into(&mut pay_load.nick_name);
                 }
-                pay_load.content = new_nick_name.to_owned();
+                new_nick_name.clone_into(&mut pay_load.content);
             }
             _ => (),
         }
@@ -210,7 +216,7 @@ pub async fn irc_login(
     channel: String,
     password: String,
 ) -> Result<irc::client::Client, anyhow::Error> {
-    let mut split = server.split(":");
+    let mut split = server.split(':');
     let server = split.next().unwrap_or("127.0.0.1").to_string();
     let port_number = split.last().unwrap_or("6697").parse().unwrap_or(6697);
     println!(
@@ -226,6 +232,7 @@ pub async fn irc_login(
         ping_time: Some(30),
         ping_timeout: Some(300),
         use_tls: Some(port_number == 6697),
+        dangerously_accept_invalid_certs: Some(true),
         ..Default::default()
     };
 
@@ -233,5 +240,5 @@ pub async fn irc_login(
 
     client.identify()?;
 
-    return Ok(client);
+    Ok(client)
 }
