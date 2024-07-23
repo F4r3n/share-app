@@ -40,7 +40,7 @@
     }
   },
   "productName": "shareApp",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "identifier": "ovh.faren.shareApp.dev",
   "plugins": {
     "updater": {
