@@ -5,7 +5,7 @@ use irc::client::prelude::*;
 use irc::proto::FormattedStringExt;
 use std::fs::File;
 use std::io::Write;
-use tauri::Manager;
+use tauri::Emitter;
 use thiserror::Error;
 pub struct IRC {
     pub client: Option<irc::client::Client>,
