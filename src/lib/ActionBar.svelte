@@ -33,7 +33,7 @@
     }
 
     .topic-hide {
-        @apply truncate block max-h-4;
+        @apply truncate block max-h-5;
     }
 
     .topic-show {

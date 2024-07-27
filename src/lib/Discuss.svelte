@@ -85,6 +85,7 @@
                 message.content = data.content;
                 message.nick_name = data.nick_name;
                 message.highlight = false;
+                //console.log(data)
                 let channelOrigin = data.channel;
                 if (channelOrigin === "") {
                     channelOrigin = channel;
@@ -170,8 +171,17 @@
                     }
                 } else if (data.command === "NICK") {
                     nickName = data.content;
+                }
+                else if(data.command === "ERROR") {
+                    message.date = new Date();
+                    message.highlight = isMessageHighlight(message.content);
+                    messagesManager.putMessageInList(message, channelOrigin);
+
+                    if (channelNameSelected !== channelOrigin) {
+                        messagesUnreadChannel.add(channelOrigin);
+                        messagesUnreadChannel = messagesUnreadChannel;
+                    }
                 } else if (
-                    data.command === "ERROR" ||
                     data.command === "INTERNAL_ERROR"
                 ) {
                     if (isLoaded) {
