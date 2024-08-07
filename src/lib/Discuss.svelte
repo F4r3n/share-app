@@ -15,7 +15,8 @@
     import Arrow from "../assets/arrow.svelte";
     import ActionBar from "./ActionBar.svelte";
     import { panelIsOpen } from "./discussStore";
-    import { get } from "svelte/store";
+    import { writable, get, derived } from "svelte/store";
+    import type { Writable } from "svelte/store";
 
     const dispatch = createEventDispatcher();
 
@@ -27,44 +28,106 @@
     export let nickName: string;
     export let channel: string;
 
+    
+    class ChattManager {
+        private hasQuit = false;
+        private isUser = false;
+        private isSelected = false;
+        private autoScroll = true;
+        private _isMain = false;
+        private scroll_position = -1; //-1 means automatic
+        private scroll_behaviour: ScrollBehavior = "smooth";
+        public isUnread: boolean = false;
+        private _name: string;
+        constructor(name: string, isMain : boolean) {
+            this._name = name;
+            this._isMain = isMain
+        }
+
+        public pushMessage() {
+            console.log("SET");
+            this.isUnread = true;
+            
+        }
+
+        public setAsSelected(isSelected: boolean) {
+            console.log("AS MAIN");
+            if (isSelected) {
+                this.isSelected = true;
+                this.isUnread = false;
+                this.scroll_behaviour = "smooth";
+            } else {
+                this.isUnread = false;
+                this.scroll_behaviour = "instant";
+                this.isSelected = false;
+            }
+        }
+
+        public updateScroll(inHTML: HTMLDivElement | null) {
+            if (this.isScrollAtTheEnd(inHTML) && this.autoScroll) {
+                this.refreshScroll(inHTML);
+            }
+
+            this.autoScroll = false;
+        }
+
+        isScrollAtTheEnd(inHTML: HTMLDivElement | null): boolean {
+            if (!inHTML) return false;
+            const modifier = 100;
+            return (
+                inHTML.scrollTop + inHTML.offsetHeight + modifier >
+                inHTML.scrollHeight
+            );
+        }
+
+        public refreshScroll(inHTML: HTMLDivElement | null) {
+            if (!inHTML) return;
+
+            inHTML.scroll({
+                top: inHTML.scrollHeight + 300,
+                behavior: this.scroll_behaviour,
+            });
+        }
+    }
+
+    function pushMessage(inChannel : string) {
+        console.log("PUSH")
+        $_chatts = $_chatts
+        _chatts.update(map => {
+                map.get(channel)?.pushMessage()
+                return map
+            })
+    }
+
+    function insertChat(inChannel: string): ChattManager {
+        if (!get(_chatts).has(inChannel)) {
+            _chatts.update(map => {
+                return map.set(inChannel, new ChattManager(inChannel, false))
+            })
+        }
+
+        let chatt = get(_chatts).get(inChannel);
+        //_chatts = _chatts
+        return chatt ? chatt : new ChattManager(inChannel, false);
+    }
+
+
     let topic: string = "";
     let channelNameSelected: string = channel ?? "";
 
-    let discussSection: HTMLDivElement | null | undefined = null;
-    let users: User[] = [];
-    let updateScroll = true;
-    let messagesUnreadChannel: Set<string> = new Set<string>();
+    let discussSection: HTMLDivElement | null = null;
+    let _chatts: Writable<Map<string, ChattManager>> = writable(new Map<string, ChattManager>([[channel, new ChattManager(channel, true)]]));
+
     let isLoaded = true;
     let irc_received_unsubscribe = () => {};
-    function isScrollAtTheEnd(): boolean {
-        if (discussSection == undefined) return true;
-
-        const modifier = 100;
-        return (
-            discussSection.scrollTop + discussSection.offsetHeight + modifier >
-            discussSection.scrollHeight
-        );
-    }
 
     function isMessageHighlight(inMessageContent: string): boolean {
         return inMessageContent.search(nickName) !== -1;
     }
 
     afterUpdate(() => {
-        if (updateScroll) {
-            refreshScroll();
-        }
-
-        updateScroll = false;
+        insertChat(channelNameSelected).updateScroll(discussSection);
     });
-
-    function refreshScroll() {
-        if (discussSection == null) return;
-        discussSection.scroll({
-            top: discussSection.scrollHeight + 300,
-            behavior: "smooth",
-        });
-    }
 
     async function read_messages() {
         try {
@@ -102,10 +165,7 @@
                     message.highlight = isMessageHighlight(message.content);
                     messagesManager.putMessageInList(message, channelOrigin);
 
-                    if (channelNameSelected !== channelOrigin) {
-                        messagesUnreadChannel.add(channelOrigin);
-                        messagesUnreadChannel = messagesUnreadChannel;
-                    }
+                    pushMessage(channelOrigin);
 
                     if (message.highlight) {
                         await Window.getCurrent().requestUserAttention(
@@ -125,10 +185,7 @@
                     message.highlight = isMessageHighlight(message.content);
                     messagesManager.putMessageInList(message, channelOrigin);
 
-                    if (channelNameSelected !== channelOrigin) {
-                        messagesUnreadChannel.add(channelOrigin);
-                        messagesUnreadChannel = messagesUnreadChannel;
-                    }
+                    pushMessage(channelOrigin);
                 } else if (data.command === "JOIN") {
                     messagesManager.putMessageInList(
                         {
@@ -171,19 +228,12 @@
                     }
                 } else if (data.command === "NICK") {
                     nickName = data.content;
-                }
-                else if(data.command === "ERROR") {
+                } else if (data.command === "ERROR") {
                     message.date = new Date();
                     message.highlight = isMessageHighlight(message.content);
                     messagesManager.putMessageInList(message, channelOrigin);
-
-                    if (channelNameSelected !== channelOrigin) {
-                        messagesUnreadChannel.add(channelOrigin);
-                        messagesUnreadChannel = messagesUnreadChannel;
-                    }
-                } else if (
-                    data.command === "INTERNAL_ERROR"
-                ) {
+                    pushMessage(channelOrigin);
+                } else if (data.command === "INTERNAL_ERROR") {
                     if (isLoaded) {
                         console.log("disconnect");
                         invoke("disconnect", {
@@ -247,7 +297,7 @@
         }
         if (screen_height != window.innerHeight) {
             screen_height = window.innerHeight;
-            refreshScroll();
+            insertChat(channelNameSelected).refreshScroll(discussSection);
         }
     }
 
@@ -257,7 +307,9 @@
 
     async function updateUsers() {
         try {
-            users = (await invoke("get_users")) as User[];
+            for (let user of (await invoke("get_users")) as User[]) {
+                insertChat(user.nick_name);
+            }
         } catch (e) {
             console.error(e);
         }
@@ -292,10 +344,12 @@
     }
 
     function changeChannel(inChannel: string) {
+        insertChat(channelNameSelected).setAsSelected(false);
+        insertChat(inChannel).setAsSelected(true);
+
         channelNameSelected = inChannel;
-        messagesUnreadChannel.delete(inChannel);
-        messagesUnreadChannel = messagesUnreadChannel;
     }
+
     $: listMessages = messagesManager
         .getChannel(channelNameSelected)
         .getListMessages();
@@ -308,13 +362,11 @@
         panel_mode == Width_Mode.DESKTOP ||
         $panelIsOpen ||
         panelOpeningPercentageToDisplay > 0;
+
 </script>
 
 <svelte:window on:resize={onResize} />
-<main
-    class="flex flex-row"
-    bind:clientWidth={screen_width}
->
+<main class="flex flex-row" bind:clientWidth={screen_width}>
     {#if !isLoaded}
         <div class="loading" class:loading-hide={isLoaded}>
             <Jumper size="60" color="#845EC2" unit="px" duration="1s"></Jumper>
@@ -350,8 +402,9 @@
                                 >
                                     <MessageContent
                                         on:message_formatted={() => {
-                                            updateScroll = isScrollAtTheEnd();
-                                            refreshScroll();
+                                            insertChat(
+                                                channelNameSelected,
+                                            ).updateScroll(discussSection);
                                         }}
                                         content={message.content}
                                     ></MessageContent>
@@ -382,27 +435,17 @@
             style="--opening_width:{panelOpeningPercentageToDisplay *
                 (maxOpeningUserDistance / 100)}%;"
         >
-            <User
-                on:channel_changed={() => {
-                    changeChannel(channel);
-                }}
-                channelName={channel}
-                isSelectable={true}
-                unread={messagesUnreadChannel.has(channel)}
-                isSelected={channelNameSelected === channel}
-            ></User>
-
-            {#each users as user}
+            {#each $_chatts as [channel_name, info]}
                 <User
                     on:channel_changed={() => {
-                        if (nickName !== user.nick_name) {
-                            changeChannel(user.nick_name);
+                        if (nickName !== channel_name) {
+                            changeChannel(channel_name);
                         }
                     }}
-                    isSelectable={nickName !== user.nick_name}
-                    unread={messagesUnreadChannel.has(user.nick_name)}
-                    channelName={user.nick_name}
-                    isSelected={channelNameSelected === user.nick_name}
+                    isSelectable={nickName !== channel_name}
+                    unread={info.isUnread}
+                    channelName={channel_name}
+                    isSelected={channelNameSelected === channel_name}
                 ></User>
             {/each}
             {#if panel_mode == Width_Mode.PHONE}
