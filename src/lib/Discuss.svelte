@@ -28,36 +28,34 @@
     export let nickName: string;
     export let channel: string;
 
-    
     class ChattManager {
-        private hasQuit = false;
+        public isConnected = true;
         private isUser = false;
         private isSelected = false;
         private autoScroll = true;
         private _isMain = false;
         private scroll_position = -1; //-1 means automatic
         private scroll_behaviour: ScrollBehavior = "smooth";
-        public isUnread: boolean = false;
+        public isUnread: Writable<boolean> = writable(false);
         private _name: string;
-        constructor(name: string, isMain : boolean) {
+        constructor(name: string, isMain: boolean) {
             this._name = name;
-            this._isMain = isMain
+            this._isMain = isMain;
         }
 
         public pushMessage() {
             console.log("SET");
-            this.isUnread = true;
-            
+            this.isUnread.set(true);
         }
 
         public setAsSelected(isSelected: boolean) {
             console.log("AS MAIN");
             if (isSelected) {
                 this.isSelected = true;
-                this.isUnread = false;
+                this.isUnread.set(false);
                 this.scroll_behaviour = "smooth";
             } else {
-                this.isUnread = false;
+                this.isUnread.set(false);
                 this.scroll_behaviour = "instant";
                 this.isSelected = false;
             }
@@ -90,33 +88,28 @@
         }
     }
 
-    function pushMessage(inChannel : string) {
-        console.log("PUSH")
-        $_chatts = $_chatts
-        _chatts.update(map => {
-                map.get(channel)?.pushMessage()
-                return map
-            })
+    function pushMessage(inChannel: string) {
+        _chatts.get(inChannel)?.pushMessage();
     }
 
     function insertChat(inChannel: string): ChattManager {
-        if (!get(_chatts).has(inChannel)) {
-            _chatts.update(map => {
-                return map.set(inChannel, new ChattManager(inChannel, false))
-            })
+        if (!_chatts.has(inChannel)) {
+            _chatts.set(inChannel, new ChattManager(inChannel, false));
+            _chatts = _chatts;
         }
 
-        let chatt = get(_chatts).get(inChannel);
+        let chatt = _chatts.get(inChannel);
         //_chatts = _chatts
         return chatt ? chatt : new ChattManager(inChannel, false);
     }
-
 
     let topic: string = "";
     let channelNameSelected: string = channel ?? "";
 
     let discussSection: HTMLDivElement | null = null;
-    let _chatts: Writable<Map<string, ChattManager>> = writable(new Map<string, ChattManager>([[channel, new ChattManager(channel, true)]]));
+    let _chatts: Map<string, ChattManager> = new Map<string, ChattManager>([
+        [channel, new ChattManager(channel, true)],
+    ]);
 
     let isLoaded = true;
     let irc_received_unsubscribe = () => {};
@@ -164,7 +157,6 @@
                     message.date = new Date();
                     message.highlight = isMessageHighlight(message.content);
                     messagesManager.putMessageInList(message, channelOrigin);
-
                     pushMessage(channelOrigin);
 
                     if (message.highlight) {
@@ -307,9 +299,15 @@
 
     async function updateUsers() {
         try {
-            for (let user of (await invoke("get_users")) as User[]) {
-                insertChat(user.nick_name);
+            for (let [channel, info] of _chatts.entries()) {
+                info.isConnected = false;
             }
+            insertChat(channel).isConnected = true;
+
+            for (let user of (await invoke("get_users")) as User[]) {
+                insertChat(user.nick_name).isConnected = true;
+            }
+            _chatts = _chatts;
         } catch (e) {
             console.error(e);
         }
@@ -362,7 +360,6 @@
         panel_mode == Width_Mode.DESKTOP ||
         $panelIsOpen ||
         panelOpeningPercentageToDisplay > 0;
-
 </script>
 
 <svelte:window on:resize={onResize} />
@@ -393,23 +390,21 @@
                                 </div>
                             </div>
 
-                            {#key channelNameSelected}
-                                <div
-                                    class="flex flex-col"
-                                    class:message-content-highlight={message.highlight}
-                                    class:message-content-system={message.nick_name ===
-                                        ""}
-                                >
-                                    <MessageContent
-                                        on:message_formatted={() => {
-                                            insertChat(
-                                                channelNameSelected,
-                                            ).updateScroll(discussSection);
-                                        }}
-                                        content={message.content}
-                                    ></MessageContent>
-                                </div>
-                            {/key}
+                            <div
+                                class="flex flex-col"
+                                class:message-content-highlight={message.highlight}
+                                class:message-content-system={message.nick_name ===
+                                    ""}
+                            >
+                                <MessageContent
+                                    on:message_formatted={() => {
+                                        insertChat(
+                                            channelNameSelected,
+                                        ).updateScroll(discussSection);
+                                    }}
+                                    content={message.content}
+                                ></MessageContent>
+                            </div>
                         </div>
                     {/each}
                 </div>
@@ -435,18 +430,20 @@
             style="--opening_width:{panelOpeningPercentageToDisplay *
                 (maxOpeningUserDistance / 100)}%;"
         >
-            {#each $_chatts as [channel_name, info]}
-                <User
-                    on:channel_changed={() => {
-                        if (nickName !== channel_name) {
-                            changeChannel(channel_name);
-                        }
-                    }}
-                    isSelectable={nickName !== channel_name}
-                    unread={info.isUnread}
-                    channelName={channel_name}
-                    isSelected={channelNameSelected === channel_name}
-                ></User>
+            {#each _chatts.entries() as [channel_name, info]}
+                {#if info.isConnected}
+                    <User
+                        on:channel_changed={() => {
+                            if (nickName !== channel_name) {
+                                changeChannel(channel_name);
+                            }
+                        }}
+                        isSelectable={nickName !== channel_name}
+                        unread={info.isUnread}
+                        channelName={channel_name}
+                        isSelected={channelNameSelected === channel_name}
+                    ></User>
+                {/if}
             {/each}
             {#if panel_mode == Width_Mode.PHONE}
                 <button
