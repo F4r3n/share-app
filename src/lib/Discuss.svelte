@@ -28,54 +28,30 @@
     export let nickName: string;
     export let channel: string;
 
-    class ChattManager {
-        public isConnected = true;
-        private isUser = false;
-        private isSelected = false;
-        private autoScroll = true;
-        private _isMain = false;
-        private scroll_position = -1; //-1 means automatic
-        private scroll_behaviour: ScrollBehavior = "smooth";
-        public isUnread: Writable<boolean> = writable(false);
-        private _name: string;
-        constructor(name: string, isMain: boolean) {
-            this._name = name;
-            this._isMain = isMain;
+    class ScrollBehaviorManager {
+        private _hasReachedEnd: boolean = false;
+        public scroll_behaviour: ScrollBehavior = "smooth";
+
+        constructor() {}
+        updateScrollPosition(discussSection: HTMLDivElement) {
+            this._hasReachedEnd =
+                discussSection.offsetHeight + discussSection.scrollTop >=
+                discussSection.scrollHeight - 2;
         }
 
-        public pushMessage() {
-            console.log("SET");
-            this.isUnread.set(true);
-        }
-
-        public setAsSelected(isSelected: boolean) {
-            console.log("AS MAIN");
-            if (isSelected) {
-                this.isSelected = true;
-                this.isUnread.set(false);
-                this.scroll_behaviour = "smooth";
-            } else {
-                this.isUnread.set(false);
-                this.scroll_behaviour = "instant";
-                this.isSelected = false;
-            }
+        isAtTheEnd(): boolean {
+            return this._hasReachedEnd;
         }
 
         public updateScroll(inHTML: HTMLDivElement | null) {
-            if (this.isScrollAtTheEnd(inHTML) && this.autoScroll) {
-                this.refreshScroll(inHTML);
+            console.log("UPDATE SCROLL");
+            if (inHTML) {
+                if (
+                    scrollBehaviourManager.isAtTheEnd()
+                ) {
+                    this.refreshScroll(inHTML);
+                }
             }
-
-            this.autoScroll = false;
-        }
-
-        isScrollAtTheEnd(inHTML: HTMLDivElement | null): boolean {
-            if (!inHTML) return false;
-            const modifier = 100;
-            return (
-                inHTML.scrollTop + inHTML.offsetHeight + modifier >
-                inHTML.scrollHeight
-            );
         }
 
         public refreshScroll(inHTML: HTMLDivElement | null) {
@@ -87,28 +63,56 @@
             });
         }
     }
+    let scrollBehaviourManager = new ScrollBehaviorManager();
+
+    class ChattManager {
+        public isConnected = true;
+        private scroll_position = -1; //-1 means automatic
+        public isUnread: Writable<boolean> = writable(false);
+        constructor(name: string) {
+        }
+
+        public pushMessage() {
+            console.log("SET");
+            this.isUnread.set(true);
+        }
+
+        public setAsSelected(isSelected: boolean) {
+            console.log("AS MAIN");
+            if (isSelected) {
+                this.isUnread.set(false);
+                scrollBehaviourManager.scroll_behaviour = "smooth";
+            } else {
+                this.isUnread.set(false);
+                scrollBehaviourManager.scroll_behaviour = "instant";
+            }
+        }
+
+
+    }
 
     function pushMessage(inChannel: string) {
         _chatts.get(inChannel)?.pushMessage();
     }
 
-    function insertChat(inChannel: string): ChattManager {
+    function getChat(inChannel: string): ChattManager {
         if (!_chatts.has(inChannel)) {
-            _chatts.set(inChannel, new ChattManager(inChannel, false));
+            _chatts.set(inChannel, new ChattManager(inChannel));
             _chatts = _chatts;
         }
 
         let chatt = _chatts.get(inChannel);
         //_chatts = _chatts
-        return chatt ? chatt : new ChattManager(inChannel, false);
+        return chatt ? chatt : new ChattManager(inChannel);
     }
 
     let topic: string = "";
     let channelNameSelected: string = channel ?? "";
 
     let discussSection: HTMLDivElement | null = null;
+
     let _chatts: Map<string, ChattManager> = new Map<string, ChattManager>([
-        [channel, new ChattManager(channel, true)],
+        [channel, new ChattManager(channel)],
     ]);
 
     let isLoaded = true;
@@ -117,10 +121,6 @@
     function isMessageHighlight(inMessageContent: string): boolean {
         return inMessageContent.search(nickName) !== -1;
     }
-
-    afterUpdate(() => {
-        insertChat(channelNameSelected).updateScroll(discussSection);
-    });
 
     async function read_messages() {
         try {
@@ -261,6 +261,7 @@
         irc_received();
         read_messages();
         irc_event();
+
         panelIsOpen.set(currentModeSize == Width_Mode.DESKTOP);
     });
 
@@ -289,7 +290,7 @@
         }
         if (screen_height != window.innerHeight) {
             screen_height = window.innerHeight;
-            insertChat(channelNameSelected).refreshScroll(discussSection);
+            scrollBehaviourManager.refreshScroll(discussSection);
         }
     }
 
@@ -302,10 +303,10 @@
             for (let [channel, info] of _chatts.entries()) {
                 info.isConnected = false;
             }
-            insertChat(channel).isConnected = true;
+            getChat(channel).isConnected = true;
 
             for (let user of (await invoke("get_users")) as User[]) {
-                insertChat(user.nick_name).isConnected = true;
+                getChat(user.nick_name).isConnected = true;
             }
             _chatts = _chatts;
         } catch (e) {
@@ -342,8 +343,8 @@
     }
 
     function changeChannel(inChannel: string) {
-        insertChat(channelNameSelected).setAsSelected(false);
-        insertChat(inChannel).setAsSelected(true);
+        getChat(channelNameSelected).setAsSelected(false);
+        getChat(inChannel).setAsSelected(true);
 
         channelNameSelected = inChannel;
     }
@@ -371,7 +372,17 @@
     {:else}
         <div class="discuss-section flex-grow-1 min-w-0">
             <ActionBar {topic}></ActionBar>
-            <div class="flex-grow overflow-y-auto" bind:this={discussSection}>
+            <div
+                class="flex-grow overflow-y-auto"
+                bind:this={discussSection}
+                on:scrollend={() => {
+                    if (discussSection) {
+                        scrollBehaviourManager.updateScrollPosition(
+                            discussSection
+                        );
+                    }
+                }}
+            >
                 <div class="messages">
                     {#each $listMessages as message, id}
                         <div class="message">
@@ -398,9 +409,8 @@
                             >
                                 <MessageContent
                                     on:message_formatted={() => {
-                                        insertChat(
-                                            channelNameSelected,
-                                        ).updateScroll(discussSection);
+                                        console.log("Message formatted")
+                                        scrollBehaviourManager.updateScroll(discussSection);
                                     }}
                                     content={message.content}
                                 ></MessageContent>

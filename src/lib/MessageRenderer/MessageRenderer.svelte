@@ -57,6 +57,7 @@
         {#await getPreview(link) then preview}
             <LinkPreview
                 on:message_formatted={() => {
+                    console.log("image loaded")
                     dispatch("message_formatted");
                 }}
                 {preview}
