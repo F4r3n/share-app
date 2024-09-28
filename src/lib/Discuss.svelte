@@ -2,7 +2,6 @@
     import { listen } from "@tauri-apps/api/event";
     import { invoke } from "@tauri-apps/api/core";
     import { onMount, onDestroy } from "svelte";
-    import { afterUpdate } from "svelte";
     import { Jumper } from "svelte-loading-spinners";
     import MessageContent from "./MessageContent.svelte";
     import MessageInput from "./MessageInput.svelte";
@@ -15,7 +14,7 @@
     import Arrow from "../assets/arrow.svelte";
     import ActionBar from "./ActionBar.svelte";
     import { panelIsOpen } from "./discussStore";
-    import { writable, get, derived } from "svelte/store";
+    import { writable, get } from "svelte/store";
     import type { Writable } from "svelte/store";
 
     const dispatch = createEventDispatcher();
@@ -44,7 +43,6 @@
         }
 
         public updateScroll(inHTML: HTMLDivElement | null) {
-            console.log("UPDATE SCROLL");
             if (inHTML) {
                 if (
                     scrollBehaviourManager.isAtTheEnd()
@@ -73,12 +71,10 @@
         }
 
         public pushMessage() {
-            console.log("SET");
             this.isUnread.set(true);
         }
 
         public setAsSelected(isSelected: boolean) {
-            console.log("AS MAIN");
             if (isSelected) {
                 this.isUnread.set(false);
                 scrollBehaviourManager.scroll_behaviour = "smooth";
@@ -141,7 +137,6 @@
                 message.content = data.content;
                 message.nick_name = data.nick_name;
                 message.highlight = false;
-                //console.log(data)
                 let channelOrigin = data.channel;
                 if (channelOrigin === "") {
                     channelOrigin = channel;
@@ -409,7 +404,6 @@
                             >
                                 <MessageContent
                                     on:message_formatted={() => {
-                                        console.log("Message formatted")
                                         scrollBehaviourManager.updateScroll(discussSection);
                                     }}
                                     content={message.content}

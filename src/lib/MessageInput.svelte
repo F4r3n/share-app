@@ -26,7 +26,6 @@
                     url: "",
                     name: "#_image_" + listImages.length,
                 };
-                console.log(image);
                 listImages.push(image);
                 listImages = listImages;
 
@@ -54,7 +53,6 @@
             endpoint: `${config.getConfig().upload_image.url_post}`,
             imageBytes: imageData,
         });
-        console.log(upload_id);
         return (config.getConfig().upload_image.url_get + upload_id) as string;
     }
 </script>
@@ -103,7 +101,7 @@
                         listImages = [];
                         messageToSend = "";
                     } catch (e) {
-                        console.log(e);
+                        console.error(e);
                     }
                 }
             }}
