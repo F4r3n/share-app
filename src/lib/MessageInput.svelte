@@ -7,6 +7,64 @@
     import CloseButton from "../assets/circle-close.svelte";
 
     const dispatch = createEventDispatcher();
+    type Navigation = "up" | "down";
+
+    function clamp(num: number, min: number, max: number) {
+        return num <= min ? min : num >= max ? max : num;
+    }
+
+    class MessageHistory {
+        private messageHistory: string[] = [];
+        private indexHistory = 0;
+        private hasReachedStartHistory = true;
+        append(inMessage: string) {
+            this.messageHistory.push(inMessage);
+            this.indexHistory = this.messageHistory.length - 1;
+        }
+
+        navigate(nav: Navigation): boolean {
+            if (this.messageHistory.length == 0) return false;
+            switch (nav) {
+                case "up": {
+                    this.indexHistory -= 1;
+                    break;
+                }
+                case "down": {
+                    this.indexHistory += 1;
+                    break;
+                }
+            }
+            let canContinue = true;
+            if (this.indexHistory < 0 
+            || this.indexHistory >= this.messageHistory.length)
+            {
+                canContinue = false;
+            }
+            if(this.indexHistory >= this.messageHistory.length)
+            {
+                this.hasReachedStartHistory = true;
+            }
+            else{
+                this.hasReachedStartHistory = false;
+            }
+            this.indexHistory = clamp(
+                this.indexHistory,
+                0,
+                this.messageHistory.length - 1,
+            );
+            return canContinue;
+        }
+
+        getMessage(): string {
+            return this.messageHistory[this.indexHistory];
+        }
+
+        isStart(): boolean {
+            return this.hasReachedStartHistory;
+        }
+    }
+    let messageHistory = new MessageHistory();
+    let currentMessage: string;
     let messageToSend: string;
     let input: HTMLInputElement;
 
@@ -55,6 +113,46 @@
         });
         return (config.getConfig().upload_image.url_get + upload_id) as string;
     }
+
+    async function manageKeyboardEvent(e: KeyboardEvent) {
+        switch (e.key) {
+            case "Enter": {
+                try {
+                    for (const image of listImages) {
+                        messageToSend = messageToSend.replace(
+                            image.name,
+                            await uploadImage(image),
+                        );
+                    }
+                    messageHistory.append(messageToSend);
+                    dispatch("send_message", messageToSend);
+                    listImages = [];
+                    messageToSend = "";
+                } catch (e) {
+                    console.error(e);
+                }
+                break;
+            }
+            case "ArrowUp": {
+                if (messageHistory.isStart()) {
+                    currentMessage = messageToSend;
+                }
+                if (messageHistory.navigate("up")) {
+                    messageToSend = messageHistory.getMessage();
+                }
+                break;
+            }
+            case "ArrowDown": {
+                if (messageHistory.navigate("down")) {
+                    messageToSend = messageHistory.getMessage();
+                } 
+                if (messageHistory.isStart()) {
+                    messageToSend = currentMessage;
+                }
+                break;
+            }
+        }
+    }
 </script>
 
 <main>
@@ -88,22 +186,7 @@
             bind:this={input}
             bind:value={messageToSend}
             on:keyup={async (e) => {
-                if (e.key === "Enter") {
-                    try {
-                        for (let image of listImages) {
-                            let url = await uploadImage(image);
-                            messageToSend = messageToSend.replace(
-                                image.name,
-                                url,
-                            );
-                        }
-                        dispatch("send_message", messageToSend);
-                        listImages = [];
-                        messageToSend = "";
-                    } catch (e) {
-                        console.error(e);
-                    }
-                }
+                manageKeyboardEvent(e);
             }}
         />
         <button

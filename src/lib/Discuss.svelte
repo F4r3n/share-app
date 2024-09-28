@@ -28,7 +28,7 @@
     export let channel: string;
 
     class ScrollBehaviorManager {
-        private _hasReachedEnd: boolean = false;
+        private _hasReachedEnd: boolean = true;
         public scroll_behaviour: ScrollBehavior = "smooth";
 
         constructor() {}
@@ -65,7 +65,6 @@
 
     class ChattManager {
         public isConnected = true;
-        private scroll_position = -1; //-1 means automatic
         public isUnread: Writable<boolean> = writable(false);
         constructor(name: string) {
         }
@@ -83,8 +82,6 @@
                 scrollBehaviourManager.scroll_behaviour = "instant";
             }
         }
-
-
     }
 
     function pushMessage(inChannel: string) {
@@ -98,7 +95,6 @@
         }
 
         let chatt = _chatts.get(inChannel);
-        //_chatts = _chatts
         return chatt ? chatt : new ChattManager(inChannel);
     }
 
