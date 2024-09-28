@@ -13,7 +13,6 @@
 {#if preview.image_only}
     <ImgTag
         on:message_formatted={() => {
-            console.log("image loaded");
             dispatch("message_formatted");
         }}
         href={link}
