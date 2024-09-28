@@ -11,7 +11,13 @@
 </script>
 
 {#if preview.image_only}
-    <ImgTag href={link}></ImgTag>
+    <ImgTag
+        on:message_formatted={() => {
+            console.log("image loaded");
+            dispatch("message_formatted");
+        }}
+        href={link}
+    ></ImgTag>
 {:else if preview.image_url}
     <div class="image-container">
         {#if preview.site}

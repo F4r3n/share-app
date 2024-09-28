@@ -2,7 +2,6 @@
     import { listen } from "@tauri-apps/api/event";
     import { invoke } from "@tauri-apps/api/core";
     import { onMount, onDestroy } from "svelte";
-    import { afterUpdate } from "svelte";
     import { Jumper } from "svelte-loading-spinners";
     import MessageContent from "./MessageContent.svelte";
     import MessageInput from "./MessageInput.svelte";
@@ -15,7 +14,8 @@
     import Arrow from "../assets/arrow.svelte";
     import ActionBar from "./ActionBar.svelte";
     import { panelIsOpen } from "./discussStore";
-    import { get } from "svelte/store";
+    import { writable, get } from "svelte/store";
+    import type { Writable } from "svelte/store";
 
     const dispatch = createEventDispatcher();
 
@@ -27,43 +27,95 @@
     export let nickName: string;
     export let channel: string;
 
+    class ScrollBehaviorManager {
+        private _hasReachedEnd: boolean = false;
+        public scroll_behaviour: ScrollBehavior = "smooth";
+
+        constructor() {}
+        updateScrollPosition(discussSection: HTMLDivElement) {
+            this._hasReachedEnd =
+                discussSection.offsetHeight + discussSection.scrollTop >=
+                discussSection.scrollHeight - 2;
+        }
+
+        isAtTheEnd(): boolean {
+            return this._hasReachedEnd;
+        }
+
+        public updateScroll(inHTML: HTMLDivElement | null) {
+            if (inHTML) {
+                if (
+                    scrollBehaviourManager.isAtTheEnd()
+                ) {
+                    this.refreshScroll(inHTML);
+                }
+            }
+        }
+
+        public refreshScroll(inHTML: HTMLDivElement | null) {
+            if (!inHTML) return;
+
+            inHTML.scroll({
+                top: inHTML.scrollHeight + 300,
+                behavior: this.scroll_behaviour,
+            });
+        }
+    }
+    let scrollBehaviourManager = new ScrollBehaviorManager();
+
+    class ChattManager {
+        public isConnected = true;
+        private scroll_position = -1; //-1 means automatic
+        public isUnread: Writable<boolean> = writable(false);
+        constructor(name: string) {
+        }
+
+        public pushMessage() {
+            this.isUnread.set(true);
+        }
+
+        public setAsSelected(isSelected: boolean) {
+            if (isSelected) {
+                this.isUnread.set(false);
+                scrollBehaviourManager.scroll_behaviour = "smooth";
+            } else {
+                this.isUnread.set(false);
+                scrollBehaviourManager.scroll_behaviour = "instant";
+            }
+        }
+
+
+    }
+
+    function pushMessage(inChannel: string) {
+        _chatts.get(inChannel)?.pushMessage();
+    }
+
+    function getChat(inChannel: string): ChattManager {
+        if (!_chatts.has(inChannel)) {
+            _chatts.set(inChannel, new ChattManager(inChannel));
+            _chatts = _chatts;
+        }
+
+        let chatt = _chatts.get(inChannel);
+        //_chatts = _chatts
+        return chatt ? chatt : new ChattManager(inChannel);
+    }
+
     let topic: string = "";
     let channelNameSelected: string = channel ?? "";
 
-    let discussSection: HTMLDivElement | null | undefined = null;
-    let users: User[] = [];
-    let updateScroll = true;
-    let messagesUnreadChannel: Set<string> = new Set<string>();
+    let discussSection: HTMLDivElement | null = null;
+
+    let _chatts: Map<string, ChattManager> = new Map<string, ChattManager>([
+        [channel, new ChattManager(channel)],
+    ]);
+
     let isLoaded = true;
     let irc_received_unsubscribe = () => {};
-    function isScrollAtTheEnd(): boolean {
-        if (discussSection == undefined) return true;
-
-        const modifier = 100;
-        return (
-            discussSection.scrollTop + discussSection.offsetHeight + modifier >
-            discussSection.scrollHeight
-        );
-    }
 
     function isMessageHighlight(inMessageContent: string): boolean {
         return inMessageContent.search(nickName) !== -1;
-    }
-
-    afterUpdate(() => {
-        if (updateScroll) {
-            refreshScroll();
-        }
-
-        updateScroll = false;
-    });
-
-    function refreshScroll() {
-        if (discussSection == null) return;
-        discussSection.scroll({
-            top: discussSection.scrollHeight + 300,
-            behavior: "smooth",
-        });
     }
 
     async function read_messages() {
@@ -85,7 +137,6 @@
                 message.content = data.content;
                 message.nick_name = data.nick_name;
                 message.highlight = false;
-                //console.log(data)
                 let channelOrigin = data.channel;
                 if (channelOrigin === "") {
                     channelOrigin = channel;
@@ -101,11 +152,7 @@
                     message.date = new Date();
                     message.highlight = isMessageHighlight(message.content);
                     messagesManager.putMessageInList(message, channelOrigin);
-
-                    if (channelNameSelected !== channelOrigin) {
-                        messagesUnreadChannel.add(channelOrigin);
-                        messagesUnreadChannel = messagesUnreadChannel;
-                    }
+                    pushMessage(channelOrigin);
 
                     if (message.highlight) {
                         await Window.getCurrent().requestUserAttention(
@@ -125,10 +172,7 @@
                     message.highlight = isMessageHighlight(message.content);
                     messagesManager.putMessageInList(message, channelOrigin);
 
-                    if (channelNameSelected !== channelOrigin) {
-                        messagesUnreadChannel.add(channelOrigin);
-                        messagesUnreadChannel = messagesUnreadChannel;
-                    }
+                    pushMessage(channelOrigin);
                 } else if (data.command === "JOIN") {
                     messagesManager.putMessageInList(
                         {
@@ -171,19 +215,12 @@
                     }
                 } else if (data.command === "NICK") {
                     nickName = data.content;
-                }
-                else if(data.command === "ERROR") {
+                } else if (data.command === "ERROR") {
                     message.date = new Date();
                     message.highlight = isMessageHighlight(message.content);
                     messagesManager.putMessageInList(message, channelOrigin);
-
-                    if (channelNameSelected !== channelOrigin) {
-                        messagesUnreadChannel.add(channelOrigin);
-                        messagesUnreadChannel = messagesUnreadChannel;
-                    }
-                } else if (
-                    data.command === "INTERNAL_ERROR"
-                ) {
+                    pushMessage(channelOrigin);
+                } else if (data.command === "INTERNAL_ERROR") {
                     if (isLoaded) {
                         console.log("disconnect");
                         invoke("disconnect", {
@@ -219,6 +256,7 @@
         irc_received();
         read_messages();
         irc_event();
+
         panelIsOpen.set(currentModeSize == Width_Mode.DESKTOP);
     });
 
@@ -247,7 +285,7 @@
         }
         if (screen_height != window.innerHeight) {
             screen_height = window.innerHeight;
-            refreshScroll();
+            scrollBehaviourManager.refreshScroll(discussSection);
         }
     }
 
@@ -257,7 +295,15 @@
 
     async function updateUsers() {
         try {
-            users = (await invoke("get_users")) as User[];
+            for (let [channel, info] of _chatts.entries()) {
+                info.isConnected = false;
+            }
+            getChat(channel).isConnected = true;
+
+            for (let user of (await invoke("get_users")) as User[]) {
+                getChat(user.nick_name).isConnected = true;
+            }
+            _chatts = _chatts;
         } catch (e) {
             console.error(e);
         }
@@ -292,10 +338,12 @@
     }
 
     function changeChannel(inChannel: string) {
+        getChat(channelNameSelected).setAsSelected(false);
+        getChat(inChannel).setAsSelected(true);
+
         channelNameSelected = inChannel;
-        messagesUnreadChannel.delete(inChannel);
-        messagesUnreadChannel = messagesUnreadChannel;
     }
+
     $: listMessages = messagesManager
         .getChannel(channelNameSelected)
         .getListMessages();
@@ -311,10 +359,7 @@
 </script>
 
 <svelte:window on:resize={onResize} />
-<main
-    class="flex flex-row"
-    bind:clientWidth={screen_width}
->
+<main class="flex flex-row" bind:clientWidth={screen_width}>
     {#if !isLoaded}
         <div class="loading" class:loading-hide={isLoaded}>
             <Jumper size="60" color="#845EC2" unit="px" duration="1s"></Jumper>
@@ -322,7 +367,17 @@
     {:else}
         <div class="discuss-section flex-grow-1 min-w-0">
             <ActionBar {topic}></ActionBar>
-            <div class="flex-grow overflow-y-auto" bind:this={discussSection}>
+            <div
+                class="flex-grow overflow-y-auto"
+                bind:this={discussSection}
+                on:scrollend={() => {
+                    if (discussSection) {
+                        scrollBehaviourManager.updateScrollPosition(
+                            discussSection
+                        );
+                    }
+                }}
+            >
                 <div class="messages">
                     {#each $listMessages as message, id}
                         <div class="message">
@@ -341,22 +396,19 @@
                                 </div>
                             </div>
 
-                            {#key channelNameSelected}
-                                <div
-                                    class="flex flex-col"
-                                    class:message-content-highlight={message.highlight}
-                                    class:message-content-system={message.nick_name ===
-                                        ""}
-                                >
-                                    <MessageContent
-                                        on:message_formatted={() => {
-                                            updateScroll = isScrollAtTheEnd();
-                                            refreshScroll();
-                                        }}
-                                        content={message.content}
-                                    ></MessageContent>
-                                </div>
-                            {/key}
+                            <div
+                                class="flex flex-col"
+                                class:message-content-highlight={message.highlight}
+                                class:message-content-system={message.nick_name ===
+                                    ""}
+                            >
+                                <MessageContent
+                                    on:message_formatted={() => {
+                                        scrollBehaviourManager.updateScroll(discussSection);
+                                    }}
+                                    content={message.content}
+                                ></MessageContent>
+                            </div>
                         </div>
                     {/each}
                 </div>
@@ -382,28 +434,20 @@
             style="--opening_width:{panelOpeningPercentageToDisplay *
                 (maxOpeningUserDistance / 100)}%;"
         >
-            <User
-                on:channel_changed={() => {
-                    changeChannel(channel);
-                }}
-                channelName={channel}
-                isSelectable={true}
-                unread={messagesUnreadChannel.has(channel)}
-                isSelected={channelNameSelected === channel}
-            ></User>
-
-            {#each users as user}
-                <User
-                    on:channel_changed={() => {
-                        if (nickName !== user.nick_name) {
-                            changeChannel(user.nick_name);
-                        }
-                    }}
-                    isSelectable={nickName !== user.nick_name}
-                    unread={messagesUnreadChannel.has(user.nick_name)}
-                    channelName={user.nick_name}
-                    isSelected={channelNameSelected === user.nick_name}
-                ></User>
+            {#each _chatts.entries() as [channel_name, info]}
+                {#if info.isConnected}
+                    <User
+                        on:channel_changed={() => {
+                            if (nickName !== channel_name) {
+                                changeChannel(channel_name);
+                            }
+                        }}
+                        isSelectable={nickName !== channel_name}
+                        unread={info.isUnread}
+                        channelName={channel_name}
+                        isSelected={channelNameSelected === channel_name}
+                    ></User>
+                {/if}
             {/each}
             {#if panel_mode == Width_Mode.PHONE}
                 <button
