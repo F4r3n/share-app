@@ -19,7 +19,7 @@
         private hasReachedStartHistory = true;
         append(inMessage: string) {
             this.messageHistory.push(inMessage);
-            this.indexHistory = this.messageHistory.length - 1;
+            this.indexHistory = this.messageHistory.length;
         }
 
         navigate(nav: Navigation): boolean {
