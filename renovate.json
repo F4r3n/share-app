@@ -3,6 +3,9 @@
   "extends": [
     "config:recommended"
   ],
+  "ignorePaths": [
+    "src-tauri/gen/"
+  ],
   "schedule": "after 3am on Wednesday",
   "commitMessagePrefix": "chore(deps)"
 }
