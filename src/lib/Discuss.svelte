@@ -313,7 +313,7 @@
             date: new Date(),
             highlight: false,
         };
-
+        console.log(inMessageContent, isCommand)
         messagesManager.putMessageInList(message, channelNameSelected);
 
         if (!isCommand) {
@@ -324,11 +324,8 @@
                 .then(() => {})
                 .catch((e) => console.error(e));
         } else {
-            let command = inMessageContent.split(" ");
-            const commandName = command.at(0)?.substring(1);
             invoke("send_irc_command", {
-                command: commandName,
-                args: command.slice(1),
+                message: inMessageContent.slice(1)
             }).then(() => {});
         }
     }

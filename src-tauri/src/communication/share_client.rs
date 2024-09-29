@@ -2,7 +2,7 @@ use crate::communication::message::{Payload, ResponseMessage};
 use anyhow::Ok;
 use futures::prelude::*;
 use irc::client::prelude::*;
-use irc::proto::FormattedStringExt;
+use irc::proto::{command, FormattedStringExt};
 use std::fs::File;
 use std::io::Write;
 use tauri::Emitter;
@@ -45,10 +45,27 @@ impl IRC {
         Ok(self.get_client()?.send_quit(message)?)
     }
 
-    pub fn send_irc_command(&self, command: &str, args: Vec<String>) -> Result<(), anyhow::Error> {
-        Ok(self
-            .get_client()?
-            .send(Command::Raw(String::from(command), args))?)
+    pub fn send_irc_command(&self, message: &str) -> Result<(), anyhow::Error> {
+        let mut args = message.split_ascii_whitespace();
+        let command = args.next().unwrap_or("").to_lowercase();
+        let arg: String = args.collect::<String>();
+        println!("{} {}", command, arg);
+
+        match command.as_str() {
+            "topic" => {
+                Ok(self
+                    .get_client()?
+                    .send(Command::TOPIC(self.channel.clone(), Some(arg)))?)
+            },
+            "nick" => {
+                Ok(self
+                    .get_client()?
+                    .send(Command::NICK(arg))?)
+            },
+            _=> {
+                Ok(())
+            }
+        }
     }
 
     pub fn read(&mut self, window: tauri::Window) -> Result<(), anyhow::Error> {

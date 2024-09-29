@@ -158,13 +158,12 @@ fn disconnect(
 
 #[tauri::command]
 fn send_irc_command(
-    command: &str,
-    args: Vec<String>,
+    message: &str,
     irc: tauri::State<'_, IRCState>,
 ) -> Result<(), String> {
     let client = irc.0.try_lock().ok_or(CommandError::Locked.to_string())?;
     client
-        .send_irc_command(command, args)
+        .send_irc_command(message)
         .map_err(|e| e.to_string())
 }
 
