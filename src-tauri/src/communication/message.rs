@@ -14,3 +14,15 @@ pub struct Payload {
     pub channel: String,
     pub response: Option<ResponseMessage>,
 }
+
+impl Default for Payload {
+    fn default() -> Payload {
+        Payload {
+           content: "".into(),
+           nick_name: "".into(),
+           command: "".into(),
+           channel: "".into(),
+           response: None
+        }
+    }
+}

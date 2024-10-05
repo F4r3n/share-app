@@ -2,7 +2,7 @@ use crate::communication::message::{Payload, ResponseMessage};
 use anyhow::Ok;
 use futures::prelude::*;
 use irc::client::prelude::*;
-use irc::proto::{command, FormattedStringExt};
+use irc::proto::FormattedStringExt;
 use std::fs::File;
 use std::io::Write;
 use tauri::Emitter;
@@ -52,19 +52,11 @@ impl IRC {
         println!("{} {}", command, arg);
 
         match command.as_str() {
-            "topic" => {
-                Ok(self
-                    .get_client()?
-                    .send(Command::TOPIC(self.channel.clone(), Some(arg)))?)
-            },
-            "nick" => {
-                Ok(self
-                    .get_client()?
-                    .send(Command::NICK(arg))?)
-            },
-            _=> {
-                Ok(())
-            }
+            "topic" => Ok(self
+                .get_client()?
+                .send(Command::TOPIC(self.channel.clone(), Some(arg)))?),
+            "nick" => Ok(self.get_client()?.send(Command::NICK(arg))?),
+            _ => Ok(()),
         }
     }
 
@@ -104,10 +96,8 @@ async fn irc_read(
                     "irc-recieved",
                     Payload {
                         content: e.to_string(),
-                        nick_name: String::from(""),
                         command: String::from("ERROR"),
-                        channel: String::from(""),
-                        response: None,
+                        ..Default::default()
                     },
                 )
             });
@@ -121,11 +111,7 @@ async fn irc_read(
             print!("MESSAGE {}", message);
 
             let mut pay_load = Payload {
-                content: String::from(""),
-                nick_name: String::from(""),
-                command: String::from(""),
-                channel: String::from(""),
-                response: None,
+                ..Default::default()
             };
             match message.command {
                 Command::PING(_, _) => {
@@ -225,11 +211,8 @@ async fn irc_read(
             window.emit(
                 "irc-recieved",
                 Payload {
-                    content: "".into(),
-                    nick_name: "".into(),
                     command: "INTERNAL_ERROR".into(),
-                    channel: "".into(),
-                    response: None,
+                    ..Default::default()
                 },
             )?;
             break Err(IRCError::BrokenStream.into());
