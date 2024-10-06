@@ -70,9 +70,14 @@ async fn loggin(
             let file_format = format!("log_{}_{}.txt", &server, &channel);
 
             channel.clone_into(&mut state_guard.channel);
-            let client = share_client::irc_login(nick_name.to_owned(), server.to_owned(), channel, password.to_owned())
-                .await
-                .map_err(|e| e.to_string())?;
+            let client = share_client::irc_login(
+                nick_name.to_owned(),
+                server.to_owned(),
+                channel,
+                password.to_owned(),
+            )
+            .await
+            .map_err(|e| e.to_string())?;
             let config_dir = create_config_dir(app_handle);
             let log_file = config_dir
                 .map(|file| {
