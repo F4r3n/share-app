@@ -7,71 +7,63 @@ use std::fs::File;
 use std::io::Write;
 use tauri::Emitter;
 use thiserror::Error;
-pub struct IRC {
-    pub client: Option<irc::client::Client>,
+
+pub struct IrcClient {
+    pub client: irc::client::Client,
+    pub log_file: File,
+}
+
+pub struct IrcState {
     pub channel: String,
-    pub log_file: Option<File>,
+    pub client: Option<IrcClient>
 }
 #[derive(Debug, Error)]
-enum IRCError {
-    #[error("No client connected")]
-    NoClient,
+pub enum IRCError {
     #[error("Stream is broken")]
     BrokenStream,
 }
 
-impl IRC {
-    fn get_client(&self) -> Result<&Client, anyhow::Error> {
-        let client = self.client.as_ref().ok_or(IRCError::NoClient)?;
-        Ok(client)
-    }
+impl IrcClient {
 
     pub fn send_message(&self, message: &str, channel: &str) -> Result<(), anyhow::Error> {
-        let mut current_channel = String::from(channel);
-        if current_channel.is_empty() {
-            self.channel.clone_into(&mut current_channel);
-        }
-
-        Ok(self
-            .get_client()?
-            .send_privmsg(current_channel, message.to_owned())?)
+        Ok(self.client.send_privmsg(channel, message)?)
     }
 
-    pub fn get_users(&self) -> Result<Option<Vec<irc::client::data::User>>, anyhow::Error> {
-        Ok(self.get_client()?.list_users(self.channel.as_str()))
+    pub fn current_nickname(&self)->&str  {
+        self.client.current_nickname()
+    }
+
+    pub fn get_users(&self, channel: &str) -> Option<Vec<irc::client::data::User>> {
+        self.client.list_users(channel)
     }
 
     pub fn send_quit(&self, message: &str) -> Result<(), anyhow::Error> {
-        Ok(self.get_client()?.send_quit(message)?)
+        Ok(self.client.send_quit(message)?)
     }
 
-    pub fn send_irc_command(&self, message: &str) -> Result<(), anyhow::Error> {
+    pub fn send_irc_command(&self, message: &str, channel: &str) -> Result<(), anyhow::Error> {
         let mut args = message.split_ascii_whitespace();
         let command = args.next().unwrap_or("").to_lowercase();
         let arg: String = args.collect::<String>();
         println!("{} {}", command, arg);
 
         match command.as_str() {
-            "topic" => Ok(self
-                .get_client()?
-                .send(Command::TOPIC(self.channel.clone(), Some(arg)))?),
-            "nick" => Ok(self.get_client()?.send(Command::NICK(arg))?),
+            "topic" => Ok(self.client.send(Command::TOPIC(channel.into(), Some(arg)))?),
+            "nick" => Ok(self.client.send(Command::NICK(arg))?),
             _ => Ok(()),
         }
     }
 
     pub fn read(&mut self, window: tauri::Window) -> Result<(), anyhow::Error> {
-        let stream: irc::client::ClientStream = self.client.as_mut().unwrap().stream()?;
+        let stream: irc::client::ClientStream = self.client.stream()?;
+        let log_file = self.log_file.try_clone()?;
 
-        let mut log: Option<File> = None;
-        if let Some(log_file) = &self.log_file {
-            log = Some(log_file.try_clone().unwrap());
-        }
-        tauri::async_runtime::spawn(async { Ok(irc_read(&log.unwrap(), window, stream).await?) });
+        tauri::async_runtime::spawn(async move { Ok(irc_read(&log_file, window, stream).await?) });
 
         Ok(())
     }
 }
+
 
 pub fn write_in_log(mut file: &File, nick_name: &str, message: &str) -> Result<(), anyhow::Error> {
     let utc: chrono::DateTime<chrono::Utc> = chrono::Utc::now();

@@ -7,6 +7,7 @@ mod util;
 
 use crate::communication::share_client;
 use base64::Engine;
+use communication::share_client::IrcClient;
 use futures::lock::Mutex;
 use std::fs::OpenOptions;
 
@@ -23,6 +24,8 @@ use thiserror::Error;
 enum CommandError {
     #[error("Already locked")]
     Locked,
+    #[error("No client connected")]
+    NoClient,
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -31,14 +34,17 @@ struct User {
     user_mode: u8,
 }
 
-pub struct IRCState(pub Mutex<share_client::IRC>);
+pub struct IRCState(pub Mutex<share_client::IrcState>);
 
 #[tauri::command]
 fn read_messages(window: tauri::Window, irc: tauri::State<'_, IRCState>) -> Result<(), String> {
-    let mut state_guard = irc.0.try_lock().expect("ERROR");
-    state_guard
-        .read(window)
-        .map_err(|e| anyhow::Error::msg(e).to_string())
+    let mut state = irc.0.try_lock().unwrap();
+    if let Some(client) = &mut state.client {
+        client
+            .read(window)
+            .map_err(|e| anyhow::Error::msg(e).to_string())?
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -56,55 +62,32 @@ async fn loggin(
         if state_guard.client.is_some() {
             return Ok(());
         }
-        let nick_name = nick_name.to_owned();
-        let server = server.to_owned();
-        let channel = channel.to_owned();
-        let password = password.to_owned();
-        let str = format!("log_{}_{}.txt", &server, &channel);
 
         if state_guard.client.is_none() {
             println!("Connect");
 
+            let channel = channel.to_owned();
+            let file_format = format!("log_{}_{}.txt", &server, &channel);
+
             channel.clone_into(&mut state_guard.channel);
-            state_guard.client =
-                match share_client::irc_login(nick_name, server, channel, password).await {
-                    Ok(client) => Some(client),
-                    Err(_e) => None,
-                }
+            let client = share_client::irc_login(nick_name.to_owned(), server.to_owned(), channel, password.to_owned())
+                .await
+                .map_err(|e| e.to_string())?;
+            let config_dir = create_config_dir(app_handle);
+            let log_file = config_dir
+                .map(|file| {
+                    OpenOptions::new()
+                        .append(true)
+                        .create(true)
+                        .open(file.join(file_format))
+                })
+                .map_err(|e| e.to_string())?
+                .map_err(|e| anyhow::anyhow!("Error opening log file: {}", e).to_string())?;
+            state_guard.client = Some(IrcClient { client, log_file });
         }
 
         println!("End connect");
-
-        if state_guard.client.is_none() {
-            println!("Cannot Connect");
-        }
-
-        if state_guard.client.is_some() {
-            let config_dir = create_config_dir(app_handle);
-            match config_dir {
-                Ok(file) => {
-                    state_guard.log_file = Some(
-                        OpenOptions::new()
-                            .append(true)
-                            .create(true)
-                            .open(file.join(str))
-                            .unwrap(),
-                    );
-                }
-                Err(e) => {
-                    return Err(anyhow::Error::msg(e).to_string());
-                }
-            }
-        }
-
-        if state_guard.client.is_none() {
-            println!("Cannot Connect");
-        }
-
-        return match &state_guard.client {
-            Some(_) => Ok(()),
-            _ => Err(String::from("No client")),
-        };
+        return Ok(());
     }
     Err(String::from("Already trying to connect"))
 }
@@ -116,30 +99,36 @@ fn send_message(
     irc: tauri::State<'_, IRCState>,
 ) -> Result<(), String> {
     let state_guard = irc.0.try_lock().ok_or(CommandError::Locked.to_string())?;
-    let nick_name = state_guard.client.as_ref().unwrap().current_nickname();
-    if let Some(log_file) = &state_guard.log_file {
-        share_client::write_in_log(log_file, nick_name, message).map_err(|e| e.to_string())?;
+    if let Some(client) = &state_guard.client {
+        let nick_name = client.current_nickname();
+        share_client::write_in_log(&client.log_file, nick_name, message)
+            .map_err(|e| e.to_string())?;
+
+        return client
+            .send_message(message, channel)
+            .map_err(|e| e.to_string());
     }
-    state_guard
-        .send_message(message, channel)
-        .map_err(|e| e.to_string())
+    Err(CommandError::NoClient.to_string())
 }
 
 #[tauri::command]
 fn get_users(irc: tauri::State<'_, IRCState>) -> Result<Vec<User>, String> {
     let state_guard = irc.0.try_lock().ok_or(CommandError::Locked.to_string())?;
-    let users = state_guard.get_users().map_err(|e| e.to_string())?;
-    let mut js_users: Vec<User> = Vec::new();
-    if let Some(users) = users {
-        for user in users.iter() {
-            js_users.push(User {
-                nick_name: user.get_nickname().to_owned(),
-                user_mode: (user.highest_access_level() as u8),
-            })
-        }
+    let mut js_users: Option<Vec<User>> = None;
+
+    if let Some(client) = &state_guard.client {
+        js_users = client.get_users(&state_guard.channel).map(|users| {
+            users
+                .iter()
+                .map(|user| User {
+                    nick_name: user.get_nickname().to_owned(),
+                    user_mode: (user.highest_access_level() as u8),
+                })
+                .collect::<Vec<User>>()
+        });
     }
 
-    Ok(js_users)
+    Ok(js_users.unwrap_or_default())
 }
 
 #[tauri::command]
@@ -148,23 +137,25 @@ fn disconnect(
     shall_send_message: bool,
     irc: tauri::State<'_, IRCState>,
 ) -> Result<(), String> {
-    let mut client = irc.0.try_lock().ok_or(CommandError::Locked.to_string())?;
+    let mut state = irc.0.try_lock().ok_or(CommandError::Locked.to_string())?;
     if shall_send_message {
-        client.send_quit(message).map_err(|e| e.to_string())?
+        if let Some(client) = &state.client {
+            client.send_quit(message).map_err(|e| e.to_string())?
+        }
     }
-    client.client = None;
+    state.client = None;
     Ok(())
 }
 
 #[tauri::command]
-fn send_irc_command(
-    message: &str,
-    irc: tauri::State<'_, IRCState>,
-) -> Result<(), String> {
-    let client = irc.0.try_lock().ok_or(CommandError::Locked.to_string())?;
-    client
-        .send_irc_command(message)
-        .map_err(|e| e.to_string())
+fn send_irc_command(message: &str, irc: tauri::State<'_, IRCState>) -> Result<(), String> {
+    let state = irc.0.try_lock().ok_or(CommandError::Locked.to_string())?;
+    if let Some(client) = &state.client {
+        return client
+            .send_irc_command(message, &state.channel)
+            .map_err(|e| e.to_string());
+    }
+    Err(CommandError::NoClient.to_string())
 }
 
 #[tauri::command]
@@ -309,10 +300,9 @@ pub fn run() {
             upload_image,
             get_url_preview
         ])
-        .manage(IRCState(Mutex::new(share_client::IRC {
+        .manage(IRCState(Mutex::new(share_client::IrcState {
             client: None,
             channel: String::from(""),
-            log_file: None,
         })))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
