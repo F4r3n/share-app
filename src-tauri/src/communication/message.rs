@@ -4,7 +4,6 @@ pub struct ResponseMessage {
     pub content: Vec<String>,
 }
 
-
 // the payload type must implement `Serialize` and `Clone`.
 #[derive(Clone, serde::Serialize)]
 pub struct Payload {
@@ -18,11 +17,11 @@ pub struct Payload {
 impl Default for Payload {
     fn default() -> Payload {
         Payload {
-           content: "".into(),
-           nick_name: "".into(),
-           command: "".into(),
-           channel: "".into(),
-           response: None
+            content: "".into(),
+            nick_name: "".into(),
+            command: "".into(),
+            channel: "".into(),
+            response: None,
         }
     }
 }

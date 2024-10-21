@@ -25,7 +25,7 @@ pub struct Settings {
     upload_image: UploadImageConfig,
 }
 
-pub fn load_settings(app_handle : AppHandle) -> Result<Settings, anyhow::Error> {
+pub fn load_settings(app_handle: AppHandle) -> Result<Settings, anyhow::Error> {
     let path = create_config_dir(app_handle);
     if let Ok(path) = path {
         let f = std::fs::File::open(path.join(".config.txt"))?;
@@ -35,7 +35,7 @@ pub fn load_settings(app_handle : AppHandle) -> Result<Settings, anyhow::Error> 
     Err(anyhow!("No settings found"))
 }
 
-pub fn save_settings(app_handle : AppHandle, settings: &Settings) -> Result<(), anyhow::Error> {
+pub fn save_settings(app_handle: AppHandle, settings: &Settings) -> Result<(), anyhow::Error> {
     let path = create_config_dir(app_handle);
     if let Ok(path) = path {
         let mut f = std::fs::File::create(path.join(".config.txt"))?;

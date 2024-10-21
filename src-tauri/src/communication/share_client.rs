@@ -15,7 +15,7 @@ pub struct IrcClient {
 
 pub struct IrcState {
     pub channel: String,
-    pub client: Option<IrcClient>
+    pub client: Option<IrcClient>,
 }
 #[derive(Debug, Error)]
 pub enum IRCError {
@@ -24,12 +24,11 @@ pub enum IRCError {
 }
 
 impl IrcClient {
-
     pub fn send_message(&self, message: &str, channel: &str) -> Result<(), anyhow::Error> {
         Ok(self.client.send_privmsg(channel, message)?)
     }
 
-    pub fn current_nickname(&self)->&str  {
+    pub fn current_nickname(&self) -> &str {
         self.client.current_nickname()
     }
 
@@ -47,7 +46,9 @@ impl IrcClient {
         let arg: String = args.collect::<String>();
 
         match command.as_str() {
-            "topic" => Ok(self.client.send(Command::TOPIC(channel.into(), Some(arg)))?),
+            "topic" => Ok(self
+                .client
+                .send(Command::TOPIC(channel.into(), Some(arg)))?),
             "nick" => Ok(self.client.send(Command::NICK(arg))?),
             "away" => Ok(self.client.send(Command::AWAY(Some(arg)))?),
             _ => Ok(()),
@@ -63,7 +64,6 @@ impl IrcClient {
         Ok(())
     }
 }
-
 
 pub fn write_in_log(mut file: &File, nick_name: &str, message: &str) -> Result<(), anyhow::Error> {
     let utc: chrono::DateTime<chrono::Utc> = chrono::Utc::now();

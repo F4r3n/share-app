@@ -1,12 +1,10 @@
-
-
 pub fn get_image_clipboard() -> Result<String, anyhow::Error> {
-    #[cfg(not(feature="clipboard"))]
+    #[cfg(not(feature = "clipboard"))]
     {
         use anyhow::anyhow;
         Err(anyhow!("No clipboard"))
     }
-    #[cfg(feature="clipboard")]
+    #[cfg(feature = "clipboard")]
     {
         use arboard::Clipboard;
         use base64::Engine;
@@ -21,9 +19,9 @@ pub fn get_image_clipboard() -> Result<String, anyhow::Error> {
                 )
                 .unwrap();
                 let imgbuf = image::DynamicImage::ImageRgba8(imgbuf);
-    
+
                 let mut w = std::io::Cursor::new(Vec::new());
-    
+
                 imgbuf.write_to(&mut w, image::ImageFormat::Png)?;
                 let engine = base64::engine::general_purpose::STANDARD_NO_PAD;
                 let res_base64 = engine.encode(&w.into_inner());

@@ -290,9 +290,30 @@ async fn get_url_preview(endpoint: &str) -> Result<MetaData, String> {
     }
 }
 
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+use tauri_plugin_updater::UpdaterExt;
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+async fn update(app: tauri::AppHandle) -> anyhow::Result<()> {
+    if let Some(update) = app.updater()?.check().await? {
+      let mut downloaded = 0;
+  
+      // alternatively we could also call update.download() and update.install() separately
+      update.download_and_install(|chunk_length, _content_length| {
+        downloaded += chunk_length;
+      }, || {
+      }).await?;
+  
+      println!("update installed");
+      app.restart();
+    }
+  
+    Ok(())
+  }
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             loggin,
@@ -312,6 +333,16 @@ pub fn run() {
             client: None,
             channel: String::from(""),
         })))
+        .setup(|app| {
+            #[cfg(not(any(target_os = "android", target_os = "ios")))]
+            {
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                  let _ = update(handle).await;
+                });
+            }
+            Ok(())
+          })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
