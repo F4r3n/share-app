@@ -1,7 +1,6 @@
 {
-  "identifier": "main-capability",
+  "identifier": "main",
   "description": "Capability for the main window",
-  "local": true,
   "windows": [
     "main"
   ],
@@ -14,8 +13,6 @@
     "core:menu:default",
     "core:tray:default",
     "core:window:allow-request-user-attention",
-    "shell:allow-open",
-    "shell:default",
-    "updater:default"
+    "shell:allow-open"
   ]
 }
