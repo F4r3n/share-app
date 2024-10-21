@@ -72,7 +72,8 @@
         ],
         "enable": true
       },
-      "csp": null
+      "csp": null,
+      "capabilities": ["main-capability"]
     }
   }
 }
