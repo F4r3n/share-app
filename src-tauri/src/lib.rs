@@ -144,9 +144,12 @@ fn disconnect(
 ) -> Result<(), String> {
     let mut state = irc.0.try_lock().ok_or(CommandError::Locked.to_string())?;
     if shall_send_message {
-        if let Some(client) = &state.client {
-            client.send_quit(message).map_err(|e| e.to_string())?
-        }
+        state
+            .client
+            .as_ref()
+            .map(|client| client.send_quit(message))
+            .transpose()
+            .map_err(|e| e.to_string())?;
     }
     state.client = None;
     Ok(())

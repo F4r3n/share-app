@@ -45,11 +45,11 @@ impl IrcClient {
         let mut args = message.split_ascii_whitespace();
         let command = args.next().unwrap_or("").to_lowercase();
         let arg: String = args.collect::<String>();
-        println!("{} {}", command, arg);
 
         match command.as_str() {
             "topic" => Ok(self.client.send(Command::TOPIC(channel.into(), Some(arg)))?),
             "nick" => Ok(self.client.send(Command::NICK(arg))?),
+            "away" => Ok(self.client.send(Command::AWAY(Some(arg)))?),
             _ => Ok(()),
         }
     }
