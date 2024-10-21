@@ -46,7 +46,7 @@ jobs:
       run: npm i
 
     - name: Build apk
-      run: cargo install tauri-cli --version "^2.0.0-rc" && cargo tauri android build
+      run: cargo install tauri-cli --version "^2.0" && cargo tauri android build
       env:
         SIGNING_STORE_PASSWORD: ${{secrets.SIGNING_STORE_PASSWORD}}
         SIGNING_KEY_ALIAS: ${{secrets.SIGNING_KEY_ALIAS}}
