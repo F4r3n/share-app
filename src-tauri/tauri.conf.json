@@ -73,11 +73,7 @@
         "enable": true
       },
       "csp": null,
-<<<<<<< HEAD
-      "capabilities": ["main-capability"]
-=======
       "capabilities": ["main", "desktop"]
->>>>>>> db74061 (add capability)
     }
   }
 }

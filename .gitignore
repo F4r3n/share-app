@@ -24,3 +24,6 @@ build
 *.njsproj
 *.sln
 *.sw?
+# Generated files
+src-tauri/gen/schemas/*
+!src-tauri/gen/schemas/*-schema.json
