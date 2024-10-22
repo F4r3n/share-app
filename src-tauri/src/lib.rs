@@ -313,7 +313,6 @@ async fn update(app: tauri::AppHandle) -> anyhow::Result<()> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             loggin,
@@ -336,6 +335,7 @@ pub fn run() {
         .setup(|app| {
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
             {
+                app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
                 let handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
                   let _ = update(handle).await;
