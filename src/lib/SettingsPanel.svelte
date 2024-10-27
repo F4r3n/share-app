@@ -2,14 +2,29 @@
     import { slide } from 'svelte/transition';
     import { linear } from 'svelte/easing';
     import {config} from './config'
-    import { onDestroy } from 'svelte';
+    import { onDestroy, onMount } from 'svelte';
+    import type {CompletionConfig, UploadImageConfig} from "./config"
 
     let options = {duration: 100, easing: linear};
-    export let upload_image_get : string = config.getUploadImageConfig().url_get    ;
-    export let upload_image_post : string = config.getUploadImageConfig().url_post;
+    const completionConfig : CompletionConfig | undefined = config.getCompletionConfig();
+    const uploadConfig : UploadImageConfig | undefined = config.getUploadImageConfig();
+
+    let upload_image_get : string;
+    let upload_image_post : string;
+    let completion_url : string;
+    let completion_token : string;
+    let completion_triggers : string;
+    onMount(async () => {
+        upload_image_get = uploadConfig ? uploadConfig.url_get : "";
+        upload_image_post = uploadConfig ? uploadConfig.url_post : "";
+        completion_url = completionConfig ? completionConfig.url : "";
+        completion_token = completionConfig ? completionConfig.token : "";
+        completion_triggers = completionConfig ? completionConfig.triggers.join(" ") : "";
+	});
 
     onDestroy(async () => {
 		config.setUploadImageConfig({url_get: upload_image_get, url_post:upload_image_post})
+        config.setCompletionConfig({url:completion_url, token:completion_token, triggers:completion_triggers.split(" ")})
         await config.write()
 	});
 </script>
@@ -18,10 +33,17 @@
     <div class="section">
         <div class="subtitle">Upload image get</div>
         <input type="text" bind:value={upload_image_get}/>
-    </div>
-    <div class="section">
         <div class="subtitle">Upload image post</div>
         <input type="text" bind:value={upload_image_post}/>
+    </div>
+
+    <div class="section">
+        <div class="subtitle">Completion url</div>
+        <input type="text" bind:value={completion_url}/>
+        <div class="subtitle">Completion token</div>
+        <input type="text" bind:value={completion_token}/>
+        <div class="subtitle">Completion token</div>
+        <input type="text" bind:value={completion_triggers}/>
     </div>
 </div>
 

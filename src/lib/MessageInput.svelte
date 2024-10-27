@@ -5,74 +5,37 @@
     import { invoke } from "@tauri-apps/api/core";
     import { config } from "./config";
     import CloseButton from "../assets/circle-close.svelte";
+    import { MessageHistory } from "./MessageHistory";
+    import type { AutocompletionItem } from "./Autocompletion/type";
 
+    //import { Autocomplete } from "@skeletonlabs/skeleton";
+    import Autocomplete from "./Autocompletion/Autocomplete.svelte";
+    import type { UploadImageConfig } from "./config";
     const dispatch = createEventDispatcher();
-    type Navigation = "up" | "down";
 
-    function clamp(num: number, min: number, max: number) {
-        return num <= min ? min : num >= max ? max : num;
-    }
-
-    class MessageHistory {
-        private messageHistory: string[] = [];
-        private indexHistory = 0;
-        private hasReachedStartHistory = true;
-        append(inMessage: string) {
-            this.messageHistory.push(inMessage);
-            this.indexHistory = this.messageHistory.length;
-        }
-
-        navigate(nav: Navigation): boolean {
-            if (this.messageHistory.length == 0) return false;
-            switch (nav) {
-                case "up": {
-                    this.indexHistory -= 1;
-                    break;
-                }
-                case "down": {
-                    this.indexHistory += 1;
-                    break;
-                }
-            }
-            let canContinue = true;
-            if (this.indexHistory < 0 
-            || this.indexHistory >= this.messageHistory.length)
-            {
-                canContinue = false;
-            }
-            if(this.indexHistory >= this.messageHistory.length)
-            {
-                this.hasReachedStartHistory = true;
-            }
-            else{
-                this.hasReachedStartHistory = false;
-            }
-            this.indexHistory = clamp(
-                this.indexHistory,
-                0,
-                this.messageHistory.length - 1,
-            );
-            return canContinue;
-        }
-
-        getMessage(): string {
-            return this.messageHistory[this.indexHistory];
-        }
-
-        isStart(): boolean {
-            return this.hasReachedStartHistory;
-        }
-    }
     let messageHistory = new MessageHistory();
     let currentMessage: string;
     let messageToSend: string;
+    let autocompleteMessage: string = "";
     let input: HTMLInputElement;
-
+    let displayAutoComplete: boolean = false;
+    let completionList: object[] = [];
+    let autocomplete: Autocomplete;
     type Image = {
         base64: string;
         url: string;
         name: string;
     };
+
+    function getListTriggers() : string[]
+    {
+        let completionConfig = config.getCompletionConfig()
+        if(completionConfig)
+        {
+            return completionConfig.triggers;
+        }
+        return [];
+    }
 
     let listImages: Image[] = [];
 
@@ -103,59 +66,140 @@
         removeEventListener("paste", removeImage);
     });
 
-    async function uploadImage(image: Image): Promise<string> {
+    async function uploadImage(
+        image: Image,
+        uploadConfig: UploadImageConfig,
+    ): Promise<string> {
         let imageData: Uint8Array = await invoke("decode_base64", {
             message: image.base64,
         });
         let upload_id = await invoke("upload_image", {
-            endpoint: `${config.getConfig().upload_image.url_post}`,
+            endpoint: `${uploadConfig.url_post}`,
             imageBytes: imageData,
         });
-        return (config.getConfig().upload_image.url_get + upload_id) as string;
+        return (uploadConfig.url_get + upload_id) as string;
     }
 
-    async function manageKeyboardEvent(e: KeyboardEvent) {
+    async function manageKeyboardEventDown(e: KeyboardEvent) {
         switch (e.key) {
-            case "Enter": {
-                try {
-                    for (const image of listImages) {
-                        messageToSend = messageToSend.replace(
-                            image.name,
-                            await uploadImage(image),
-                        );
-                    }
-                    messageHistory.append(messageToSend);
-                    dispatch("send_message", messageToSend);
-                    listImages = [];
-                    messageToSend = "";
-                } catch (e) {
-                    console.error(e);
-                }
-                break;
-            }
             case "ArrowUp": {
-                if (messageHistory.isStart()) {
-                    currentMessage = messageToSend;
-                }
-                if (messageHistory.navigate("up")) {
-                    messageToSend = messageHistory.getMessage();
+                if (!displayAutoComplete) {
+                    if (messageHistory.isStart()) {
+                        currentMessage = messageToSend;
+                    }
+                    if (messageHistory.navigate("up")) {
+                        messageToSend = messageHistory.getMessage();
+                    }
+                } else {
+                    autocomplete.navigate(e);
+                    e.preventDefault();
                 }
                 break;
             }
             case "ArrowDown": {
-                if (messageHistory.navigate("down")) {
-                    messageToSend = messageHistory.getMessage();
-                } 
-                if (messageHistory.isStart()) {
-                    messageToSend = currentMessage;
+                if (!displayAutoComplete) {
+                    if (messageHistory.navigate("down")) {
+                        messageToSend = messageHistory.getMessage();
+                    }
+                    if (messageHistory.isStart()) {
+                        messageToSend = currentMessage;
+                    }
+                } else {
+                    autocomplete.navigate(e);
+                    e.preventDefault();
+                }
+
+                break;
+            }
+            case "Tab": {
+                e.preventDefault();
+                if (displayAutoComplete) {
+                    autocomplete.navigate(e);
+                }
+                if (completionList.length == 0) {
+                    let result = await invoke("get_completion_list", {
+                        endpoint: config.getCompletionConfig()?.url,
+                        token: config.getCompletionConfig()?.token,
+                        word: "",
+                    });
+                    completionList = result as object[];
+                }
+                if (autocompleteMessage) {
+                    if(getListTriggers().some(trigger => autocompleteMessage.startsWith(trigger)))
+                        listWords = completionList as AutocompletionItem[];
+                    else if(autocompleteMessage.length > 0)
+                    {
+                        listWords = (await invoke("get_users") as any[]).map((value)=> {return {label:value.nick_name} as AutocompletionItem});
+                    }
+                    else
+                    {
+                        listWords = []
+                    }
+                    displayAutoComplete = true;
                 }
                 break;
             }
         }
     }
+
+    async function manageKeyboardEventUp(e: KeyboardEvent) {
+        switch (e.key) {
+            case "Escape": {
+                displayAutoComplete = false;
+                break;
+            }
+            case "Enter": {
+                if (!displayAutoComplete) {
+                    try {
+                        const upload_config = config.getUploadImageConfig();
+                        if (upload_config) {
+                            for (const image of listImages) {
+                                messageToSend = messageToSend.replace(
+                                    image.name,
+                                    await uploadImage(image, upload_config),
+                                );
+                            }
+                        }
+
+                        messageHistory.append(messageToSend);
+                        dispatch("send_message", messageToSend);
+                        listImages = [];
+                        messageToSend = "";
+                    } catch (e) {
+                        console.error(e);
+                    }
+                } else {
+                    autocomplete.navigate(e);
+                }
+
+                displayAutoComplete = false;
+
+                break;
+            }
+        }
+    }
+
+    let listWords: AutocompletionItem[] = [];
+
+    function onCompletionSelection(
+        event: CustomEvent<AutocompletionItem>,
+    ): void {
+        if (event.detail) {
+            let arr = messageToSend?.split(" ")
+            arr[arr.length - 1] = event.detail.label
+            messageToSend = arr.join(" ")
+        }
+
+        displayAutoComplete = false;
+    }
+
+
+    $: autocompleteMessage = messageToSend
+        ?.split(" ")
+        .at(-1) as string;
 </script>
 
-<main>
+<main class="relative">
     <div class="flex flex-row">
         {#each listImages as image}
             <div class="pasted-image">
@@ -178,6 +222,21 @@
             </div>
         {/each}
     </div>
+    {#if displayAutoComplete}
+        <div
+            class="absolute card w-full max-w-sm max-h-48 p-3 overflow-y-auto z-40"
+            style="top: -13rem;"
+            tabindex="-1"
+        >
+            <Autocomplete
+                bind:input={autocompleteMessage}
+                bind:this={autocomplete}
+                options={listWords}
+                triggers={getListTriggers()}
+                on:selection={onCompletionSelection}
+            />
+        </div>
+    {/if}
 
     <div class="main-input">
         <input
@@ -185,8 +244,11 @@
             type="text"
             bind:this={input}
             bind:value={messageToSend}
+            on:keydown={async (e) => {
+                manageKeyboardEventDown(e);
+            }}
             on:keyup={async (e) => {
-                manageKeyboardEvent(e);
+                manageKeyboardEventUp(e);
             }}
         />
         <button

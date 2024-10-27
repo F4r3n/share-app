@@ -40,6 +40,7 @@
     try {
       await config.read();
       const c = config.getConnectionConfig();
+      console.log(c)
 
       nickName = c.nick_name;
       server = c.server;
@@ -95,15 +96,13 @@
       }}
     ></Connection>
     {#if errorMessage !== ""}
-
-    <aside class="alert variant-filled-error min-w-[60%] ml-auto mr-auto">
-      <!-- Message -->
-      <div class="alert-message">
+      <aside class="alert variant-filled-error min-w-[60%] ml-auto mr-auto">
+        <!-- Message -->
+        <div class="alert-message">
           <h3 class="h3">Connection error</h3>
           <p>{errorMessage}</p>
-      </div>
-  </aside>
-
+        </div>
+      </aside>
     {/if}
   {:else}
     <Discuss
@@ -118,5 +117,4 @@
 </main>
 
 <style>
-
 </style>

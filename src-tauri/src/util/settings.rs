@@ -20,17 +20,24 @@ pub struct UploadImageConfig {
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct CompletionConfig {
+    url: String,
+    token: String,
+    triggers : Vec<String>
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Settings {
     connection_config: ConnectionConfig,
-    upload_image: UploadImageConfig,
+    upload_image: Option<UploadImageConfig>,
+    completion: Option<CompletionConfig>
 }
 
 pub fn load_settings(app_handle: AppHandle) -> Result<Settings, anyhow::Error> {
     let path = create_config_dir(app_handle);
     if let Ok(path) = path {
         let f = std::fs::File::open(path.join(".config.txt"))?;
-        let settings: Settings = serde_yaml::from_reader(f)?;
-        return Ok(settings);
+        return Ok(serde_yaml::from_reader(f)?);
     }
     Err(anyhow!("No settings found"))
 }

@@ -4,6 +4,7 @@
 )]
 mod communication;
 mod util;
+mod completion;
 
 use crate::communication::share_client;
 use base64::Engine;
@@ -290,6 +291,17 @@ async fn get_url_preview(endpoint: &str) -> Result<MetaData, String> {
     }
 }
 
+#[tauri::command]
+async fn get_completion_list(endpoint: &str, token : &str, word: &str) -> Result<Vec<completion::types::CompletionResult>, String> {
+    completion::request::complete(endpoint, token, word).await.map_err(|err| err.to_string())
+}
+
+#[tauri::command]
+async fn get_completion_help(endpoint: &str, token : &str, word: &str) -> Result<String, String> {
+    completion::request::help(endpoint, token, word).await.map_err(|err| err.to_string())
+}
+
+
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 use tauri_plugin_updater::UpdaterExt;
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -326,7 +338,9 @@ pub fn run() {
             save_settings,
             get_users,
             upload_image,
-            get_url_preview
+            get_url_preview,
+            get_completion_list,
+            get_completion_help
         ])
         .manage(IRCState(Mutex::new(share_client::IrcState {
             client: None,

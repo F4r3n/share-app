@@ -376,11 +376,6 @@
       "description": "Permission identifier",
       "oneOf": [
         {
-          "description": "test",
-          "type": "string",
-          "const": "permisions"
-        },
-        {
           "description": "Default core plugins set which includes:\n- 'core:path:default'\n- 'core:event:default'\n- 'core:window:default'\n- 'core:webview:default'\n- 'core:app:default'\n- 'core:image:default'\n- 'core:resources:default'\n- 'core:menu:default'\n- 'core:tray:default'\n",
           "type": "string",
           "const": "core:default"
