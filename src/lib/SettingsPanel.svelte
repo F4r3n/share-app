@@ -42,7 +42,7 @@
         <input type="text" bind:value={completion_url}/>
         <div class="subtitle">Completion token</div>
         <input type="text" bind:value={completion_token}/>
-        <div class="subtitle">Completion token</div>
+        <div class="subtitle">Completion triggers</div>
         <input type="text" bind:value={completion_triggers}/>
     </div>
 </div>

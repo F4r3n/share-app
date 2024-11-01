@@ -27,11 +27,9 @@
         name: string;
     };
 
-    function getListTriggers() : string[]
-    {
-        let completionConfig = config.getCompletionConfig()
-        if(completionConfig)
-        {
+    function getListTriggers(): string[] {
+        let completionConfig = config.getCompletionConfig();
+        if (completionConfig) {
             return completionConfig.triggers;
         }
         return [];
@@ -125,15 +123,22 @@
                     completionList = result as object[];
                 }
                 if (autocompleteMessage) {
-                    if(getListTriggers().some(trigger => autocompleteMessage.startsWith(trigger)))
+                    if (
+                        getListTriggers().some((trigger) =>
+                            autocompleteMessage.startsWith(trigger),
+                        )
+                    )
                         listWords = completionList as AutocompletionItem[];
-                    else if(autocompleteMessage.length > 0)
-                    {
-                        listWords = (await invoke("get_users") as any[]).map((value)=> {return {label:value.nick_name} as AutocompletionItem});
-                    }
-                    else
-                    {
-                        listWords = []
+                    else if (autocompleteMessage.length > 0) {
+                        listWords = ((await invoke("get_users")) as any[]).map(
+                            (value) => {
+                                return {
+                                    label: value.nick_name,
+                                } as AutocompletionItem;
+                            },
+                        );
+                    } else {
+                        listWords = [];
                     }
                     displayAutoComplete = true;
                 }
@@ -143,6 +148,7 @@
     }
 
     async function manageKeyboardEventUp(e: KeyboardEvent) {
+        console.log(e.key);
         switch (e.key) {
             case "Escape": {
                 displayAutoComplete = false;
@@ -176,6 +182,10 @@
 
                 break;
             }
+            case "Backspace": {
+                if (messageToSend.length == 0) displayAutoComplete = false;
+                break;
+            }
         }
     }
 
@@ -185,18 +195,15 @@
         event: CustomEvent<AutocompletionItem>,
     ): void {
         if (event.detail) {
-            let arr = messageToSend?.split(" ")
-            arr[arr.length - 1] = event.detail.label
-            messageToSend = arr.join(" ")
+            let arr = messageToSend?.split(" ");
+            arr[arr.length - 1] = event.detail.label;
+            messageToSend = arr.join(" ");
         }
 
         displayAutoComplete = false;
     }
 
-
-    $: autocompleteMessage = messageToSend
-        ?.split(" ")
-        .at(-1) as string;
+    $: autocompleteMessage = messageToSend?.split(" ").at(-1) as string;
 </script>
 
 <main class="relative">
@@ -224,8 +231,7 @@
     </div>
     {#if displayAutoComplete}
         <div
-            class="absolute card w-full max-w-sm max-h-48 p-3 overflow-y-auto z-40"
-            style="top: -13rem;"
+            class="absolute card w-full max-w-sm max-h-48 p-3 overflow-y-auto z-40 -translate-y-full"
             tabindex="-1"
         >
             <Autocomplete
