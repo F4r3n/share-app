@@ -30,7 +30,7 @@ chrono = {version = "0.4", default-features = false}
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "multipart", "rustls-tls"] }
 scraper = {version = "0.21", default-features = false}
 tauri-plugin-shell = {version = "2.0", default-features = false}
-thiserror = "1.0"
+thiserror = "2.0"
 
 [target.'cfg(not(target_os="android"))'.dependencies]
 arboard = { version = "3.4", optional = true }
