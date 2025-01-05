@@ -17,12 +17,12 @@
     "@skeletonlabs/tw-plugin": "^0.4",
     "@sveltejs/adapter-auto": "^3.2",
     "@sveltejs/adapter-static": "^3.0",
-    "@sveltejs/kit": "^2.6",
+    "@sveltejs/kit": "^2.15",
     "@sveltejs/vite-plugin-svelte": "^3.1",
     "@tailwindcss/forms": "^0.5",
     "@tailwindcss/typography": "^0.5",
-    "@tauri-apps/cli": "^2.0",
-    "@types/node": "^20.14",
+    "@tauri-apps/cli": "^2.2",
+    "@types/node": "^22",
     "@typescript-eslint/eslint-plugin": "^8.7",
     "@typescript-eslint/parser": "^8.7",
     "autoprefixer": "^10.4",
@@ -40,8 +40,8 @@
     "vite-plugin-tailwind-purgecss": "^0.3"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.0",
-    "@tauri-apps/plugin-shell": "^2.0",
-    "@tauri-apps/plugin-updater": "^2.0.0"
+    "@tauri-apps/api": "^2.2",
+    "@tauri-apps/plugin-shell": "^2.2",
+    "@tauri-apps/plugin-updater": "^2.3"
   }
 }

@@ -18,7 +18,7 @@ tauri-build = { version = "2.0", default-features = false , features = [] }
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "2.0", features = [ "protocol-asset"] }
+tauri = { version = "2.2", features = [ "protocol-asset"] }
 irc = {version = "1.0", default-features = false, features= ["tls-rust", "channel-lists"] }
 futures = {version = "0.3"}
 image = {version = "0.25", default-features = false}
@@ -28,15 +28,15 @@ base64 = {version = "0.22", default-features = false}
 serde_yaml = "0.9"
 chrono = {version = "0.4", default-features = false}
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "multipart", "rustls-tls"] }
-scraper = {version = "0.21", default-features = false}
-tauri-plugin-shell = {version = "2.0", default-features = false}
+scraper = {version = "0.22", default-features = false}
+tauri-plugin-shell = {version = "2.2", default-features = false}
 thiserror = "2.0"
 
 [target.'cfg(not(target_os="android"))'.dependencies]
 arboard = { version = "3.4", optional = true }
 
 [target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
-tauri-plugin-updater = "2.0"
+tauri-plugin-updater = "2.3"
 
 [features]
 default = ["custom-protocol"]
