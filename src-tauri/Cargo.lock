@@ -18,6 +18,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "512761e0bb2578dd7380c6baaa0f4ce03e84f95e960231d1dec8bf4d7d6e2627"
 
 [[package]]
+name = "ahash"
+version = "0.8.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e89da841a80418a9b391ebaea17f5c112ffaaa96f621d2c285b5174da76b9011"
+dependencies = [
+ "cfg-if",
+ "getrandom 0.2.15",
+ "once_cell",
+ "version_check",
+ "zerocopy",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "1.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -82,7 +95,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-shell",
  "tauri-plugin-updater",
- "thiserror 2.0.9",
+ "thiserror 2.0.11",
  "uuid",
 ]
 
@@ -316,7 +329,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "thiserror 2.0.9",
+ "thiserror 2.0.11",
 ]
 
 [[package]]
@@ -800,9 +813,9 @@ checksum = "0d6ef0072f8a535281e4876be788938b528e9a1d43900b82c2569af7da799125"
 
 [[package]]
 name = "ego-tree"
-version = "0.10.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2972feb8dffe7bc8c5463b1dacda1b0dfbed3710e50f977d965429692d74cd8"
+checksum = "7c6ba7d4eec39eaa9ab24d44a0e73a7949a1095a8b3f3abb11eddf27dbb56a53"
 
 [[package]]
 name = "embed-resource"
@@ -2914,7 +2927,7 @@ dependencies = [
  "rustc-hash",
  "rustls 0.23.20",
  "socket2",
- "thiserror 2.0.9",
+ "thiserror 2.0.11",
  "tokio",
  "tracing",
 ]
@@ -2933,7 +2946,7 @@ dependencies = [
  "rustls 0.23.20",
  "rustls-pki-types",
  "slab",
- "thiserror 2.0.9",
+ "thiserror 2.0.11",
  "tinyvec",
  "tracing",
  "web-time",
@@ -3343,10 +3356,11 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "scraper"
-version = "0.22.0"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc3d051b884f40e309de6c149734eab57aa8cc1347992710dc80bcc1c2194c15"
+checksum = "b0e749d29b2064585327af5038a5a8eb73aeebad4a3472e83531a436563f7208"
 dependencies = [
+ "ahash",
  "cssparser 0.34.0",
  "ego-tree",
  "html5ever 0.29.0",
@@ -3923,7 +3937,7 @@ dependencies = [
  "tauri-runtime",
  "tauri-runtime-wry",
  "tauri-utils",
- "thiserror 2.0.9",
+ "thiserror 2.0.11",
  "tokio",
  "tray-icon",
  "url",
@@ -3976,7 +3990,7 @@ dependencies = [
  "sha2",
  "syn 2.0.95",
  "tauri-utils",
- "thiserror 2.0.9",
+ "thiserror 2.0.11",
  "time",
  "url",
  "uuid",
@@ -4031,7 +4045,7 @@ dependencies = [
  "shared_child",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.9",
+ "thiserror 2.0.11",
  "tokio",
 ]
 
@@ -4057,7 +4071,7 @@ dependencies = [
  "tauri",
  "tauri-plugin",
  "tempfile",
- "thiserror 2.0.9",
+ "thiserror 2.0.11",
  "time",
  "tokio",
  "url",
@@ -4079,7 +4093,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tauri-utils",
- "thiserror 2.0.9",
+ "thiserror 2.0.11",
  "url",
  "windows",
 ]
@@ -4139,7 +4153,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "swift-rs",
- "thiserror 2.0.9",
+ "thiserror 2.0.11",
  "toml 0.8.2",
  "url",
  "urlpattern",
@@ -4199,11 +4213,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.9"
+version = "2.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f072643fd0190df67a8bab670c20ef5d8737177d6ac6b2e9a236cb096206b2cc"
+checksum = "d452f284b73e6d76dd36758a0c8684b1d5be31f92b89d07fd5822175732206fc"
 dependencies = [
- "thiserror-impl 2.0.9",
+ "thiserror-impl 2.0.11",
 ]
 
 [[package]]
@@ -4219,9 +4233,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.9"
+version = "2.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b50fa271071aae2e6ee85f842e2e28ba8cd2c5fb67f11fcb1fd70b276f9e7d4"
+checksum = "26afc1baea8a989337eeb52b6e72a039780ce45c3edfcc9c5b9d112feeb173c2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5309,7 +5323,7 @@ dependencies = [
  "sha2",
  "soup3",
  "tao-macros",
- "thiserror 2.0.9",
+ "thiserror 2.0.11",
  "url",
  "webkit2gtk",
  "webkit2gtk-sys",
@@ -5475,5 +5489,5 @@ dependencies = [
  "displaydoc",
  "indexmap 2.7.0",
  "memchr",
- "thiserror 2.0.9",
+ "thiserror 2.0.11",
 ]
