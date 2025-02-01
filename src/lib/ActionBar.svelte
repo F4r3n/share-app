@@ -1,8 +1,8 @@
 <script lang="ts">
     import LongArrow from "../assets/long-arrow.svelte";
-    import {panelIsOpen} from "./discussStore"
+    import { panelIsOpen } from "./discussStore";
 
-    let {topic = "TEST"} = $props();
+    let { topic = "TEST" } = $props();
 
     let showTopic = $state(false);
 </script>
@@ -10,12 +10,17 @@
 <div
     class="flex flex-row bg-primary-500-400-token text-on-primary-token justify-between max-w[100%] leading-5 items-center align-middle p-1"
 >
-    <button class={showTopic ? "topic-show" : "topic-hide"} onclick={()=>{showTopic=!showTopic;}}>
+    <button
+        class={showTopic ? "topic-show" : "topic-hide"}
+        onclick={() => {
+            showTopic = !showTopic;
+        }}
+    >
         {topic}
     </button>
     <button
         onclick={() => {
-            panelIsOpen.set(true)
+            panelIsOpen.set(true);
         }}
         class="arrow block mt-auto mr-3"
     >
@@ -24,7 +29,6 @@
 </div>
 
 <style>
-
     button {
         all: unset;
     }

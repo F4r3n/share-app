@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
-
-    let { background, foreground }: { background: number; foreground: number } =
+    import { type Snippet } from 'svelte';
+    let { background, foreground, children }: { background: number; foreground: number, children : Snippet } =
         $props();
 
     let cb: any = $state({});
@@ -33,7 +33,7 @@
 </script>
 
 {#if cf && cb}
-    <span style="background-color:#{cb.value};color:#{cf.value}"><slot /></span>
+    <span style="background-color:#{cb.value};color:#{cf.value}">{@render children()}</span>
 {:else}
-    <span><slot /></span>
+    <span>{@render children()}</span>
 {/if}

@@ -8,7 +8,7 @@
         link,
         onMessageFormatted,
     }: {
-        preview: string;
+        preview: MetaData;
         link: string;
         onMessageFormatted: () => void;
     } = $props();
