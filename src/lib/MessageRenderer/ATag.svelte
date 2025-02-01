@@ -1,22 +1,23 @@
 <script lang="ts">
-    import { open } from '@tauri-apps/plugin-shell';
-    import { onMount, onDestroy } from 'svelte';
+    import { open } from "@tauri-apps/plugin-shell";
+    import { onMount, onDestroy } from "svelte";
 
-    export let href : string;
-    
-    onMount(async ()=> {
-        link.addEventListener("click", function(event) {
+    export let href: string;
+
+    onMount(async () => {
+        link.addEventListener(
+            "click",
+            function (event) {
                 open(link.href);
                 event.preventDefault();
-        }, false);
-    })
+            },
+            false,
+        );
+    });
 
-    onDestroy(async ()=> {
+    onDestroy(async () => {});
 
-    })
-
-
-    let link : HTMLAnchorElement;
+    let link: HTMLAnchorElement;
 </script>
 
-<a target="" bind:this={link} href={href}><slot></slot></a>
+<a target="" bind:this={link} {href}><slot></slot></a>

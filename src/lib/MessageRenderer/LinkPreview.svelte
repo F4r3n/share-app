@@ -1,19 +1,23 @@
 <script lang="ts">
     import ATag from "./ATag.svelte";
-    import { createEventDispatcher } from "svelte";
     import type { MetaData } from "./metaData";
     import ImgTag from "./IMGTag.svelte";
 
-    const dispatch = createEventDispatcher();
-
-    export let preview: MetaData;
-    export let link: string;
+    let {
+        preview,
+        link,
+        onMessageFormatted,
+    }: {
+        preview: string;
+        link: string;
+        onMessageFormatted: () => void;
+    } = $props();
 </script>
 
 {#if preview.image_only}
     <ImgTag
-        on:message_formatted={() => {
-            dispatch("message_formatted");
+        onMessageFormatted={() => {
+            onMessageFormatted();
         }}
         href={link}
     ></ImgTag>
@@ -28,8 +32,8 @@
         {/if}
         <img
             class="image"
-            on:load={() => {
-                dispatch("message_formatted");
+            onload={() => {
+                onMessageFormatted();
             }}
             src={preview.image_url}
             alt={preview.title}

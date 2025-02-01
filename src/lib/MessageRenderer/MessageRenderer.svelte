@@ -2,21 +2,22 @@
     import ATag from "./ATag.svelte";
     import LinkPreview from "./LinkPreview.svelte";
     import { onMount } from "svelte";
-    import { createEventDispatcher } from "svelte";
-    import { afterUpdate } from "svelte";
     import ColorTag from "./ColorTag.svelte";
     import { invoke } from "@tauri-apps/api/core";
     import type { MetaData } from "./metaData";
 
-    const dispatch = createEventDispatcher();
-
+    let {
+        tokens = [],
+        onMessageFormatted,
+    }: { tokens: Token[]; onMessageFormatted: () => void } = $props();
     type Token = {
         type: string;
         value: any;
     };
+    let checkLinks: string[] = $state([]);
 
-    afterUpdate(() => {
-        dispatch("message_formatted");
+    $effect(() => {
+        onMessageFormatted();
     });
 
     onMount(async () => {
@@ -31,9 +32,6 @@
     function getPreview(inURL: string): Promise<MetaData> {
         return invoke("get_url_preview", { endpoint: inURL });
     }
-
-    export let tokens: Token[] = [];
-    let checkLinks: string[] = [];
 </script>
 
 <main>
@@ -56,8 +54,8 @@
     {#each checkLinks as link}
         {#await getPreview(link) then preview}
             <LinkPreview
-                on:message_formatted={() => {
-                    console.log("image loaded")
+                onMessageFormatted={() => {
+                    console.log("image loaded");
                 }}
                 {preview}
                 {link}

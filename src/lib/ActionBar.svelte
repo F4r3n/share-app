@@ -1,19 +1,20 @@
-<script>
+<script lang="ts">
     import LongArrow from "../assets/long-arrow.svelte";
-    export let topic = "TEST";
     import {panelIsOpen} from "./discussStore"
 
-    let showTopic = false;
+    let {topic = "TEST"} = $props();
+
+    let showTopic = $state(false);
 </script>
 
 <div
     class="flex flex-row bg-primary-500-400-token text-on-primary-token justify-between max-w[100%] leading-5 items-center align-middle p-1"
 >
-    <button class={showTopic ? "topic-show" : "topic-hide"} on:click={()=>{showTopic=!showTopic;}}>
+    <button class={showTopic ? "topic-show" : "topic-hide"} onclick={()=>{showTopic=!showTopic;}}>
         {topic}
     </button>
     <button
-        on:click={() => {
+        onclick={() => {
             panelIsOpen.set(true)
         }}
         class="arrow block mt-auto mr-3"

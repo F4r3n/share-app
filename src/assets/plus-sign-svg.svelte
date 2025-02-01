@@ -1,6 +1,5 @@
-<script>
-	export let width="30"
-	export let height="30"
+<script lang="ts">
+	let {width = "30", height="30"} = $props() 
 
 </script>
 <style></style>

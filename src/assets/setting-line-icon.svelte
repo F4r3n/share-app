@@ -1,7 +1,6 @@
-<script>
-	export let width="30"
-	export let height="30"
+<script lang="ts">
 
+	let {width = "30", height="30"} = $props() 
 </script>
 
 <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 122.881 122.88" enable-background="new 0 0 122.881 122.88" xml:space="preserve" fill="currentColor" width="{width}px" height="{height}px">

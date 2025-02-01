@@ -155,7 +155,7 @@
 
 <div class="message" class:message-ascii={isASCII}>
     <MessageRenderer
-        on:message_formatted={() => {
+        onMessageFormatted={() => {
             dispatch("message_formatted");
         }}
         tokens={createTokens(content)}

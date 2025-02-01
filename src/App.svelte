@@ -9,13 +9,13 @@
   import SettingsPanel from "./lib/SettingsPanel.svelte";
   import { clickOutside } from "./lib/clickOutside";
 
-  let nickName : string = "pickles";
-  let server : string = "chat.freenode.net";
-  let channel :string = "#rust-spam";
-  let password:string = "";
+  let nickName: string = "pickles";
+  let server: string = "chat.freenode.net";
+  let channel: string = "#rust-spam";
+  let password: string = "";
 
   let isSettingsOpened = false;
-  let hasFailed:boolean = false;
+  let hasFailed: boolean = false;
   let errorMessage = "";
   type Event = {
     payload: {
@@ -40,7 +40,7 @@
     try {
       await config.read();
       const c = config.getConnectionConfig();
-      console.log(c)
+      console.log(c);
 
       nickName = c.nick_name;
       server = c.server;
