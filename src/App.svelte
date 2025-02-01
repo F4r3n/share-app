@@ -6,16 +6,16 @@
   import { listen } from "@tauri-apps/api/event";
   import { invoke } from "@tauri-apps/api/core";
   import SettingsButton from "./lib/SettingsButton.svelte";
-  import SettingsPanel from "$lib/SettingsPanel.svelte";
+  import SettingsPanel from "./lib/SettingsPanel.svelte";
   import { clickOutside } from "./lib/clickOutside";
 
-  let nickName = "pickles";
-  let server = "chat.freenode.net";
-  let channel = "#rust-spam";
-  let password = "";
+  let nickName : string = "pickles";
+  let server : string = "chat.freenode.net";
+  let channel :string = "#rust-spam";
+  let password:string = "";
 
   let isSettingsOpened = false;
-  let hasFailed = false;
+  let hasFailed:boolean = false;
   let errorMessage = "";
   type Event = {
     payload: {
@@ -88,7 +88,7 @@
       bind:channel
       bind:password
       {hasFailed}
-      on:connected={() => {
+      onConnected={() => {
         console.log("Is Connected");
         isConnected = true;
         config.setConnectionSettings(nickName, server, channel, password);

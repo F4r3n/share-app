@@ -1,18 +1,27 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
   import { invoke } from "@tauri-apps/api/core";
-  import { createEventDispatcher } from "svelte";
-  import { ProgressRadial } from "@skeletonlabs/skeleton";
-  export let hasFailed = false;
-  const dispatch = createEventDispatcher();
-  export let nickName: string = "pickles";
-  export let server: string = "chat.freenode.net";
-  export let channel: string = "#share-chan";
-  export let password: string = "";
-  let isConnecting = false;
+  import { ProgressRing } from "@skeletonlabs/skeleton-svelte";
+
+  let {
+    nickName = $bindable<string>(""),
+    server = $bindable<string>(""),
+    channel = $bindable<string>(""),
+    password = $bindable<string>(""),
+    hasFailed,
+    onConnected,
+  }: {
+    nickName: string;
+    server: string;
+    channel: string;
+    password: string;
+    hasFailed: boolean;
+    onConnected: (arg0: string) => void;
+  } = $props();
+
+  let isConnecting = $state(false);
   const connect = () => {
-    if(isConnecting)
-      return;
+    if (isConnecting) return;
     console.log("Try to connect");
     isConnecting = true;
     invoke("loggin", {
@@ -22,7 +31,7 @@
       password: password,
     })
       .then(() => {
-        dispatch("connected");
+        onConnected("connected");
       })
       .catch((e) => console.error(e))
       .finally(() => {
@@ -38,65 +47,87 @@
 />
 
 <main>
-  <div in:fade={{ duration: 100 }} class="grid place-items-center">
-    <form
-      on:submit|preventDefault={connect}
-      class="flex flex-col justify-between"
-    >
-      <div class="mb-1">
-        <label for="nickname" class=""> NickName </label>
-        <input
-          bind:value={nickName}
-          type="text"
-          id="nickname"
-          autocomplete="off"
-          class="group"
-        />
+  <div in:fade={{ duration: 100 }} class="w-full flex justify-center">
+    <form onsubmit={connect} class="flex flex-col justify-between">
+      <div class="flex items-center mb-6">
+        <div class="w-1/3">
+          <label for="nickname" class="block text-left mb-1 md:mb-0 pr-4">
+            NickName
+          </label>
+        </div>
+        <div class="w-2/3">
+          <input
+            bind:value={nickName}
+            type="text"
+            id="nickname"
+            autocomplete="off"
+            class=" py-2 px-4 leading-tight"
+          />
+        </div>
       </div>
 
-      <div class="mb-1">
-        <label for="server"> Server </label>
-        <input
-          bind:value={server}
-          type="text"
-          id="server"
-          autocomplete="off"
-          class="group"
-        />
+      <div class="flex items-center mb-6">
+        <div class="w-1/3">
+          <label for="server" class="block text-left mb-1 md:mb-0 pr-4">
+            Server
+          </label>
+        </div>
+        <div class="w-2/3">
+          <input
+            bind:value={server}
+            type="text"
+            id="server"
+            autocomplete="off"
+            class=" py-2 px-4 leading-tight"
+          />
+        </div>
       </div>
 
-      <div class="mb-1">
-        <label for="channel"> Channel </label>
-        <input
-          bind:value={channel}
-          type="text"
-          id="channel"
-          autocomplete="off"
-          class="group"
-        />
+      <div class="flex items-center mb-6">
+        <div class="w-1/3">
+          <label for="channel" class="block text-left mb-1 md:mb-0 pr-4">
+            Channel
+          </label>
+        </div>
+        <div class="w-2/3">
+          <input
+            bind:value={channel}
+            type="text"
+            id="channel"
+            autocomplete="off"
+            class=" py-2 px-4 leading-tight"
+          />
+        </div>
       </div>
 
-      <div class="mb-1">
-        <label for="password"> Password </label>
-        <input
-          bind:value={password}
-          type="password"
-          id="password"
-          autocomplete="off"
-          class="group"
-        />
+      <div class="flex items-center mb-6">
+        <div class="w-1/3">
+          <label for="password" class="block text-left mb-1 md:mb-0 pr-4">
+            Password
+          </label>
+        </div>
+        <div class="w-2/3">
+          <input
+            bind:value={password}
+            type="password"
+            id="password"
+            autocomplete="off"
+            class=" py-2 px-4 leading-tight"
+          />
+        </div>
       </div>
+
       <div class="flex flex-row">
         <button
           type="submit"
-          class="bg-primary-500-400-token text-on-primary-token mt-5 btn-md w-[calc(100%)]"
+          class="preset-filled-primary-600-400 mt-5 btn-md w-[calc(100%)] flex items-center justify-center p-4"
           disabled={isConnecting}
         >
           Connexion
         </button>
         {#if isConnecting}
           <div class="pt-5 pl-3">
-            <ProgressRadial width={"w-10"} value={undefined} />
+            <ProgressRing value={null} size="size-14" />
           </div>
         {/if}
       </div>
@@ -111,17 +142,16 @@
     color: rgb(216, 0, 0);
     border: 2px solid red;
     border-radius: 3px;
-    padding: 10px 100px 10px 100px;
     margin-top: 10px;
-    visibility: hidden;
+    display: none;
   }
 
   button:disabled,
   button[disabled] {
-    @apply bg-primary-100 text-on-primary-token;
+    @apply bg-primary-100 text-primary-500;
   }
 
   .error-show {
-    visibility: visible;
+    display: block;
   }
 </style>
