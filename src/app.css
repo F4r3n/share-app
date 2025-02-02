@@ -1,7 +1,5 @@
 @tailwind base;
-
 @tailwind components;
-
 @tailwind utilities;
 
 :root {
@@ -21,7 +19,7 @@
 }
 
 :root [data-theme='modern'] {
-  --readii-default: 1px;
+  --radii-default: 1px;
 }
 
 

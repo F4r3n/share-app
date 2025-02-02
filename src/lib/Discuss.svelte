@@ -15,7 +15,7 @@
     import { panelIsOpen } from "./discussStore";
     import { writable, get } from "svelte/store";
     import type { Writable } from "svelte/store";
-
+    import { SvelteMap } from 'svelte/reactivity';
     type UserType = {
         nick_name: string;
         user_mode: number;
@@ -67,19 +67,19 @@
 
     class ChattManager {
         public isConnected = true;
-        public isUnread: Writable<boolean> = writable(false);
+        public isUnread: boolean = $state(false);
         constructor(name: string) {}
 
         public pushMessage() {
-            this.isUnread.set(true);
+            this.isUnread = true;
         }
 
         public setAsSelected(isSelected: boolean) {
             if (isSelected) {
-                this.isUnread.set(false);
+                this.isUnread = false;
                 scrollBehaviourManager.scroll_behaviour = "smooth";
             } else {
-                this.isUnread.set(false);
+                this.isUnread = false;
                 scrollBehaviourManager.scroll_behaviour = "instant";
             }
         }
@@ -92,7 +92,6 @@
     function getChat(inChannel: string): ChattManager {
         if (!_chatts.has(inChannel)) {
             _chatts.set(inChannel, new ChattManager(inChannel));
-            _chatts = _chatts;
         }
 
         let chatt = _chatts.get(inChannel);
@@ -104,7 +103,7 @@
 
     let discussSection: HTMLDivElement | null = null;
 
-    let _chatts: Map<string, ChattManager> = new Map<string, ChattManager>([
+    let _chatts: SvelteMap<string, ChattManager> = new SvelteMap<string, ChattManager>([
         [channel, new ChattManager(channel)],
     ]);
 
@@ -308,6 +307,8 @@
     }
 
     function sendCurrentMessage(inMessageContent: string) {
+        if(inMessageContent ===  "")
+            return;
         const isCommand: boolean = inMessageContent.at(0) == "/";
         let message: Message = {
             nick_name: nickName,
@@ -536,15 +537,9 @@
 
     .message {
         margin-top: var(--space);
-        /*color-mix(in srgb,rgba(var(--color-tertiary-100)),#0000 25%);
-        rgba(var(--color-tertiary-100));*/
-        background-color: color-mix(
-            in srgb,
-            rgba(var(--color-tertiary-100)),
-            #0000 40%
-        );
 
-        color: theme("colors.tertiary.800");
+        @apply text-secondary-950;
+        @apply bg-secondary-50;
 
         @apply ml-2 mr-2 mt-1;
         @apply rounded-xl;

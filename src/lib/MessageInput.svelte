@@ -15,7 +15,7 @@
 
     let messageHistory = new MessageHistory();
     let currentMessage: string;
-    let messageToSend: string;
+    let messageToSend: string = $state("");
     let input: HTMLInputElement;
     let displayAutoComplete: boolean = false;
     let completionList: object[] = [];
@@ -253,7 +253,7 @@
             }}
         />
         <button
-            class="ml-1 btn preset-filled-primary-600-400"
+            class="ml-1 "
             onclick={(event) => {
                 onSendMessage(messageToSend);
                 messageToSend = "";
@@ -266,6 +266,13 @@
 </main>
 
 <style>
+
+    button
+    {
+        @apply btn;
+        @apply preset-filled-primary-800-200;
+        @apply px-4;
+    }
     .pasted-image {
         width: 150px;
         max-height: 150px;

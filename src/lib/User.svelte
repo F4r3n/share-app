@@ -11,7 +11,7 @@
         channelName: string;
         isSelected: boolean;
         isSelectable: boolean;
-        unread: Writable<boolean>;
+        unread: boolean;
         onChannelChanged: (arg0: string) => void;
     } = $props();
 </script>
@@ -19,10 +19,10 @@
 {#if isSelectable}
     <button
         class="px-0 mx-0 text-left text-nowrap text-ellipsis select-none rounded-md"
-        class:channel-missing-messages={$unread && !isSelected}
+        class:channel-missing-messages={unread && !isSelected}
         class:channel-selected={isSelected}
         onclick={() => {
-            unread.set(false);
+            unread = false;
             onChannelChanged(channelName);
         }}
     >
