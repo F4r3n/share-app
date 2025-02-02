@@ -6,7 +6,7 @@
 
 :root {
   font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 24px;
   font-weight: 400;
 
@@ -17,44 +17,12 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-
-  
+  -webkit-text-size-adjust: 100%;  
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-
-  --background-color:#f4f4f4;
-  --primary-accent-color:#8657d3;
-  --secondary-accent-color:#0081CF;
-  --highlight-color:#B39CD0;
-  --hover-color:#FBEAFF;
-  --press-color:#296073;
-  --outline-color:#0081CF;
-  --text-color:rgb(21, 21, 21);
-  --label-color:rgb(40,40,40);
-  --text-color-control:#fafafa;
-  --overflow-color:#d0d0d0;
-  }
+:root [data-theme='modern'] {
+  --readii-default: 1px;
 }
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background-color:rgba(63, 63, 63, 0.87);
-    --primary-accent-color:#4e1f9a;
-    --secondary-accent-color:#0081CF;
-    --highlight-color:#7847b5;
-    --hover-color:#FBEAFF;
-    --press-color:#296073;
-    --outline-color:#0081CF;
-    --text-color:rgb(222, 222, 222);
-    --label-color:rgb(202, 202, 202);
-    --text-color-control:#dddddd;
-    --overflow-color:#000000;
-    }
-  }
-
 
 
 /* Handle */
@@ -76,8 +44,6 @@ html, body {
 body {
 	margin: 0;
 	box-sizing: border-box;
-  color:var(--text-color);
-  background-color: var(--background-color);
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }
 
@@ -91,30 +57,11 @@ h1 {
   width: 100%;
 }
 
-button {
-  border-radius: 8px;
-  border: 2px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: var(--outline-color);
-  color:var(--text-color-control);
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: var(--outline-color);
-}
-button:active {
-  background-color: var(--press-color);
-}
 
 hr {
 	display: block;
 	height: 1px;
 	border: 0;
-	border-top: 1px solid var(--primary-accent-color);
 	margin: 1em 0;
 	padding: 0;
 }

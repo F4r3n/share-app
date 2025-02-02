@@ -71,7 +71,7 @@
   {#if !isConnected}
     <div class="m-1 text-primary-600">
       <SettingsButton
-        on:toggle={() => {
+        onToggle={() => {
           isSettingsOpened = true;
           console.log(isSettingsOpened);
         }}
@@ -106,7 +106,7 @@
     {/if}
   {:else}
     <Discuss
-      on:connection_status={(event) => {
+      onConnectionStatus={(event: any) => {
         isConnected = event.detail.result;
         errorMessage = event.detail.message;
       }}

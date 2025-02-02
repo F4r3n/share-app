@@ -1,6 +1,5 @@
 <script lang="ts">
     import PlusSign from "../assets/plus-sign-svg.svelte";
-    import { createEventDispatcher } from "svelte";
     import { onMount, onDestroy } from "svelte";
     import { invoke } from "@tauri-apps/api/core";
     import { config } from "./config";
@@ -11,12 +10,12 @@
     //import { Autocomplete } from "@skeletonlabs/skeleton";
     import Autocomplete from "./Autocompletion/Autocomplete.svelte";
     import type { UploadImageConfig } from "./config";
-    const dispatch = createEventDispatcher();
+
+    let { onSendMessage }: { onSendMessage: (arg0: string) => void } = $props();
 
     let messageHistory = new MessageHistory();
     let currentMessage: string;
     let messageToSend: string;
-    let autocompleteMessage: string = "";
     let input: HTMLInputElement;
     let displayAutoComplete: boolean = false;
     let completionList: object[] = [];
@@ -125,11 +124,11 @@
                 if (autocompleteMessage) {
                     if (
                         getListTriggers().some((trigger) =>
-                            autocompleteMessage.startsWith(trigger),
+                            autocompleteMessage.current.startsWith(trigger),
                         )
                     )
                         listWords = completionList as AutocompletionItem[];
-                    else if (autocompleteMessage.length > 0) {
+                    else if (autocompleteMessage.current.length > 0) {
                         listWords = ((await invoke("get_users")) as any[]).map(
                             (value) => {
                                 return {
@@ -168,7 +167,7 @@
                         }
 
                         messageHistory.append(messageToSend);
-                        dispatch("send_message", messageToSend);
+                        onSendMessage(messageToSend);
                         listImages = [];
                         messageToSend = "";
                     } catch (e) {
@@ -191,19 +190,15 @@
 
     let listWords: AutocompletionItem[] = [];
 
-    function onCompletionSelection(
-        event: CustomEvent<AutocompletionItem>,
-    ): void {
-        if (event.detail) {
-            let arr = messageToSend?.split(" ");
-            arr[arr.length - 1] = event.detail.label;
-            messageToSend = arr.join(" ");
-        }
+    function onCompletionSelection(event: AutocompletionItem): void {
+        let arr = messageToSend?.split(" ");
+        arr[arr.length - 1] = event.label;
+        messageToSend = arr.join(" ");
 
         displayAutoComplete = false;
     }
 
-    $: autocompleteMessage = messageToSend?.split(" ").at(-1) as string;
+    let autocompleteMessage = $derived({current:messageToSend?.split(" ").at(-1)});
 </script>
 
 <main class="relative">
@@ -212,7 +207,7 @@
             <div class="pasted-image">
                 <button
                     class="top close"
-                    on:click={() => {
+                    onclick={() => {
                         messageToSend = messageToSend.replace(image.name, "");
                         listImages = listImages.filter((i) => {
                             i.name !== image.name;
@@ -235,11 +230,11 @@
             tabindex="-1"
         >
             <Autocomplete
-                bind:input={autocompleteMessage}
+                bind:input={autocompleteMessage.current}
                 bind:this={autocomplete}
                 options={listWords}
                 triggers={getListTriggers()}
-                on:selection={onCompletionSelection}
+                onSelection={onCompletionSelection}
             />
         </div>
     {/if}
@@ -250,21 +245,22 @@
             type="text"
             bind:this={input}
             bind:value={messageToSend}
-            on:keydown={async (e) => {
+            onkeydown={async (e) => {
                 manageKeyboardEventDown(e);
             }}
-            on:keyup={async (e) => {
+            onkeyup={async (e) => {
                 manageKeyboardEventUp(e);
             }}
         />
         <button
-            class="ml-1 bg-primary-500-400-token text-on-primary-token btn-base"
-            on:click={(event) => {
-                dispatch("send_message", messageToSend);
+            class="ml-1 btn preset-filled-primary-600-400"
+            onclick={(event) => {
+                onSendMessage(messageToSend);
                 messageToSend = "";
             }}
         >
-            <PlusSign width="15" height="15"></PlusSign>
+            <PlusSign width="15" height="15">
+            </PlusSign>
         </button>
     </div>
 </main>

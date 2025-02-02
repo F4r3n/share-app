@@ -1,15 +1,18 @@
 <script lang="ts">
     import { invoke } from "@tauri-apps/api/core";
     import type { AutocompletionItem } from "./type";
-    import { createEventDispatcher } from "svelte";
     import { config } from "../config";
 
-    const dispatch = createEventDispatcher();
-    export let options: AutocompletionItem[];
-    export let input: string;
-    export let triggers: string[];
+    let {options, input = $bindable(""), triggers, onSelection}:
+    {
+        options : AutocompletionItem[],
+        input : string,
+        triggers : string[]
+        onSelection : (arg0 : AutocompletionItem)=>void
+    } = $props();
+
     let itemID: number = 0;
-    $: listedOptions = filterOptions(options, input);
+    let listedOptions = $derived(filterOptions(options, input));
     let triggerStart = "";
 
     function filterOptions(
@@ -76,8 +79,7 @@
                 label: triggerStart + label.label,
                 help: label.help,
             };
-
-            dispatch("selection", autocompleteWord);
+            onSelection(autocompleteWord);
         }
     }
 
@@ -98,13 +100,13 @@
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
                 <li
-                    on:click={() => {
+                    onclick={() => {
                         select(item);
                     }}
                     class="hover:bg-primary-300 pl-1 rounded content-between"
                     class:hoverItem={id == itemID}
                     use:scrollIntoView={id == itemID}
-                    on:mouseenter={() => {
+                    onmouseenter={() => {
                         fetchHelp(id);
                     }}
                 >

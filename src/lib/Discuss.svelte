@@ -7,7 +7,6 @@
     import MessageInput from "./MessageInput.svelte";
     import type { Message } from "./channel";
     import User from "./User.svelte";
-    import { createEventDispatcher } from "svelte";
     import { Window, UserAttentionType } from "@tauri-apps/api/window";
     import { messagesManager } from "./MessagesManager";
     import type { MessageFromIRC } from "./MessageType";
@@ -17,15 +16,20 @@
     import { writable, get } from "svelte/store";
     import type { Writable } from "svelte/store";
 
-    const dispatch = createEventDispatcher();
-
-    type User = {
+    type UserType = {
         nick_name: string;
         user_mode: number;
     };
 
-    export let nickName: string;
-    export let channel: string;
+    let {
+        nickName,
+        channel,
+        onConnectionStatus,
+    }: {
+        nickName: string;
+        channel: string;
+        onConnectionStatus: ({}) => void;
+    } = $props();
 
     class ScrollBehaviorManager {
         private _hasReachedEnd: boolean = true;
@@ -44,9 +48,7 @@
 
         public updateScroll(inHTML: HTMLDivElement | null) {
             if (inHTML) {
-                if (
-                    scrollBehaviourManager.isAtTheEnd()
-                ) {
+                if (scrollBehaviourManager.isAtTheEnd()) {
                     this.refreshScroll(inHTML);
                 }
             }
@@ -66,8 +68,7 @@
     class ChattManager {
         public isConnected = true;
         public isUnread: Writable<boolean> = writable(false);
-        constructor(name: string) {
-        }
+        constructor(name: string) {}
 
         public pushMessage() {
             this.isUnread.set(true);
@@ -223,7 +224,7 @@
                             message: data.content,
                             shallSendMessage: false,
                         }).then(() => {
-                            dispatch("connection_status", {
+                            onConnectionStatus({
                                 result: false,
                                 message: data.content,
                             });
@@ -259,9 +260,9 @@
     let screen_height = window.innerHeight;
     let screen_width = window.innerWidth;
     const mobile_width = 500;
-    $: panelOpeningPercentage = 0;
+    let panelOpeningPercentage = $state(0);
+    let panelOpeningPercentageToDisplay = $state(0);
     const maxOpeningUserDistance = 80;
-    $: panelOpeningPercentageToDisplay = 0;
 
     enum Width_Mode {
         PHONE,
@@ -270,8 +271,9 @@
 
     let currentModeSize =
         screen_width < mobile_width ? Width_Mode.PHONE : Width_Mode.DESKTOP;
-    $: panel_mode =
-        screen_width < mobile_width ? Width_Mode.PHONE : Width_Mode.DESKTOP;
+    let panel_mode = $derived(
+        screen_width < mobile_width ? Width_Mode.PHONE : Width_Mode.DESKTOP,
+    );
     function onResize() {
         if (currentModeSize != panel_mode) {
             currentModeSize = panel_mode;
@@ -296,7 +298,7 @@
             }
             getChat(channel).isConnected = true;
 
-            for (let user of (await invoke("get_users")) as User[]) {
+            for (let user of (await invoke("get_users")) as UserType[]) {
                 getChat(user.nick_name).isConnected = true;
             }
             _chatts = _chatts;
@@ -313,7 +315,7 @@
             date: new Date(),
             highlight: false,
         };
-        console.log(inMessageContent, isCommand)
+        console.log(inMessageContent, isCommand);
         messagesManager.putMessageInList(message, channelNameSelected);
 
         if (!isCommand) {
@@ -325,7 +327,7 @@
                 .catch((e) => console.error(e));
         } else {
             invoke("send_irc_command", {
-                message: inMessageContent.slice(1)
+                message: inMessageContent.slice(1),
             }).then(() => {});
         }
     }
@@ -337,7 +339,7 @@
         channelNameSelected = inChannel;
     }
 
-    $: listMessages = messagesManager
+    let listMessages = messagesManager
         .getChannel(channelNameSelected)
         .getListMessages();
 
@@ -345,10 +347,11 @@
         if (value == true) panelOpeningPercentageToDisplay = 100;
         else panelOpeningPercentageToDisplay = 0;
     });
-    $: open =
+    let open = $derived(
         panel_mode == Width_Mode.DESKTOP ||
-        $panelIsOpen ||
-        panelOpeningPercentageToDisplay > 0;
+            $panelIsOpen ||
+            panelOpeningPercentageToDisplay > 0,
+    );
 </script>
 
 <svelte:window on:resize={onResize} />
@@ -363,10 +366,10 @@
             <div
                 class="flex-grow overflow-y-auto"
                 bind:this={discussSection}
-                on:scrollend={() => {
+                onscrollend={() => {
                     if (discussSection) {
                         scrollBehaviourManager.updateScrollPosition(
-                            discussSection
+                            discussSection,
                         );
                     }
                 }}
@@ -397,7 +400,9 @@
                             >
                                 <MessageContent
                                     on:message_formatted={() => {
-                                        scrollBehaviourManager.updateScroll(discussSection);
+                                        scrollBehaviourManager.updateScroll(
+                                            discussSection,
+                                        );
                                     }}
                                     content={message.content}
                                 ></MessageContent>
@@ -410,8 +415,8 @@
             <div class="wrapper-writter">
                 <div class="write-section">
                     <MessageInput
-                        on:send_message={(event) => {
-                            sendCurrentMessage(event.detail);
+                        onSendMessage={(event) => {
+                            sendCurrentMessage(event);
                         }}
                     ></MessageInput>
                 </div>
@@ -430,7 +435,7 @@
             {#each _chatts.entries() as [channel_name, info]}
                 {#if info.isConnected}
                     <User
-                        on:channel_changed={() => {
+                        onChannelChanged={() => {
                             if (nickName !== channel_name) {
                                 changeChannel(channel_name);
                             }
@@ -446,7 +451,7 @@
                 <button
                     type="button"
                     class="btn"
-                    on:click={() => {
+                    onclick={() => {
                         panelIsOpen.set(false);
 
                         panelOpeningPercentageToDisplay = 0;

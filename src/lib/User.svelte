@@ -1,27 +1,38 @@
 <script lang="ts">
-    import { createEventDispatcher } from "svelte";
     import type { Writable } from "svelte/store";
-    const dispatch = createEventDispatcher();
-    export let channelName: string;
-    export let isSelected: boolean;
-    export let isSelectable: boolean;
-    export let unread: Writable<boolean>;
+
+    let {
+        channelName,
+        isSelected,
+        isSelectable,
+        unread,
+        onChannelChanged,
+    }: {
+        channelName: string;
+        isSelected: boolean;
+        isSelectable: boolean;
+        unread: Writable<boolean>;
+        onChannelChanged: (arg0: string) => void;
+    } = $props();
 </script>
 
 {#if isSelectable}
     <button
-        class="px-0 mx-0 text-left text-nowrap text-ellipsis select-none"
+        class="px-0 mx-0 text-left text-nowrap text-ellipsis select-none rounded-md"
         class:channel-missing-messages={$unread && !isSelected}
         class:channel-selected={isSelected}
-        on:click={() => {
-            unread.set(false)
-            dispatch("channel_changed", channelName);
+        onclick={() => {
+            unread.set(false);
+            onChannelChanged(channelName);
         }}
     >
         {channelName}
     </button>
 {:else}
-    <span class="px-0 mx-0 font-bold text-left text-nowrap text-ellipsis select-none">{channelName}</span>
+    <span
+        class="px-0 mx-0 font-bold text-left text-nowrap text-ellipsis select-none"
+        >{channelName}</span
+    >
 {/if}
 
 <style>

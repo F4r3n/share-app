@@ -49,30 +49,23 @@
 <main>
   <div in:fade={{ duration: 100 }} class="w-full flex justify-center">
     <form onsubmit={connect} class="flex flex-col justify-between">
-      <div class="flex items-center mb-6">
-        <div class="w-1/3">
-          <label for="nickname" class="block text-left mb-1 md:mb-0 pr-4">
+      <div class="flex flex-col mb-2">
+          <label for="nickname">
             NickName
           </label>
-        </div>
-        <div class="w-2/3">
           <input
             bind:value={nickName}
             type="text"
             id="nickname"
             autocomplete="off"
-            class=" py-2 px-4 leading-tight"
+            class="py-2 px-4 leading-tight"
           />
-        </div>
       </div>
 
-      <div class="flex items-center mb-6">
-        <div class="w-1/3">
+      <div class="flex flex-col mb-2">
           <label for="server" class="block text-left mb-1 md:mb-0 pr-4">
             Server
           </label>
-        </div>
-        <div class="w-2/3">
           <input
             bind:value={server}
             type="text"
@@ -80,16 +73,12 @@
             autocomplete="off"
             class=" py-2 px-4 leading-tight"
           />
-        </div>
       </div>
 
-      <div class="flex items-center mb-6">
-        <div class="w-1/3">
+      <div class="flex flex-col mb-2">
           <label for="channel" class="block text-left mb-1 md:mb-0 pr-4">
             Channel
           </label>
-        </div>
-        <div class="w-2/3">
           <input
             bind:value={channel}
             type="text"
@@ -97,16 +86,12 @@
             autocomplete="off"
             class=" py-2 px-4 leading-tight"
           />
-        </div>
       </div>
 
-      <div class="flex items-center mb-6">
-        <div class="w-1/3">
+      <div class="flex flex-col mb-3">
           <label for="password" class="block text-left mb-1 md:mb-0 pr-4">
             Password
           </label>
-        </div>
-        <div class="w-2/3">
           <input
             bind:value={password}
             type="password"
@@ -114,13 +99,12 @@
             autocomplete="off"
             class=" py-2 px-4 leading-tight"
           />
-        </div>
       </div>
 
       <div class="flex flex-row">
         <button
           type="submit"
-          class="preset-filled-primary-600-400 mt-5 btn-md w-[calc(100%)] flex items-center justify-center p-4"
+          class="btn preset-filled-primary-600-400 mt-5 w-[calc(100%)] justify-center p-4"
           disabled={isConnecting}
         >
           Connexion
@@ -146,10 +130,6 @@
     display: none;
   }
 
-  button:disabled,
-  button[disabled] {
-    @apply bg-primary-100 text-primary-500;
-  }
 
   .error-show {
     display: block;
