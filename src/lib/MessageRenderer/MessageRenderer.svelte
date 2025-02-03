@@ -5,7 +5,7 @@
     import ColorTag from "./ColorTag.svelte";
     import { invoke } from "@tauri-apps/api/core";
     import type { MetaData } from "./metaData";
-
+    import { tick } from "svelte";
     let {
         tokens = [],
         onMessageFormatted,
@@ -16,10 +16,6 @@
     };
     let checkLinks: string[] = $state([]);
 
-    $effect(() => {
-        onMessageFormatted();
-    });
-
     onMount(async () => {
         for (let token of tokens) {
             if (token.type === "ATag") {
@@ -27,6 +23,14 @@
             }
         }
         checkLinks = checkLinks;
+    });
+
+    $effect.pre(() => {
+        console.log("the component is about to update");
+        tick().then(() => {
+            console.log("the component just updated");
+            onMessageFormatted();
+        });
     });
 
     function getPreview(inURL: string): Promise<MetaData> {
@@ -55,7 +59,7 @@
         {#await getPreview(link) then preview}
             <LinkPreview
                 onMessageFormatted={() => {
-                    console.log("image loaded");
+                    onMessageFormatted();
                 }}
                 {preview}
                 {link}

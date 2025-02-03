@@ -158,7 +158,6 @@
     }
 
     async function manageKeyboardEventUp(e: KeyboardEvent) {
-        console.log(e.key);
         switch (e.key) {
             case "Escape": {
                 displayAutoComplete = false;
@@ -205,7 +204,6 @@
         messageToSend = arr.join(" ");
 
         displayAutoComplete = false;
-        console.log("a");
     }
 </script>
 

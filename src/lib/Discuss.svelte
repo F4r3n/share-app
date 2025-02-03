@@ -48,9 +48,7 @@
 
         public updateScroll(inHTML: HTMLDivElement | null) {
             if (inHTML) {
-                if (this.followEnd) {
-                    this.refreshScroll(inHTML);
-                }
+                this.refreshScroll(inHTML);
             }
         }
 
@@ -346,9 +344,9 @@
         channelNameSelected = inChannel;
     }
 
-    let listMessages = messagesManager
+    let listMessages = $derived(messagesManager
         .getChannel(channelNameSelected)
-        .getListMessages();
+        .getListMessages());
 
     const unsubscribe = panelIsOpen.subscribe((value) => {
         if (value == true) panelOpeningPercentageToDisplay = 100;
