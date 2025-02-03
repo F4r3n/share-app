@@ -7,7 +7,7 @@
         value: any;
     };
 
-    let isASCII = false;
+    let isASCII = $state(false);
     let {content, onMessageFormatted}:
     {
         content : string;

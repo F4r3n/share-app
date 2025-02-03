@@ -73,7 +73,6 @@
       <SettingsButton
         onToggle={() => {
           isSettingsOpened = true;
-          console.log(isSettingsOpened);
         }}
       ></SettingsButton>
     </div>

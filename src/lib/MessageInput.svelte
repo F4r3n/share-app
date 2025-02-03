@@ -17,9 +17,9 @@
     let currentMessage: string;
     let messageToSend: string = $state("");
     let input: HTMLInputElement;
-    let displayAutoComplete: boolean = false;
+    let displayAutoComplete: boolean = $state(false);
     let completionList: object[] = [];
-    let autocomplete: Autocomplete;
+    let autocomplete: Autocomplete = $state(null);
     type Image = {
         base64: string;
         url: string;
@@ -34,7 +34,13 @@
         return [];
     }
 
-    let listImages: Image[] = [];
+    let listImages: Image[] = $state([]);
+    let listWords: AutocompletionItem[] = [];
+
+    let autocompleteMessage = $state(messageToSend?.split(" ").at(-1));
+    $effect(() => {
+        autocompleteMessage = messageToSend?.split(" ").at(-1);
+    });
 
     async function removeImage(event: Event) {
         invoke("get_image_clipboard")
@@ -110,25 +116,30 @@
             }
             case "Tab": {
                 e.preventDefault();
-                if (displayAutoComplete) {
+
+                if (displayAutoComplete && autocomplete) {
                     autocomplete.navigate(e);
                 }
+
                 if (completionList.length == 0) {
-                    let result = await invoke("get_completion_list", {
-                        endpoint: config.getCompletionConfig()?.url,
-                        token: config.getCompletionConfig()?.token,
-                        word: "",
-                    });
-                    completionList = result as object[];
+                    try {
+                        let result = await invoke("get_completion_list", {
+                            endpoint: config.getCompletionConfig()?.url,
+                            token: config.getCompletionConfig()?.token,
+                            word: "",
+                        });
+                        completionList = result as object[];
+                    } catch (e) {}
                 }
+
                 if (autocompleteMessage) {
                     if (
                         getListTriggers().some((trigger) =>
-                            autocompleteMessage.current.startsWith(trigger),
+                            autocompleteMessage.startsWith(trigger),
                         )
                     )
                         listWords = completionList as AutocompletionItem[];
-                    else if (autocompleteMessage.current.length > 0) {
+                    else if (autocompleteMessage.length > 0) {
                         listWords = ((await invoke("get_users")) as any[]).map(
                             (value) => {
                                 return {
@@ -188,17 +199,14 @@
         }
     }
 
-    let listWords: AutocompletionItem[] = [];
-
     function onCompletionSelection(event: AutocompletionItem): void {
         let arr = messageToSend?.split(" ");
         arr[arr.length - 1] = event.label;
         messageToSend = arr.join(" ");
 
         displayAutoComplete = false;
+        console.log("a");
     }
-
-    let autocompleteMessage = $derived({current:messageToSend?.split(" ").at(-1)});
 </script>
 
 <main class="relative">
@@ -230,11 +238,13 @@
             tabindex="-1"
         >
             <Autocomplete
-                bind:input={autocompleteMessage.current}
                 bind:this={autocomplete}
+                input={autocompleteMessage}
                 options={listWords}
                 triggers={getListTriggers()}
-                onSelection={onCompletionSelection}
+                onSelection={(item) => {
+                    onCompletionSelection(item);
+                }}
             />
         </div>
     {/if}
@@ -253,22 +263,19 @@
             }}
         />
         <button
-            class="ml-1 "
+            class="ml-1"
             onclick={(event) => {
                 onSendMessage(messageToSend);
                 messageToSend = "";
             }}
         >
-            <PlusSign width="15" height="15">
-            </PlusSign>
+            <PlusSign width="15" height="15"></PlusSign>
         </button>
     </div>
 </main>
 
 <style>
-
-    button
-    {
+    button {
         @apply btn;
         @apply preset-filled-primary-800-200;
         @apply px-4;

@@ -13,8 +13,7 @@
     import Arrow from "../assets/arrow.svelte";
     import ActionBar from "./ActionBar.svelte";
     import { panelIsOpen } from "./discussStore";
-    import { writable, get } from "svelte/store";
-    import type { Writable } from "svelte/store";
+    import { get } from "svelte/store";
     import { SvelteMap } from "svelte/reactivity";
     type UserType = {
         nick_name: string;
@@ -324,7 +323,6 @@
             date: new Date(),
             highlight: false,
         };
-        console.log(inMessageContent, isCommand);
         messagesManager.putMessageInList(message, channelNameSelected);
 
         if (!isCommand) {
@@ -409,7 +407,6 @@
                             >
                                 <MessageContent
                                     onMessageFormatted={() => {
-                                        console.log("update")
                                         scrollBehaviourManager.updateScroll(
                                             discussSection,
                                         );

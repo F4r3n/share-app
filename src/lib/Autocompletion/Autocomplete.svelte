@@ -2,18 +2,29 @@
     import { invoke } from "@tauri-apps/api/core";
     import type { AutocompletionItem } from "./type";
     import { config } from "../config";
+    import { onMount } from "svelte";
 
-    let {options, input = $bindable(""), triggers, onSelection}:
-    {
-        options : AutocompletionItem[],
-        input : string,
-        triggers : string[]
-        onSelection : (arg0 : AutocompletionItem)=>void
+    let {
+        options,
+        input,
+        triggers,
+        onSelection,
+    }: {
+        options: AutocompletionItem[];
+        input: string;
+        triggers: string[];
+        onSelection: (arg0: AutocompletionItem) => void;
     } = $props();
 
-    let itemID: number = 0;
+    let itemID: number = $state(0);
     let listedOptions = $derived(filterOptions(options, input));
     let triggerStart = "";
+
+    onMount(() => {
+    });
+
+    $effect(() => {
+    });
 
     function filterOptions(
         inOptions: AutocompletionItem[],
@@ -26,19 +37,23 @@
                 triggerStart = trigger;
             }
         }
+
         // Create a local copy of options
         let _options = [...inOptions];
+
         // Filter options
         _options = _options.filter((option) => {
             // Format the input search value
             const inputFormatted = String(w).toLowerCase().trim();
             // Format the option
             let optionFormatted = JSON.stringify([option.label]).toLowerCase();
+
             // Check Match
-            if (optionFormatted.includes(inputFormatted)) return option;
+            if (optionFormatted.includes(inputFormatted)) return true;
+
+            return false;
         });
-        if (listedOptions) itemID = listedOptions.length - 1;
-        else itemID = 0;
+
         return _options;
     }
 
@@ -63,13 +78,15 @@
 
     function fetchHelp(inID: number) {
         if (listedOptions[inID] && !listedOptions[inID].help) {
-            invoke("get_completion_help", {
-                endpoint: config.getCompletionConfig()?.url,
-                token: config.getCompletionConfig()?.token,
-                word: listedOptions[inID].label,
-            }).then((value) => {
-                listedOptions[inID].help = value as string;
-            });
+            try {
+                invoke("get_completion_help", {
+                    endpoint: config.getCompletionConfig()?.url,
+                    token: config.getCompletionConfig()?.token,
+                    word: listedOptions[inID].label,
+                }).then((value) => {
+                    listedOptions[inID].help = value as string;
+                });
+            } catch (error) {}
         }
     }
 
@@ -97,24 +114,27 @@
     <nav>
         <ul>
             {#each listedOptions as item, id}
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
                 <li
-                    onclick={() => {
-                        select(item);
+                    onmouseenter={() => {
+                        itemID = id;
+                        fetchHelp(id);
                     }}
                     class="hover:bg-primary-300 pl-1 rounded content-between"
                     class:hoverItem={id == itemID}
-                    use:scrollIntoView={id == itemID}
-                    onmouseenter={() => {
-                        fetchHelp(id);
-                    }}
                 >
-                    <div class="font-bold">{item.label}</div>
+                    <button
+                        onclick={() => {
+                            select(item);
+                        }}
+                        use:scrollIntoView={id == itemID}
+                        onfocus={() => {}}
+                    >
+                        <div class="font-bold">{item.label}</div>
 
-                    {#if item.help}
-                        <div class="italic">{item.help}</div>
-                    {/if}
+                        {#if item.help}
+                            <div class="italic">{item.help}</div>
+                        {/if}
+                    </button>
                 </li>
             {/each}
         </ul>
@@ -122,6 +142,15 @@
 </div>
 
 <style>
+    button {
+        all: unset;
+    }
+
+    nav {
+        @apply bg-tertiary-50;
+        border-radius: 9px;
+    }
+
     .hoverItem {
         @apply bg-primary-300;
     }
