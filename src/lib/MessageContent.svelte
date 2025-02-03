@@ -1,17 +1,18 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { createEventDispatcher } from "svelte";
     import MessageRenderer from "./MessageRenderer/MessageRenderer.svelte";
-    import { afterUpdate } from "svelte";
 
     type Token = {
         type: string;
         value: any;
     };
-    const dispatch = createEventDispatcher();
 
     let isASCII = false;
-    export let content = "";
+    let {content, onMessageFormatted}:
+    {
+        content : string;
+        onMessageFormatted : ()=>void;
+    } = $props();
     let regex: RegExp = /(http:\/\/|https:\/\/){1}(www.)?.[^\s]+/g;
 
     function isASCIIArt(inLine: string) {
@@ -32,7 +33,6 @@
         isASCII = isASCIIArt(content);
     });
 
-    afterUpdate(() => {});
 
     function parseElement(inContent : string) : Token[]
     {
@@ -156,7 +156,7 @@
 <div class="message" class:message-ascii={isASCII}>
     <MessageRenderer
         onMessageFormatted={() => {
-            dispatch("message_formatted");
+           onMessageFormatted();
         }}
         tokens={createTokens(content)}
     ></MessageRenderer>

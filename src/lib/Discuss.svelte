@@ -15,7 +15,7 @@
     import { panelIsOpen } from "./discussStore";
     import { writable, get } from "svelte/store";
     import type { Writable } from "svelte/store";
-    import { SvelteMap } from 'svelte/reactivity';
+    import { SvelteMap } from "svelte/reactivity";
     type UserType = {
         nick_name: string;
         user_mode: number;
@@ -32,6 +32,7 @@
     } = $props();
 
     class ScrollBehaviorManager {
+        public followEnd = true;
         private _hasReachedEnd: boolean = true;
         public scroll_behaviour: ScrollBehavior = "smooth";
 
@@ -48,7 +49,7 @@
 
         public updateScroll(inHTML: HTMLDivElement | null) {
             if (inHTML) {
-                if (scrollBehaviourManager.isAtTheEnd()) {
+                if (this.followEnd) {
                     this.refreshScroll(inHTML);
                 }
             }
@@ -98,16 +99,17 @@
         return chatt ? chatt : new ChattManager(inChannel);
     }
 
-    let topic: string = "";
-    let channelNameSelected: string = channel ?? "";
+    let topic: string = $state("");
+    let channelNameSelected: string = $state(channel ?? "");
 
-    let discussSection: HTMLDivElement | null = null;
+    let discussSection: HTMLDivElement | null = $state(null);
 
-    let _chatts: SvelteMap<string, ChattManager> = new SvelteMap<string, ChattManager>([
-        [channel, new ChattManager(channel)],
-    ]);
+    let _chatts: SvelteMap<string, ChattManager> = new SvelteMap<
+        string,
+        ChattManager
+    >([[channel, new ChattManager(channel)]]);
 
-    let isLoaded = true;
+    let isLoaded = $state(true);
     let irc_received_unsubscribe = () => {};
 
     function isMessageHighlight(inMessageContent: string): boolean {
@@ -252,12 +254,20 @@
         irc_received();
         read_messages();
         irc_event();
-
+        discussSection.addEventListener("wheel", function (e) {
+            if (e.deltaY < 0) {
+                scrollBehaviourManager.followEnd = false;
+            }
+            else{
+                scrollBehaviourManager.followEnd = scrollBehaviourManager.isAtTheEnd();
+            }
+            
+        });
         panelIsOpen.set(currentModeSize == Width_Mode.DESKTOP);
     });
 
     let screen_height = window.innerHeight;
-    let screen_width = window.innerWidth;
+    let screen_width = $state(window.innerWidth);
     const mobile_width = 500;
     let panelOpeningPercentage = $state(0);
     let panelOpeningPercentageToDisplay = $state(0);
@@ -300,15 +310,13 @@
             for (let user of (await invoke("get_users")) as UserType[]) {
                 getChat(user.nick_name).isConnected = true;
             }
-            _chatts = _chatts;
         } catch (e) {
             console.error(e);
         }
     }
 
     function sendCurrentMessage(inMessageContent: string) {
-        if(inMessageContent ===  "")
-            return;
+        if (inMessageContent === "") return;
         const isCommand: boolean = inMessageContent.at(0) == "/";
         let message: Message = {
             nick_name: nickName,
@@ -400,7 +408,8 @@
                                     ""}
                             >
                                 <MessageContent
-                                    on:message_formatted={() => {
+                                    onMessageFormatted={() => {
+                                        console.log("update")
                                         scrollBehaviourManager.updateScroll(
                                             discussSection,
                                         );

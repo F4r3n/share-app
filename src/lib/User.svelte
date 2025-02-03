@@ -1,6 +1,4 @@
 <script lang="ts">
-    import type { Writable } from "svelte/store";
-
     let {
         channelName,
         isSelected,

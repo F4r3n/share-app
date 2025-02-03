@@ -8,12 +8,13 @@
 </script>
 
 <div
-    class="flex flex-row bg-primary-500-400-token text-on-primary-token justify-between max-w[100%] leading-5 items-center align-middle p-1"
+    class="flex flex-row preset-filled-primary-300-700 justify-between max-w[100%] leading-5 items-center align-middle p-1"
 >
     <button
         class={showTopic ? "topic-show" : "topic-hide"}
         onclick={() => {
             showTopic = !showTopic;
+            console.log(showTopic)
         }}
     >
         {topic}
@@ -47,7 +48,6 @@
 
     .arrow {
         transform: rotate(180deg);
-        stroke: theme("colors.primary.50");
-        stroke-width: 1px;
+        stroke-width: 4;
     }
 </style>
