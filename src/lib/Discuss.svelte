@@ -47,7 +47,7 @@
         }
 
         public updateScroll(inHTML: HTMLDivElement | null) {
-            if (inHTML) {
+            if (inHTML && this.followEnd) {
                 this.refreshScroll(inHTML);
             }
         }
