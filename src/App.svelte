@@ -6,16 +6,16 @@
   import { listen } from "@tauri-apps/api/event";
   import { invoke } from "@tauri-apps/api/core";
   import SettingsButton from "./lib/SettingsButton.svelte";
-  import SettingsPanel from "$lib/SettingsPanel.svelte";
+  import SettingsPanel from "./lib/SettingsPanel.svelte";
   import { clickOutside } from "./lib/clickOutside";
 
-  let nickName = "pickles";
-  let server = "chat.freenode.net";
-  let channel = "#rust-spam";
-  let password = "";
+  let nickName: string = "pickles";
+  let server: string = "chat.freenode.net";
+  let channel: string = "#rust-spam";
+  let password: string = "";
 
   let isSettingsOpened = false;
-  let hasFailed = false;
+  let hasFailed: boolean = false;
   let errorMessage = "";
   type Event = {
     payload: {
@@ -40,7 +40,7 @@
     try {
       await config.read();
       const c = config.getConnectionConfig();
-      console.log(c)
+      console.log(c);
 
       nickName = c.nick_name;
       server = c.server;
@@ -71,9 +71,8 @@
   {#if !isConnected}
     <div class="m-1 text-primary-600">
       <SettingsButton
-        on:toggle={() => {
+        onToggle={() => {
           isSettingsOpened = true;
-          console.log(isSettingsOpened);
         }}
       ></SettingsButton>
     </div>
@@ -88,7 +87,7 @@
       bind:channel
       bind:password
       {hasFailed}
-      on:connected={() => {
+      onConnected={() => {
         console.log("Is Connected");
         isConnected = true;
         config.setConnectionSettings(nickName, server, channel, password);
@@ -106,7 +105,7 @@
     {/if}
   {:else}
     <Discuss
-      on:connection_status={(event) => {
+      onConnectionStatus={(event: any) => {
         isConnected = event.detail.result;
         errorMessage = event.detail.message;
       }}

@@ -2,22 +2,19 @@
     import ATag from "./ATag.svelte";
     import LinkPreview from "./LinkPreview.svelte";
     import { onMount } from "svelte";
-    import { createEventDispatcher } from "svelte";
-    import { afterUpdate } from "svelte";
     import ColorTag from "./ColorTag.svelte";
     import { invoke } from "@tauri-apps/api/core";
     import type { MetaData } from "./metaData";
-
-    const dispatch = createEventDispatcher();
-
+    import { tick } from "svelte";
+    let {
+        tokens = [],
+        onMessageFormatted,
+    }: { tokens: Token[]; onMessageFormatted: () => void } = $props();
     type Token = {
         type: string;
         value: any;
     };
-
-    afterUpdate(() => {
-        dispatch("message_formatted");
-    });
+    let checkLinks: string[] = $state([]);
 
     onMount(async () => {
         for (let token of tokens) {
@@ -28,12 +25,17 @@
         checkLinks = checkLinks;
     });
 
+    $effect.pre(() => {
+        console.log("the component is about to update");
+        tick().then(() => {
+            console.log("the component just updated");
+            onMessageFormatted();
+        });
+    });
+
     function getPreview(inURL: string): Promise<MetaData> {
         return invoke("get_url_preview", { endpoint: inURL });
     }
-
-    export let tokens: Token[] = [];
-    let checkLinks: string[] = [];
 </script>
 
 <main>
@@ -56,8 +58,8 @@
     {#each checkLinks as link}
         {#await getPreview(link) then preview}
             <LinkPreview
-                on:message_formatted={() => {
-                    console.log("image loaded")
+                onMessageFormatted={() => {
+                    onMessageFormatted();
                 }}
                 {preview}
                 {link}

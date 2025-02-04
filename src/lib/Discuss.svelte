@@ -7,27 +7,31 @@
     import MessageInput from "./MessageInput.svelte";
     import type { Message } from "./channel";
     import User from "./User.svelte";
-    import { createEventDispatcher } from "svelte";
     import { Window, UserAttentionType } from "@tauri-apps/api/window";
     import { messagesManager } from "./MessagesManager";
     import type { MessageFromIRC } from "./MessageType";
     import Arrow from "../assets/arrow.svelte";
     import ActionBar from "./ActionBar.svelte";
     import { panelIsOpen } from "./discussStore";
-    import { writable, get } from "svelte/store";
-    import type { Writable } from "svelte/store";
-
-    const dispatch = createEventDispatcher();
-
-    type User = {
+    import { get } from "svelte/store";
+    import { SvelteMap } from "svelte/reactivity";
+    type UserType = {
         nick_name: string;
         user_mode: number;
     };
 
-    export let nickName: string;
-    export let channel: string;
+    let {
+        nickName,
+        channel,
+        onConnectionStatus,
+    }: {
+        nickName: string;
+        channel: string;
+        onConnectionStatus: ({}) => void;
+    } = $props();
 
     class ScrollBehaviorManager {
+        public followEnd = true;
         private _hasReachedEnd: boolean = true;
         public scroll_behaviour: ScrollBehavior = "smooth";
 
@@ -43,12 +47,8 @@
         }
 
         public updateScroll(inHTML: HTMLDivElement | null) {
-            if (inHTML) {
-                if (
-                    scrollBehaviourManager.isAtTheEnd()
-                ) {
-                    this.refreshScroll(inHTML);
-                }
+            if (inHTML && this.followEnd) {
+                this.refreshScroll(inHTML);
             }
         }
 
@@ -65,20 +65,19 @@
 
     class ChattManager {
         public isConnected = true;
-        public isUnread: Writable<boolean> = writable(false);
-        constructor(name: string) {
-        }
+        public isUnread: boolean = $state(false);
+        constructor(name: string) {}
 
         public pushMessage() {
-            this.isUnread.set(true);
+            this.isUnread = true;
         }
 
         public setAsSelected(isSelected: boolean) {
             if (isSelected) {
-                this.isUnread.set(false);
+                this.isUnread = false;
                 scrollBehaviourManager.scroll_behaviour = "smooth";
             } else {
-                this.isUnread.set(false);
+                this.isUnread = false;
                 scrollBehaviourManager.scroll_behaviour = "instant";
             }
         }
@@ -91,23 +90,23 @@
     function getChat(inChannel: string): ChattManager {
         if (!_chatts.has(inChannel)) {
             _chatts.set(inChannel, new ChattManager(inChannel));
-            _chatts = _chatts;
         }
 
         let chatt = _chatts.get(inChannel);
         return chatt ? chatt : new ChattManager(inChannel);
     }
 
-    let topic: string = "";
-    let channelNameSelected: string = channel ?? "";
+    let topic: string = $state("");
+    let channelNameSelected: string = $state(channel ?? "");
 
-    let discussSection: HTMLDivElement | null = null;
+    let discussSection: HTMLDivElement | null = $state(null);
 
-    let _chatts: Map<string, ChattManager> = new Map<string, ChattManager>([
-        [channel, new ChattManager(channel)],
-    ]);
+    let _chatts: SvelteMap<string, ChattManager> = new SvelteMap<
+        string,
+        ChattManager
+    >([[channel, new ChattManager(channel)]]);
 
-    let isLoaded = true;
+    let isLoaded = $state(true);
     let irc_received_unsubscribe = () => {};
 
     function isMessageHighlight(inMessageContent: string): boolean {
@@ -223,7 +222,7 @@
                             message: data.content,
                             shallSendMessage: false,
                         }).then(() => {
-                            dispatch("connection_status", {
+                            onConnectionStatus({
                                 result: false,
                                 message: data.content,
                             });
@@ -252,16 +251,24 @@
         irc_received();
         read_messages();
         irc_event();
-
+        discussSection.addEventListener("wheel", function (e) {
+            if (e.deltaY < 0) {
+                scrollBehaviourManager.followEnd = false;
+            }
+            else{
+                scrollBehaviourManager.followEnd = scrollBehaviourManager.isAtTheEnd();
+            }
+            
+        });
         panelIsOpen.set(currentModeSize == Width_Mode.DESKTOP);
     });
 
     let screen_height = window.innerHeight;
-    let screen_width = window.innerWidth;
+    let screen_width = $state(window.innerWidth);
     const mobile_width = 500;
-    $: panelOpeningPercentage = 0;
+    let panelOpeningPercentage = $state(0);
+    let panelOpeningPercentageToDisplay = $state(0);
     const maxOpeningUserDistance = 80;
-    $: panelOpeningPercentageToDisplay = 0;
 
     enum Width_Mode {
         PHONE,
@@ -270,8 +277,9 @@
 
     let currentModeSize =
         screen_width < mobile_width ? Width_Mode.PHONE : Width_Mode.DESKTOP;
-    $: panel_mode =
-        screen_width < mobile_width ? Width_Mode.PHONE : Width_Mode.DESKTOP;
+    let panel_mode = $derived(
+        screen_width < mobile_width ? Width_Mode.PHONE : Width_Mode.DESKTOP,
+    );
     function onResize() {
         if (currentModeSize != panel_mode) {
             currentModeSize = panel_mode;
@@ -296,16 +304,16 @@
             }
             getChat(channel).isConnected = true;
 
-            for (let user of (await invoke("get_users")) as User[]) {
+            for (let user of (await invoke("get_users")) as UserType[]) {
                 getChat(user.nick_name).isConnected = true;
             }
-            _chatts = _chatts;
         } catch (e) {
             console.error(e);
         }
     }
 
     function sendCurrentMessage(inMessageContent: string) {
+        if (inMessageContent === "") return;
         const isCommand: boolean = inMessageContent.at(0) == "/";
         let message: Message = {
             nick_name: nickName,
@@ -313,7 +321,6 @@
             date: new Date(),
             highlight: false,
         };
-        console.log(inMessageContent, isCommand)
         messagesManager.putMessageInList(message, channelNameSelected);
 
         if (!isCommand) {
@@ -325,7 +332,7 @@
                 .catch((e) => console.error(e));
         } else {
             invoke("send_irc_command", {
-                message: inMessageContent.slice(1)
+                message: inMessageContent.slice(1),
             }).then(() => {});
         }
     }
@@ -337,18 +344,19 @@
         channelNameSelected = inChannel;
     }
 
-    $: listMessages = messagesManager
+    let listMessages = $derived(messagesManager
         .getChannel(channelNameSelected)
-        .getListMessages();
+        .getListMessages());
 
     const unsubscribe = panelIsOpen.subscribe((value) => {
         if (value == true) panelOpeningPercentageToDisplay = 100;
         else panelOpeningPercentageToDisplay = 0;
     });
-    $: open =
+    let open = $derived(
         panel_mode == Width_Mode.DESKTOP ||
-        $panelIsOpen ||
-        panelOpeningPercentageToDisplay > 0;
+            $panelIsOpen ||
+            panelOpeningPercentageToDisplay > 0,
+    );
 </script>
 
 <svelte:window on:resize={onResize} />
@@ -363,10 +371,10 @@
             <div
                 class="flex-grow overflow-y-auto"
                 bind:this={discussSection}
-                on:scrollend={() => {
+                onscrollend={() => {
                     if (discussSection) {
                         scrollBehaviourManager.updateScrollPosition(
-                            discussSection
+                            discussSection,
                         );
                     }
                 }}
@@ -396,8 +404,10 @@
                                     ""}
                             >
                                 <MessageContent
-                                    on:message_formatted={() => {
-                                        scrollBehaviourManager.updateScroll(discussSection);
+                                    onMessageFormatted={() => {
+                                        scrollBehaviourManager.updateScroll(
+                                            discussSection,
+                                        );
                                     }}
                                     content={message.content}
                                 ></MessageContent>
@@ -410,8 +420,8 @@
             <div class="wrapper-writter">
                 <div class="write-section">
                     <MessageInput
-                        on:send_message={(event) => {
-                            sendCurrentMessage(event.detail);
+                        onSendMessage={(event) => {
+                            sendCurrentMessage(event);
                         }}
                     ></MessageInput>
                 </div>
@@ -430,7 +440,7 @@
             {#each _chatts.entries() as [channel_name, info]}
                 {#if info.isConnected}
                     <User
-                        on:channel_changed={() => {
+                        onChannelChanged={() => {
                             if (nickName !== channel_name) {
                                 changeChannel(channel_name);
                             }
@@ -446,7 +456,7 @@
                 <button
                     type="button"
                     class="btn"
-                    on:click={() => {
+                    onclick={() => {
                         panelIsOpen.set(false);
 
                         panelOpeningPercentageToDisplay = 0;
@@ -531,15 +541,9 @@
 
     .message {
         margin-top: var(--space);
-        /*color-mix(in srgb,rgba(var(--color-tertiary-100)),#0000 25%);
-        rgba(var(--color-tertiary-100));*/
-        background-color: color-mix(
-            in srgb,
-            rgba(var(--color-tertiary-100)),
-            #0000 40%
-        );
 
-        color: theme("colors.tertiary.800");
+        @apply text-secondary-950;
+        @apply bg-secondary-50;
 
         @apply ml-2 mr-2 mt-1;
         @apply rounded-xl;

@@ -1,6 +1,5 @@
 <script lang="ts">
     import PlusSign from "../assets/plus-sign-svg.svelte";
-    import { createEventDispatcher } from "svelte";
     import { onMount, onDestroy } from "svelte";
     import { invoke } from "@tauri-apps/api/core";
     import { config } from "./config";
@@ -11,16 +10,16 @@
     //import { Autocomplete } from "@skeletonlabs/skeleton";
     import Autocomplete from "./Autocompletion/Autocomplete.svelte";
     import type { UploadImageConfig } from "./config";
-    const dispatch = createEventDispatcher();
+
+    let { onSendMessage }: { onSendMessage: (arg0: string) => void } = $props();
 
     let messageHistory = new MessageHistory();
     let currentMessage: string;
-    let messageToSend: string;
-    let autocompleteMessage: string = "";
+    let messageToSend: string = $state("");
     let input: HTMLInputElement;
-    let displayAutoComplete: boolean = false;
+    let displayAutoComplete: boolean = $state(false);
     let completionList: object[] = [];
-    let autocomplete: Autocomplete;
+    let autocomplete: Autocomplete = $state(null);
     type Image = {
         base64: string;
         url: string;
@@ -35,7 +34,13 @@
         return [];
     }
 
-    let listImages: Image[] = [];
+    let listImages: Image[] = $state([]);
+    let listWords: AutocompletionItem[] = [];
+
+    let autocompleteMessage = $state(messageToSend?.split(" ").at(-1));
+    $effect(() => {
+        autocompleteMessage = messageToSend?.split(" ").at(-1);
+    });
 
     async function removeImage(event: Event) {
         invoke("get_image_clipboard")
@@ -111,17 +116,22 @@
             }
             case "Tab": {
                 e.preventDefault();
-                if (displayAutoComplete) {
+
+                if (displayAutoComplete && autocomplete) {
                     autocomplete.navigate(e);
                 }
+
                 if (completionList.length == 0) {
-                    let result = await invoke("get_completion_list", {
-                        endpoint: config.getCompletionConfig()?.url,
-                        token: config.getCompletionConfig()?.token,
-                        word: "",
-                    });
-                    completionList = result as object[];
+                    try {
+                        let result = await invoke("get_completion_list", {
+                            endpoint: config.getCompletionConfig()?.url,
+                            token: config.getCompletionConfig()?.token,
+                            word: "",
+                        });
+                        completionList = result as object[];
+                    } catch (e) {}
                 }
+
                 if (autocompleteMessage) {
                     if (
                         getListTriggers().some((trigger) =>
@@ -148,7 +158,6 @@
     }
 
     async function manageKeyboardEventUp(e: KeyboardEvent) {
-        console.log(e.key);
         switch (e.key) {
             case "Escape": {
                 displayAutoComplete = false;
@@ -168,7 +177,7 @@
                         }
 
                         messageHistory.append(messageToSend);
-                        dispatch("send_message", messageToSend);
+                        onSendMessage(messageToSend);
                         listImages = [];
                         messageToSend = "";
                     } catch (e) {
@@ -189,21 +198,13 @@
         }
     }
 
-    let listWords: AutocompletionItem[] = [];
-
-    function onCompletionSelection(
-        event: CustomEvent<AutocompletionItem>,
-    ): void {
-        if (event.detail) {
-            let arr = messageToSend?.split(" ");
-            arr[arr.length - 1] = event.detail.label;
-            messageToSend = arr.join(" ");
-        }
+    function onCompletionSelection(event: AutocompletionItem): void {
+        let arr = messageToSend?.split(" ");
+        arr[arr.length - 1] = event.label;
+        messageToSend = arr.join(" ");
 
         displayAutoComplete = false;
     }
-
-    $: autocompleteMessage = messageToSend?.split(" ").at(-1) as string;
 </script>
 
 <main class="relative">
@@ -212,7 +213,7 @@
             <div class="pasted-image">
                 <button
                     class="top close"
-                    on:click={() => {
+                    onclick={() => {
                         messageToSend = messageToSend.replace(image.name, "");
                         listImages = listImages.filter((i) => {
                             i.name !== image.name;
@@ -235,11 +236,13 @@
             tabindex="-1"
         >
             <Autocomplete
-                bind:input={autocompleteMessage}
                 bind:this={autocomplete}
+                input={autocompleteMessage}
                 options={listWords}
                 triggers={getListTriggers()}
-                on:selection={onCompletionSelection}
+                onSelection={(item) => {
+                    onCompletionSelection(item);
+                }}
             />
         </div>
     {/if}
@@ -250,17 +253,17 @@
             type="text"
             bind:this={input}
             bind:value={messageToSend}
-            on:keydown={async (e) => {
+            onkeydown={async (e) => {
                 manageKeyboardEventDown(e);
             }}
-            on:keyup={async (e) => {
+            onkeyup={async (e) => {
                 manageKeyboardEventUp(e);
             }}
         />
         <button
-            class="ml-1 bg-primary-500-400-token text-on-primary-token btn-base"
-            on:click={(event) => {
-                dispatch("send_message", messageToSend);
+            class="ml-1"
+            onclick={(event) => {
+                onSendMessage(messageToSend);
                 messageToSend = "";
             }}
         >
@@ -270,6 +273,11 @@
 </main>
 
 <style>
+    button {
+        @apply btn;
+        @apply preset-filled-primary-800-200;
+        @apply px-4;
+    }
     .pasted-image {
         width: 150px;
         max-height: 150px;

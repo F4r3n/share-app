@@ -1,11 +1,11 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
+    import { type Snippet } from 'svelte';
+    let { background, foreground, children }: { background: number; foreground: number, children : Snippet } =
+        $props();
 
-    export let background: number;
-    export let foreground: number;
-
-    let cb : any;
-    let cf : any;
+    let cb: any = $state({});
+    let cf: any = $state({});
     const ircColor = [
         { name: "White", value: "FFFFFF" },
         { name: "Black", value: "000000" },
@@ -23,7 +23,6 @@
         { name: "Magenta", value: "FF00FF" },
         { name: "Gray", value: "7F7F7F" },
         { name: "Light Gray", value: "D2D2D2" },
-
     ];
     onMount(async () => {
         cb = ircColor[background];
@@ -34,7 +33,7 @@
 </script>
 
 {#if cf && cb}
-    <span style="background-color:#{cb.value};color:#{cf.value}"><slot/></span>
+    <span style="background-color:#{cb.value};color:#{cf.value}">{@render children()}</span>
 {:else}
-    <span><slot/></span>
+    <span>{@render children()}</span>
 {/if}
