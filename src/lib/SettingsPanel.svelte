@@ -1,85 +1,121 @@
 <script lang="ts">
-    import { slide } from 'svelte/transition';
-    import { linear } from 'svelte/easing';
-    import {config} from './config'
-    import { onDestroy, onMount } from 'svelte';
-    import type {CompletionConfig, UploadImageConfig} from "./config"
+  import { config } from "./config";
+  import { onMount } from "svelte";
+  import type { Setting } from "./config";
 
-    let options = {duration: 100, easing: linear};
-    const completionConfig : CompletionConfig | undefined = config.getCompletionConfig();
-    const uploadConfig : UploadImageConfig | undefined = config.getUploadImageConfig();
+  let {
+    onExit,
+    onValidate,
+  }: {
+    onExit: () => void;
+    onValidate: (arg0: Setting) => void;
+  } = $props();
 
-    let upload_image_get : string;
-    let upload_image_post : string;
-    let completion_url : string;
-    let completion_token : string;
-    let completion_triggers : string;
-    onMount(async () => {
-        upload_image_get = uploadConfig ? uploadConfig.url_get : "";
-        upload_image_post = uploadConfig ? uploadConfig.url_post : "";
-        completion_url = completionConfig ? completionConfig.url : "";
-        completion_token = completionConfig ? completionConfig.token : "";
-        completion_triggers = completionConfig ? completionConfig.triggers.join(" ") : "";
-	});
+  let setting_clone: Setting = $state(structuredClone(config.config));
 
-    onDestroy(async () => {
-		config.setUploadImageConfig({url_get: upload_image_get, url_post:upload_image_post})
-        config.setCompletionConfig({url:completion_url, token:completion_token, triggers:completion_triggers.split(" ")})
-        await config.write()
-	});
+  let list_options = [
+    {
+      section: "Upload",
+      id: "upload_image",
+      options: [
+        {
+          title: "Url get",
+          id: "url_get",
+        },
+        {
+          title: "Url post",
+          id: "url_post",
+        },
+      ],
+    },
+    {
+      section: "Completion",
+      id: "completion",
+      options: [
+        {
+          title: "Url",
+          id: "url",
+        },
+        {
+          title: "Token",
+          id: "token",
+        },
+      ],
+    },
+  ];
+  onMount(async () => {
+
+  });
 </script>
 
-<div transition:slide={{...options, axis:"x"}} class="panel">
-    <div class="section">
-        <div class="subtitle">Upload image get</div>
-        <input type="text" bind:value={upload_image_get}/>
-        <div class="subtitle">Upload image post</div>
-        <input type="text" bind:value={upload_image_post}/>
-    </div>
+<div class="panel gap-4">
+  <form class="w-full max-w-sm">
+    {#if setting_clone}
+      {#each list_options as section}
+      <div class="font-bold">{section.section}</div>
+        {#each section.options as option}
+          <div class="md:flex md:items-center mb-6">
+            <div class="md:w-1/3">
+              <label
+                class="block md:text-right mb-1 md:mb-0 pr-4"
+                for="inline-full-name"
+              >
+                {option.title}
+              </label>
+            </div>
+            <div class="md:w-2/3">
+              <input
+                class="appearance-none border-2 rounded w-full py-2 px-4 leading-tight focus:outline-none"
+                id="inline-full-name"
+                type="text"
+                bind:value={setting_clone[section.id][option.id]}
+              />
+            </div>
+          </div>
+        {/each}
+      {/each}
+    {/if}
+  </form>
 
-    <div class="section">
-        <div class="subtitle">Completion url</div>
-        <input type="text" bind:value={completion_url}/>
-        <div class="subtitle">Completion token</div>
-        <input type="text" bind:value={completion_token}/>
-        <div class="subtitle">Completion triggers</div>
-        <input type="text" bind:value={completion_triggers}/>
-    </div>
+  <div class="flex flex-row justify-center">
+    <button
+      class="btn preset-filled-primary-600-400 mt-1 justify-center p-4"
+      onclick={() => {
+        onValidate(setting_clone);
+      }}>OK</button
+    >
+    <button
+      class="btn preset-filled-primary-600-400 mt-1 justify-center p-4 ml-1"
+      onclick={() => {
+        onExit();
+      }}>Close</button
+    >
+  </div>
 </div>
 
 <style>
+  .panel input {
+    font-family: inherit;
+    border-radius: 3px;
+    line-height: 10px;
+    @apply border rounded w-full;
+  }
 
-
-
-    .subtitle {
-        color: var(--outline-color);
-        font-size: larger;
-        margin: 5px;
-    }
-
-    .section {
-        margin-left: 5px;
-        margin-top: 10px;
-    }
-
-    .panel input {
-        font-family: inherit;
-        border-radius: 3px;
-        width: 90%;
-    }
-
-    .panel {
-        display: flex;
-        flex-direction: column;
-        position: fixed; /* Stay in place */
-        z-index: 1; /* Stay on top */
-        top: 0;
-        left: 0;
-        height: 100%;
-        width:50%;
-        background-color: var(--background-color);
-        -webkit-box-shadow: 5px 5px 15px 5px rgba(0,0,0,0.48); 
-        box-shadow: 5px 5px 15px 5px rgba(0,0,0,0.48);
-    }
-    
+  .panel {
+    display: flex;
+    flex-direction: column;
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Stay on top */
+    left: 50%;
+    transform: translateX(-50%);
+    height: 80%;
+    width: 80%;
+    @apply bg-surface-50-950;
+    @apply justify-center;
+    -webkit-box-shadow: 5px 5px 15px 5px rgba(0, 0, 0, 0.48);
+    box-shadow: 5px 5px 15px 5px rgba(0, 0, 0, 0.48);
+    border-radius: 5px;
+    border-width: 3px;
+    @apply border-tertiary-50;
+  }
 </style>

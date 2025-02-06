@@ -29,7 +29,7 @@
     function getListTriggers(): string[] {
         let completionConfig = config.getCompletionConfig();
         if (completionConfig) {
-            return completionConfig.triggers;
+            return completionConfig.triggers.split(" ");
         }
         return [];
     }

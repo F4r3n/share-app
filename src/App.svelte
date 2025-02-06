@@ -3,6 +3,7 @@
   import Connection from "./lib/Connection.svelte";
   import { onMount, onDestroy } from "svelte";
   import { config } from "./lib/config";
+  import type { CompletionConfig, UploadImageConfig, Setting } from "./lib/config";
   import { listen } from "@tauri-apps/api/event";
   import { invoke } from "@tauri-apps/api/core";
   import SettingsButton from "./lib/SettingsButton.svelte";
@@ -78,7 +79,16 @@
     </div>
     {#if isSettingsOpened}
       <div use:clickOutside on:click_outside={handleClickOutside}>
-        <SettingsPanel></SettingsPanel>
+        <SettingsPanel
+          onExit={() => {
+            isSettingsOpened = false;
+          }}
+          onValidate={(setting : Setting
+          ) => {
+            config.setConfig(setting);
+            config.write();
+          }}
+        ></SettingsPanel>
       </div>
     {/if}
     <Connection

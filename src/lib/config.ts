@@ -15,10 +15,10 @@ export type UploadImageConfig = {
 export type CompletionConfig = {
     url: string;
     token: string;
-    triggers: string[];
+    triggers: string; //separated by a space
 }
 
-type Setting = {
+export type Setting = {
     connection_config: ConnectionConfig;
     upload_image?: UploadImageConfig;
     completion?: CompletionConfig;
@@ -44,7 +44,7 @@ class Config {
         this.config.completion = {
             url: "",
             token: "",
-            triggers: []
+            triggers: ""
         } as CompletionConfig
 
     }
@@ -62,7 +62,6 @@ class Config {
         this.config.upload_image = option;
     }
     setCompletionConfig(option: CompletionConfig) {
-        console.log(option)
         this.config.completion = option;
     }
 
