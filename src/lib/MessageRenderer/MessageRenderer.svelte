@@ -26,9 +26,7 @@
     });
 
     $effect.pre(() => {
-        console.log("the component is about to update");
         tick().then(() => {
-            console.log("the component just updated");
             onMessageFormatted();
         });
     });
