@@ -35,7 +35,7 @@
     }
 
     let listImages: Image[] = $state([]);
-    let listWords: AutocompletionItem[] = [];
+    let listWords: AutocompletionItem[] = $state([]);
 
     let autocompleteMessage = $state(messageToSend?.split(" ").at(-1));
     $effect(() => {
