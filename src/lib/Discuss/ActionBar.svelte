@@ -1,6 +1,6 @@
 <script lang="ts">
-    import LongArrow from "../assets/long-arrow.svelte";
-    import { panelIsOpen } from "./discussStore";
+    import LongArrow from "../../assets/long-arrow.svelte";
+    import { panelIsOpen } from "../discussStore";
 
     let { topic = "TEST" } = $props();
 

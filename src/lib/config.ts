@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-
+import { theme_mode, theme_name } from './theme.svelte';
 type ConnectionConfig = {
     nick_name: string;
     server: string;
@@ -18,10 +18,19 @@ export type CompletionConfig = {
     triggers: string; //separated by a space
 }
 
+export type Theme_Mode = "dark" | "light";
+export type Theme_Name = "modern" | "cerberus";
+
+export type Theme = {
+    mode: Theme_Mode;
+    name: Theme_Name;
+}
+
 export type Setting = {
     connection_config: ConnectionConfig;
     upload_image?: UploadImageConfig;
     completion?: CompletionConfig;
+    theme?: Theme
 }
 
 class Config {
@@ -47,6 +56,11 @@ class Config {
             triggers: ""
         } as CompletionConfig
 
+        this.config.theme = {
+            mode: "light",
+            name: "modern"
+        } as Theme
+
     }
 
     setConnectionSettings(inNickName: string, inServer: string, inChannel: string, inPassword: string) {
@@ -69,11 +83,11 @@ class Config {
         return this.config.connection_config;
     }
 
-    getUploadImageConfig(): UploadImageConfig|undefined {
+    getUploadImageConfig(): UploadImageConfig | undefined {
         return this.config.upload_image;
     }
 
-    getCompletionConfig(): CompletionConfig|undefined {
+    getCompletionConfig(): CompletionConfig | undefined {
         return this.config.completion;
     }
 
@@ -81,17 +95,37 @@ class Config {
         return this.config;
     }
 
+    private _updateTheme() {
+        if (this.config.theme) {
+            console.log("New theme", this.config.theme.name);
+            theme_mode.set(this.config.theme.mode);
+            theme_name.set(this.config.theme.name);
+        }
+    }
+
     setConfig(inConfig: Setting) {
         this.config = inConfig;
+        console.log(this.config)
+
+        this._updateTheme();
+
     }
 
     async read() {
         this.config = await invoke("load_settings") as Setting;
-        console.log("Read",this.config)
+        if (!this.config.theme) {
+            this.config.theme = {
+                mode: "light",
+                name: "modern"
+            } as Theme
+        }
+        this._updateTheme();
+
+        console.log("Read", this.config)
     }
 
     async write() {
-        console.log("Write",this.config)
+        console.log("Write", this.config)
         await invoke("save_settings", { settings: this.config })
     }
 }

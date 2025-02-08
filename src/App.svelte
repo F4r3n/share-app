@@ -1,14 +1,11 @@
 <script lang="ts">
-  import Discuss from "./lib/Discuss.svelte";
+  import Discuss from "$lib/Discuss/Discuss.svelte";
   import Connection from "./lib/Connection.svelte";
   import { onMount, onDestroy } from "svelte";
   import { config } from "./lib/config";
-  import type { CompletionConfig, UploadImageConfig, Setting } from "./lib/config";
   import { listen } from "@tauri-apps/api/event";
   import { invoke } from "@tauri-apps/api/core";
-  import SettingsButton from "./lib/SettingsButton.svelte";
-  import SettingsPanel from "./lib/SettingsPanel.svelte";
-  import { clickOutside } from "./lib/clickOutside";
+  import Settings from "$lib/Settings/Settings.svelte";
 
   let nickName: string = "pickles";
   let server: string = "chat.freenode.net";
@@ -62,35 +59,11 @@
   });
 
   let isConnected = false;
-
-  function handleClickOutside(event: CustomEvent) {
-    isSettingsOpened = false;
-  }
 </script>
 
 <main class="flex flex-col max-w-full max-h-full min-w-0">
   {#if !isConnected}
-    <div class="m-1 text-primary-600">
-      <SettingsButton
-        onToggle={() => {
-          isSettingsOpened = true;
-        }}
-      ></SettingsButton>
-    </div>
-    {#if isSettingsOpened}
-      <div use:clickOutside on:click_outside={handleClickOutside}>
-        <SettingsPanel
-          onExit={() => {
-            isSettingsOpened = false;
-          }}
-          onValidate={(setting : Setting
-          ) => {
-            config.setConfig(setting);
-            config.write();
-          }}
-        ></SettingsPanel>
-      </div>
-    {/if}
+    <Settings {isSettingsOpened}></Settings>
     <Connection
       bind:nickName
       bind:server

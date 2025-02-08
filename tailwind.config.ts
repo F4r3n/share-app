@@ -16,7 +16,7 @@ export default {
 	plugins: [
 		forms,
 		skeleton({
-			themes: [ themes.modern ]
+			themes: [ themes.modern, themes.cerberus ]
 		})
 	]
 } satisfies Config;

@@ -23,14 +23,21 @@ pub struct UploadImageConfig {
 pub struct CompletionConfig {
     url: String,
     token: String,
-    triggers : Vec<String>
+    triggers: Vec<String>,
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct ThemeConfig {
+    mode: String,
+    name: String,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Settings {
     connection_config: ConnectionConfig,
     upload_image: Option<UploadImageConfig>,
-    completion: Option<CompletionConfig>
+    completion: Option<CompletionConfig>,
+    theme: Option<ThemeConfig>,
 }
 
 pub fn load_settings(app_handle: AppHandle) -> Result<Settings, anyhow::Error> {

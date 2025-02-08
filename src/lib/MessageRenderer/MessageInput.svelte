@@ -1,15 +1,13 @@
 <script lang="ts">
-    import PlusSign from "../assets/plus-sign-svg.svelte";
+    import PlusSign from "../../assets/plus-sign-svg.svelte";
     import { onMount, onDestroy } from "svelte";
     import { invoke } from "@tauri-apps/api/core";
-    import { config } from "./config";
-    import CloseButton from "../assets/circle-close.svelte";
+    import { config, type UploadImageConfig } from "../config";
+    import CloseButton from "../../assets/circle-close.svelte";
     import { MessageHistory } from "./MessageHistory";
-    import type { AutocompletionItem } from "./Autocompletion/type";
+    import type { AutocompletionItem } from ".././Autocompletion/type";
+    import Autocomplete from "../Autocompletion/Autocomplete.svelte";
 
-    //import { Autocomplete } from "@skeletonlabs/skeleton";
-    import Autocomplete from "./Autocompletion/Autocomplete.svelte";
-    import type { UploadImageConfig } from "./config";
 
     let { onSendMessage }: { onSendMessage: (arg0: string) => void } = $props();
 

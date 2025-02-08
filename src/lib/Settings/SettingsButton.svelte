@@ -1,5 +1,5 @@
 <script lang="ts">
-    import SettingsIcon from "../assets/setting-line-icon.svelte"
+    import SettingsIcon from "../../assets/setting-line-icon.svelte"
 
     let {onToggle} : {onToggle : ()=>void} = $props()
 

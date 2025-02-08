@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import MessageRenderer from "./MessageRenderer/MessageRenderer.svelte";
+    import MessageRenderer from "./MessageRenderer.svelte";
 
     type Token = {
         type: string;

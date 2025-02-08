@@ -3,21 +3,19 @@
     import { invoke } from "@tauri-apps/api/core";
     import { onMount, onDestroy } from "svelte";
     import { Jumper } from "svelte-loading-spinners";
-    import MessageContent from "./MessageContent.svelte";
-    import MessageInput from "./MessageInput.svelte";
+    import MessageContent from "../MessageRenderer/MessageContent.svelte";
+    import MessageInput from "../MessageRenderer/MessageInput.svelte";
     import type { Message } from "./channel";
     import User from "./User.svelte";
     import { Window, UserAttentionType } from "@tauri-apps/api/window";
     import { messagesManager } from "./MessagesManager";
-    import type { MessageFromIRC } from "./MessageType";
-    import Arrow from "../assets/arrow.svelte";
+    import type { MessageFromIRC } from "../MessageRenderer/MessageType";
+    import Arrow from "../../assets/arrow.svelte";
     import ActionBar from "./ActionBar.svelte";
-    import { panelIsOpen } from "./discussStore";
+    import { panelIsOpen } from "../discussStore";
     import { get } from "svelte/store";
     import { SvelteMap } from "svelte/reactivity";
-    import SettingsButton from "./SettingsButton.svelte";
-    import SettingsPanel from "./SettingsPanel.svelte";
-    import { config, type Setting } from "./config";
+    import Settings from "../Settings/Settings.svelte";
     type UserType = {
         nick_name: string;
         user_mode: number;
@@ -456,23 +454,7 @@
                     ></User>
                 {/if}
             {/each}
-            <SettingsButton
-                onToggle={() => {
-                    isSettingsOpened = true;
-                    console.log("OPENED")
-                }}
-            ></SettingsButton>
-            {#if isSettingsOpened}
-                    <SettingsPanel
-                        onExit={() => {
-                            isSettingsOpened = false;
-                        }}
-                        onValidate={(setting: Setting) => {
-                            config.setConfig(setting);
-                            config.write();
-                        }}
-                    ></SettingsPanel>
-            {/if}
+            <Settings {isSettingsOpened}></Settings>
             {#if panel_mode == Width_Mode.PHONE}
                 <button
                     type="button"
