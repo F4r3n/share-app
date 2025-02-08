@@ -18,11 +18,6 @@
   -webkit-text-size-adjust: 100%;  
 }
 
-:root [data-theme='modern'] {
-  --radii-default: 1px;
-}
-
-
 /* Handle */
 ::-webkit-scrollbar-thumb {
   background: var(--overflow-color);

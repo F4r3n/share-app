@@ -475,7 +475,7 @@
 
 <style>
     .list-users-desktop {
-        @apply flex flex-col bg-secondary-600 text-secondary-100 flex-grow-0 p-1;
+        @apply flex flex-col preset-filled-secondary-300-700 flex-grow-0 p-1;
     }
 
     .panel-open-mobile {
@@ -487,7 +487,7 @@
         right: 0;
         height: 100%;
         width: var(--opening_width);
-        @apply bg-secondary-600 text-secondary-100;
+        @apply preset-filled-secondary-300-700;
     }
 
     .panel-opening-mobile {
@@ -545,8 +545,7 @@
     .message {
         margin-top: var(--space);
 
-        @apply text-secondary-950;
-        @apply bg-secondary-50;
+        @apply preset-filled-secondary-100-900;
 
         @apply ml-2 mr-2 mt-1;
         @apply rounded-xl;

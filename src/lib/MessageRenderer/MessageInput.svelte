@@ -247,7 +247,7 @@
 
     <div class="main-input">
         <input
-            class="flex-grow"
+            class="input flex-grow"
             type="text"
             bind:this={input}
             bind:value={messageToSend}
@@ -259,7 +259,7 @@
             }}
         />
         <button
-            class="ml-1"
+            class="btn ml-1"
             onclick={(event) => {
                 onSendMessage(messageToSend);
                 messageToSend = "";
@@ -273,7 +273,7 @@
 <style>
     button {
         @apply btn;
-        @apply preset-filled-primary-800-200;
+        @apply preset-filled-primary-600-400;
         @apply px-4;
     }
     .pasted-image {

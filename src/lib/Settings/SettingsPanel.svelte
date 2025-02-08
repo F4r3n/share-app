@@ -93,7 +93,7 @@
           <div class="md:flex md:items-center mb-6">
             <div class="md:w-1/3">
               <label
-                class="block md:text-right mb-1 md:mb-0 pr-4"
+                class="label block md:text-right mb-1 md:mb-0 pr-4"
                 for={`inline-${option.id}`}
               >
                 {option.title}
@@ -102,7 +102,7 @@
             {#if Object.hasOwn(option, "type") && option.type == "string"}
               <div class="md:w-2/3">
                 <input
-                  class="appearance-none border-2 rounded w-full py-2 px-4 leading-tight focus:outline-none"
+                  class="input appearance-none border-2 rounded w-full py-2 px-4 leading-tight focus:outline-none"
                   id={`inline-${option.id}`}
                   type="text"
                   bind:value={setting_clone[section.id][option.id]}
@@ -111,7 +111,7 @@
             {:else if Object.hasOwn(option, "type") && option.type == "array"}
               <select
                 id={`inline-${option.id}`}
-                class="appearance-none border-2 rounded w-full py-2 px-4 leading-tight focus:outline-none"
+                class="select appearance-none border-2 rounded w-full py-2 px-4 leading-tight focus:outline-none"
                 bind:value={setting_clone[section.id][option.id]}
               >
                 {#each option.values as v}

@@ -56,7 +56,7 @@
           type="text"
           id="nickname"
           autocomplete="off"
-          class="py-2 px-4 leading-tight"
+          class="input py-2 px-4 leading-tight"
         />
       </div>
 
@@ -69,7 +69,7 @@
           type="text"
           id="server"
           autocomplete="off"
-          class=" py-2 px-4 leading-tight"
+          class="input py-2 px-4 leading-tight"
         />
       </div>
 
@@ -82,7 +82,7 @@
           type="text"
           id="channel"
           autocomplete="off"
-          class=" py-2 px-4 leading-tight"
+          class="input py-2 px-4 leading-tight"
         />
       </div>
 
@@ -95,7 +95,7 @@
           type="password"
           id="password"
           autocomplete="off"
-          class=" py-2 px-4 leading-tight"
+          class="input py-2 px-4 leading-tight"
         />
       </div>
 
