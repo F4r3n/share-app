@@ -15,6 +15,9 @@
     import { panelIsOpen } from "./discussStore";
     import { get } from "svelte/store";
     import { SvelteMap } from "svelte/reactivity";
+    import SettingsButton from "./SettingsButton.svelte";
+    import SettingsPanel from "./SettingsPanel.svelte";
+    import { config, type Setting } from "./config";
     type UserType = {
         nick_name: string;
         user_mode: number;
@@ -64,7 +67,7 @@
     let scrollBehaviourManager = new ScrollBehaviorManager();
 
     class ChattManager {
-        public isConnected = true;
+        public isConnected = $state(true);
         public isUnread: boolean = $state(false);
         constructor(name: string) {}
 
@@ -254,11 +257,10 @@
         discussSection.addEventListener("wheel", function (e) {
             if (e.deltaY < 0) {
                 scrollBehaviourManager.followEnd = false;
+            } else {
+                scrollBehaviourManager.followEnd =
+                    scrollBehaviourManager.isAtTheEnd();
             }
-            else{
-                scrollBehaviourManager.followEnd = scrollBehaviourManager.isAtTheEnd();
-            }
-            
         });
         panelIsOpen.set(currentModeSize == Width_Mode.DESKTOP);
     });
@@ -344,9 +346,9 @@
         channelNameSelected = inChannel;
     }
 
-    let listMessages = $derived(messagesManager
-        .getChannel(channelNameSelected)
-        .getListMessages());
+    let listMessages = $derived(
+        messagesManager.getChannel(channelNameSelected).getListMessages(),
+    );
 
     const unsubscribe = panelIsOpen.subscribe((value) => {
         if (value == true) panelOpeningPercentageToDisplay = 100;
@@ -357,6 +359,8 @@
             $panelIsOpen ||
             panelOpeningPercentageToDisplay > 0,
     );
+
+    let isSettingsOpened = $state(false);
 </script>
 
 <svelte:window on:resize={onResize} />
@@ -452,6 +456,23 @@
                     ></User>
                 {/if}
             {/each}
+            <SettingsButton
+                onToggle={() => {
+                    isSettingsOpened = true;
+                    console.log("OPENED")
+                }}
+            ></SettingsButton>
+            {#if isSettingsOpened}
+                    <SettingsPanel
+                        onExit={() => {
+                            isSettingsOpened = false;
+                        }}
+                        onValidate={(setting: Setting) => {
+                            config.setConfig(setting);
+                            config.write();
+                        }}
+                    ></SettingsPanel>
+            {/if}
             {#if panel_mode == Width_Mode.PHONE}
                 <button
                     type="button"
