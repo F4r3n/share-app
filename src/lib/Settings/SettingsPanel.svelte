@@ -84,7 +84,7 @@
   ];
 </script>
 
-<div class="panel gap-4">
+<div class="panel gap-4 pb-3">
   <form class="w-full max-w-sm pl-7 pt-7 pr-7 overflow-y-auto">
     {#if setting_clone}
       {#each list_options as section}

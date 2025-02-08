@@ -50,55 +50,53 @@
   <div in:fade={{ duration: 100 }} class="w-full flex justify-center">
     <form onsubmit={connect} class="flex flex-col justify-between">
       <div class="flex flex-col mb-2">
-          <label for="nickname">
-            NickName
-          </label>
-          <input
-            bind:value={nickName}
-            type="text"
-            id="nickname"
-            autocomplete="off"
-            class="py-2 px-4 leading-tight"
-          />
+        <label for="nickname"> NickName </label>
+        <input
+          bind:value={nickName}
+          type="text"
+          id="nickname"
+          autocomplete="off"
+          class="py-2 px-4 leading-tight"
+        />
       </div>
 
       <div class="flex flex-col mb-2">
-          <label for="server" class="block text-left mb-1 md:mb-0 pr-4">
-            Server
-          </label>
-          <input
-            bind:value={server}
-            type="text"
-            id="server"
-            autocomplete="off"
-            class=" py-2 px-4 leading-tight"
-          />
+        <label for="server" class="block text-left mb-1 md:mb-0 pr-4">
+          Server
+        </label>
+        <input
+          bind:value={server}
+          type="text"
+          id="server"
+          autocomplete="off"
+          class=" py-2 px-4 leading-tight"
+        />
       </div>
 
       <div class="flex flex-col mb-2">
-          <label for="channel" class="block text-left mb-1 md:mb-0 pr-4">
-            Channel
-          </label>
-          <input
-            bind:value={channel}
-            type="text"
-            id="channel"
-            autocomplete="off"
-            class=" py-2 px-4 leading-tight"
-          />
+        <label for="channel" class="block text-left mb-1 md:mb-0 pr-4">
+          Channel
+        </label>
+        <input
+          bind:value={channel}
+          type="text"
+          id="channel"
+          autocomplete="off"
+          class=" py-2 px-4 leading-tight"
+        />
       </div>
 
       <div class="flex flex-col mb-3">
-          <label for="password" class="block text-left mb-1 md:mb-0 pr-4">
-            Password
-          </label>
-          <input
-            bind:value={password}
-            type="password"
-            id="password"
-            autocomplete="off"
-            class=" py-2 px-4 leading-tight"
-          />
+        <label for="password" class="block text-left mb-1 md:mb-0 pr-4">
+          Password
+        </label>
+        <input
+          bind:value={password}
+          type="password"
+          id="password"
+          autocomplete="off"
+          class=" py-2 px-4 leading-tight"
+        />
       </div>
 
       <div class="flex flex-row">
