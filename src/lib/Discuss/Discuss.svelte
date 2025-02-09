@@ -210,7 +210,11 @@
                         isLoaded = true;
                     }
                 } else if (data.command === "NICK") {
-                    nickName = data.content;
+                    if (nickName == data.nick_name) {
+                        nickName = data.content;
+                    } else {
+                        updateUsers();
+                    }
                 } else if (data.command === "ERROR") {
                     message.date = new Date();
                     message.highlight = isMessageHighlight(message.content);
