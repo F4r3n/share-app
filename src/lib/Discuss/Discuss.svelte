@@ -212,9 +212,9 @@
                 } else if (data.command === "NICK") {
                     if (nickName == data.nick_name) {
                         nickName = data.content;
-                    } else {
-                        updateUsers();
-                    }
+                    } 
+                    updateUsers();
+                    
                 } else if (data.command === "ERROR") {
                     message.date = new Date();
                     message.highlight = isMessageHighlight(message.content);
@@ -443,43 +443,46 @@
             style="--opening_width:{panelOpeningPercentageToDisplay *
                 (maxOpeningUserDistance / 100)}%;"
         >
-            {#each _chatts.entries() as [channel_name, info]}
-                {#if info.isConnected}
-                    <User
-                        onChannelChanged={() => {
-                            if (nickName !== channel_name) {
-                                changeChannel(channel_name);
-                            }
-                        }}
-                        isSelectable={nickName !== channel_name}
-                        unread={info.isUnread}
-                        channelName={channel_name}
-                        isSelected={channelNameSelected === channel_name}
-                    ></User>
-                {/if}
-            {/each}
-            <Settings {isSettingsOpened}></Settings>
-            {#if panel_mode == Width_Mode.PHONE}
-                <button
-                    type="button"
-                    class="btn"
-                    onclick={() => {
-                        panelIsOpen.set(false);
+            <div class="list-users-desktop">
+                {#each _chatts.entries() as [channel_name, info]}
+                    {#if info.isConnected}
+                        <User
+                            onChannelChanged={() => {
+                                if (nickName !== channel_name) {
+                                    changeChannel(channel_name);
+                                }
+                            }}
+                            isSelectable={nickName !== channel_name}
+                            unread={info.isUnread}
+                            channelName={channel_name}
+                            isSelected={channelNameSelected === channel_name}
+                        ></User>
+                    {/if}
+                {/each}
+                {#if panel_mode == Width_Mode.PHONE}
+                    <button
+                        type="button"
+                        class="btn"
+                        onclick={() => {
+                            panelIsOpen.set(false);
 
-                        panelOpeningPercentageToDisplay = 0;
-                        panelOpeningPercentage = 1;
-                    }}
-                >
-                    <Arrow></Arrow>
-                </button>
-            {/if}
+                            panelOpeningPercentageToDisplay = 0;
+                            panelOpeningPercentage = 1;
+                        }}
+                    >
+                        <Arrow></Arrow>
+                    </button>
+                {/if}
+            </div>
+
+            <Settings {isSettingsOpened}></Settings>
         </div>
     {/if}
 </main>
 
 <style>
     .list-users-desktop {
-        @apply flex flex-col preset-filled-secondary-300-700 flex-grow-0 p-1;
+        @apply flex flex-col preset-filled-secondary-300-700 p-1 justify-between;
     }
 
     .panel-open-mobile {
@@ -491,7 +494,7 @@
         right: 0;
         height: 100%;
         width: var(--opening_width);
-        @apply preset-filled-secondary-300-700;
+        @apply preset-filled-secondary-300-700 justify-between;
     }
 
     .panel-opening-mobile {
