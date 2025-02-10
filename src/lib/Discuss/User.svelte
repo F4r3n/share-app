@@ -16,7 +16,7 @@
 
 {#if isSelectable}
     <button
-        class="px-0 mx-0 text-left text-nowrap text-ellipsis select-none rounded-md"
+        class="btn p-0 m-0 text-left text-nowrap text-ellipsis select-none rounded-md h-fit"
         class:channel-missing-messages={unread && !isSelected}
         class:channel-selected={isSelected}
         onclick={() => {

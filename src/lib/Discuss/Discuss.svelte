@@ -141,7 +141,6 @@
                 if (channelOrigin === nickName) {
                     channelOrigin = message.nick_name;
                 }
-                if (data.command !== "PRIVMSG") updateUsers();
                 isLoaded = true;
                 if (data.command === "PRIVMSG") {
                     updateUsers();
@@ -181,6 +180,7 @@
                         } as Message,
                         channelOrigin,
                     );
+                    updateUsers();
                 } else if (data.command === "QUIT") {
                     let quitMessage = message.content.replace("Quit:", "");
                     messagesManager.putMessageInList(
@@ -191,6 +191,7 @@
                         } as Message,
                         channelOrigin,
                     );
+                    updateUsers();
                 } else if (data.command === "TOPIC") {
                     messagesManager.putMessageInList(
                         {
@@ -263,6 +264,7 @@
                 scrollBehaviourManager.followEnd =
                     scrollBehaviourManager.isAtTheEnd();
             }
+            console.log(scrollBehaviourManager.followEnd)
         });
         panelIsOpen.set(currentModeSize == Width_Mode.DESKTOP);
     });
@@ -482,7 +484,7 @@
 
 <style>
     .list-users-desktop {
-        @apply flex flex-col preset-filled-secondary-300-700 p-1 justify-between;
+        @apply flex flex-col preset-filled-secondary-200-800 p-1 justify-between;
     }
 
     .panel-open-mobile {
@@ -552,7 +554,7 @@
     .message {
         margin-top: var(--space);
 
-        @apply preset-filled-secondary-100-900;
+        @apply preset-filled-secondary-50-950;
 
         @apply ml-2 mr-2 mt-1;
         @apply rounded-xl;
@@ -570,16 +572,20 @@
 
     .username {
         font-weight: bold;
-        color: theme("colors.secondary.700");
+        @apply text-tertiary-500;
     }
 
     .username-me {
-        color: theme("colors.primary.500");
+        @apply text-primary-500;
     }
 
     .title {
         display: flex;
         flex-direction: row;
         align-items: baseline;
+    }
+
+    main {
+        @apply bg-gradient-to-b;
     }
 </style>
