@@ -16,7 +16,7 @@
 
 {#if isSelectable}
     <button
-        class="btn p-0 m-0 text-left text-nowrap text-ellipsis select-none rounded-md h-fit"
+        class="btn m-0 p-0 px-2 text-nowrap text-ellipsis select-none rounded-md h-fit w-fit"
         class:channel-missing-messages={unread && !isSelected}
         class:channel-selected={isSelected}
         onclick={() => {
@@ -28,7 +28,7 @@
     </button>
 {:else}
     <span
-        class="px-0 mx-0 font-bold text-left text-nowrap text-ellipsis select-none"
+        class="px-2 mx-0 font-bold text-left text-nowrap text-ellipsis select-none"
         >{channelName}</span
     >
 {/if}

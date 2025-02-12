@@ -141,6 +141,10 @@
                 if (channelOrigin === nickName) {
                     channelOrigin = message.nick_name;
                 }
+                if(!isLoaded)
+                {
+                    updateUsers();
+                }
                 isLoaded = true;
                 if (data.command === "PRIVMSG") {
                     updateUsers();
