@@ -137,10 +137,13 @@ async fn irc_read(
                     pay_load.content = String::from(msg.as_str().to_string().strip_formatting());
                 }
                 Command::Response(response, ref msg) => {
-                    dbg!("{}", response);
+                    //dbg!("{}, {}", response, msg);
 
                     if response == irc::proto::Response::RPL_NAMREPLY {
-                        pay_load.command = String::from("NAMES");
+                        pay_load.command = String::from("RPL_NAMREPLY");
+                    } else if response == irc::proto::Response::RPL_TOPIC {
+                        pay_load.command = String::from("RPL_TOPIC");
+                        pay_load.response = Some(msg.clone());
                     }
                 }
                 Command::QUIT(ref comment) => {

@@ -11,7 +11,7 @@ pub struct Payload {
     pub nick_name: String,
     pub command: String,
     pub channel: String,
-    pub response: Option<ResponseMessage>,
+    pub response: Option<Vec<String>>,
 }
 
 impl Default for Payload {

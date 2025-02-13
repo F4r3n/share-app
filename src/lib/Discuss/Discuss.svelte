@@ -162,8 +162,10 @@
                     isLoaded = true;
                 } else if (data.command === "PONG") {
                     isLoaded = true;
-                } else if (data.command === "NAMES") {
+                } else if (data.command === "RPL_NAMREPLY") {
                     updateUsers();
+                } else if (data.command === "RPL_TOPIC") {
+                    topic = data?.response.at(-1) ?? "";
                 } else if (data.command === "NOTICE") {
                     message.date = new Date();
                     message.highlight = isMessageHighlight(message.content);
@@ -204,15 +206,7 @@
                         channelOrigin,
                     );
                     topic = data.content;
-                } else if (data.command === "RESPONSE") {
-                    if (data.response?.kind === 353) {
-                        //users
-                    } else if (data.response?.kind === 332) {
-                        topic = data.response?.content.at(-1) ?? "";
-                    } else if (data.response?.kind === 1) {
-                        isLoaded = true;
-                    }
-                } else if (data.command === "NICK") {
+                    } else if (data.command === "NICK") {
                     if (nickName == data.nick_name) {
                         nickName = data.content;
                     }
