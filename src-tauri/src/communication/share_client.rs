@@ -137,11 +137,11 @@ async fn irc_read(
                     pay_load.content = String::from(msg.as_str().to_string().strip_formatting());
                 }
                 Command::Response(response, ref msg) => {
-                    pay_load.command = String::from("RESPONSE");
-                    pay_load.response = Some(ResponseMessage {
-                        kind: response as u16,
-                        content: msg.clone(),
-                    });
+                    dbg!("{}", response);
+
+                    if response == irc::proto::Response::RPL_NAMREPLY {
+                        pay_load.command = String::from("NAMES");
+                    }
                 }
                 Command::QUIT(ref comment) => {
                     pay_load.command = String::from("QUIT");
@@ -183,7 +183,10 @@ async fn irc_read(
                         nick_name.clone_into(&mut pay_load.nick_name);
                     }
                 }
-                Command::NAMES(ref _channel, ref _target) => {}
+                Command::NAMES(ref _channel, Some(target)) => {
+                    pay_load.command = String::from("NAMES");
+                    pay_load.content = target.to_string();
+                }
                 Command::ERROR(ref err) => {
                     pay_load.command = String::from("ERROR");
                     pay_load.content = err.to_string();

@@ -141,13 +141,9 @@
                 if (channelOrigin === nickName) {
                     channelOrigin = message.nick_name;
                 }
-                if(!isLoaded)
-                {
-                    updateUsers();
-                }
+
                 isLoaded = true;
                 if (data.command === "PRIVMSG") {
-                    updateUsers();
                     message.date = new Date();
                     message.highlight = isMessageHighlight(message.content);
                     messagesManager.putMessageInList(message, channelOrigin);
@@ -166,6 +162,8 @@
                     isLoaded = true;
                 } else if (data.command === "PONG") {
                     isLoaded = true;
+                } else if (data.command === "NAMES") {
+                    updateUsers();
                 } else if (data.command === "NOTICE") {
                     message.date = new Date();
                     message.highlight = isMessageHighlight(message.content);
@@ -217,9 +215,8 @@
                 } else if (data.command === "NICK") {
                     if (nickName == data.nick_name) {
                         nickName = data.content;
-                    } 
+                    }
                     updateUsers();
-                    
                 } else if (data.command === "ERROR") {
                     message.date = new Date();
                     message.highlight = isMessageHighlight(message.content);
@@ -268,7 +265,7 @@
                 scrollBehaviourManager.followEnd =
                     scrollBehaviourManager.isAtTheEnd();
             }
-            console.log(scrollBehaviourManager.followEnd)
+            console.log(scrollBehaviourManager.followEnd);
         });
         panelIsOpen.set(currentModeSize == Width_Mode.DESKTOP);
     });
@@ -308,6 +305,7 @@
     });
 
     async function updateUsers() {
+        console.log("Update users");
         try {
             for (let [channel, info] of _chatts.entries()) {
                 info.isConnected = false;
