@@ -1,4 +1,4 @@
-use crate::communication::message::{Payload, ResponseMessage};
+use crate::communication::message::Payload;
 use anyhow::Ok;
 use futures::prelude::*;
 use irc::client::prelude::*;
