@@ -25,13 +25,13 @@ class MessagesManager {
         }
     }
 
-    getChannel(inChannelName : string) : Channel{
+    getChannel(inChannelName: string): Channel {
         if (!this._listMessages.has(inChannelName)) {
             this._listMessages.set(inChannelName, new Channel());
         }
         return this._listMessages.has(inChannelName)
-        ? this._listMessages!.get(inChannelName)!
-        : new Channel();
+            ? this._listMessages!.get(inChannelName)!
+            : new Channel();
     }
 
 }

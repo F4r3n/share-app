@@ -261,7 +261,7 @@
         <button
             class="btn ml-1"
             onclick={(event) => {
-                onSendMessage(messageToSend);
+                onSendMessage($state.snapshot(messageToSend));
                 messageToSend = "";
             }}
         >

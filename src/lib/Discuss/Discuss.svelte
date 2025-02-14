@@ -33,18 +33,14 @@
 
     class ScrollBehaviorManager {
         public followEnd = true;
-        private _hasReachedEnd: boolean = true;
-        public scroll_behaviour: ScrollBehavior = "smooth";
+        public scroll_behaviour: ScrollBehavior = "auto";
 
         constructor() {}
-        updateScrollPosition(discussSection: HTMLDivElement) {
-            this._hasReachedEnd =
-                discussSection.offsetHeight + discussSection.scrollTop >=
-                discussSection.scrollHeight - 2;
-        }
-
         isAtTheEnd(): boolean {
-            return this._hasReachedEnd;
+            return (
+                discussSection.offsetHeight + discussSection.scrollTop >=
+                discussSection.scrollHeight - 100
+            );
         }
 
         public updateScroll(inHTML: HTMLDivElement | null) {
@@ -67,7 +63,6 @@
     class ChattManager {
         public isConnected = $state(true);
         public isUnread: boolean = $state(false);
-        constructor(name: string) {}
 
         public pushMessage() {
             this.isUnread = true;
@@ -90,11 +85,11 @@
 
     function getChat(inChannel: string): ChattManager {
         if (!_chatts.has(inChannel)) {
-            _chatts.set(inChannel, new ChattManager(inChannel));
+            _chatts.set(inChannel, new ChattManager());
         }
 
         let chatt = _chatts.get(inChannel);
-        return chatt ? chatt : new ChattManager(inChannel);
+        return chatt ? chatt : new ChattManager();
     }
 
     let topic: string = $state("");
@@ -105,7 +100,7 @@
     let _chatts: SvelteMap<string, ChattManager> = new SvelteMap<
         string,
         ChattManager
-    >([[channel, new ChattManager(channel)]]);
+    >([[channel, new ChattManager()]]);
 
     let isLoaded = $state(true);
     let irc_received_unsubscribe = () => {};
@@ -206,7 +201,7 @@
                         channelOrigin,
                     );
                     topic = data.content;
-                    } else if (data.command === "NICK") {
+                } else if (data.command === "NICK") {
                     if (nickName == data.nick_name) {
                         nickName = data.content;
                     }
@@ -372,17 +367,7 @@
     {:else}
         <div class="discuss-section flex-grow-1 min-w-0">
             <ActionBar {topic}></ActionBar>
-            <div
-                class="flex-grow overflow-y-auto"
-                bind:this={discussSection}
-                onscrollend={() => {
-                    if (discussSection) {
-                        scrollBehaviourManager.updateScrollPosition(
-                            discussSection,
-                        );
-                    }
-                }}
-            >
+            <div class="flex-grow overflow-y-auto" bind:this={discussSection}>
                 <div class="messages">
                     {#each $listMessages as message, id}
                         <div class="message">

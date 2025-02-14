@@ -26,6 +26,7 @@
     });
 
     $effect.pre(() => {
+        console.log("update")
         tick().then(() => {
             onMessageFormatted();
         });
