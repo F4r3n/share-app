@@ -1,14 +1,12 @@
 <script lang="ts">
     import { listen } from "@tauri-apps/api/event";
     import { invoke } from "@tauri-apps/api/core";
-    import { onMount, onDestroy } from "svelte";
+    import { onMount, onDestroy, tick } from "svelte";
     import { Jumper } from "svelte-loading-spinners";
     import MessageContent from "../MessageRenderer/MessageContent.svelte";
     import MessageInput from "../MessageRenderer/MessageInput.svelte";
-    import type { Message } from "./channel";
     import User from "./User.svelte";
     import { Window, UserAttentionType } from "@tauri-apps/api/window";
-    import { messagesManager } from "./MessagesManager";
     import type { MessageFromIRC } from "../MessageRenderer/MessageType";
     import Arrow from "../../assets/arrow.svelte";
     import ActionBar from "./ActionBar.svelte";
@@ -16,6 +14,7 @@
     import { get } from "svelte/store";
     import { SvelteMap } from "svelte/reactivity";
     import Settings from "../Settings/Settings.svelte";
+    import { type Message, ChattManager } from "./MessagesManager.svelte";
     type UserType = {
         nick_name: string;
         user_mode: number;
@@ -31,11 +30,16 @@
         onConnectionStatus: ({}) => void;
     } = $props();
 
+
+    let topic: string = $state("");
+    let channelNameSelected: string = $state(channel ?? "");
+
+    let discussSection: HTMLDivElement | null = $state(null);
+
     class ScrollBehaviorManager {
         public followEnd = true;
         public scroll_behaviour: ScrollBehavior = "auto";
 
-        constructor() {}
         isAtTheEnd(): boolean {
             return (
                 discussSection.offsetHeight + discussSection.scrollTop >=
@@ -60,27 +64,13 @@
     }
     let scrollBehaviourManager = new ScrollBehaviorManager();
 
-    class ChattManager {
-        public isConnected = $state(true);
-        public isUnread: boolean = $state(false);
-
-        public pushMessage() {
-            this.isUnread = true;
-        }
-
-        public setAsSelected(isSelected: boolean) {
-            if (isSelected) {
-                this.isUnread = false;
-                scrollBehaviourManager.scroll_behaviour = "smooth";
-            } else {
-                this.isUnread = false;
-                scrollBehaviourManager.scroll_behaviour = "instant";
-            }
-        }
-    }
-
-    function pushMessage(inChannel: string) {
-        _chatts.get(inChannel)?.pushMessage();
+    function pushMessage(inChannel: string, inNewMessage: Message) {
+        _chatts
+            .get(inChannel)
+            ?.pushMessage(inNewMessage, inChannel == channelNameSelected);
+            setTimeout(()=> {
+                scrollBehaviourManager.updateScroll(discussSection);
+            }, 10);
     }
 
     function getChat(inChannel: string): ChattManager {
@@ -91,11 +81,6 @@
         let chatt = _chatts.get(inChannel);
         return chatt ? chatt : new ChattManager();
     }
-
-    let topic: string = $state("");
-    let channelNameSelected: string = $state(channel ?? "");
-
-    let discussSection: HTMLDivElement | null = $state(null);
 
     let _chatts: SvelteMap<string, ChattManager> = new SvelteMap<
         string,
@@ -141,8 +126,7 @@
                 if (data.command === "PRIVMSG") {
                     message.date = new Date();
                     message.highlight = isMessageHighlight(message.content);
-                    messagesManager.putMessageInList(message, channelOrigin);
-                    pushMessage(channelOrigin);
+                    pushMessage(channelOrigin, message);
 
                     if (message.highlight) {
                         await Window.getCurrent().requestUserAttention(
@@ -164,42 +148,31 @@
                 } else if (data.command === "NOTICE") {
                     message.date = new Date();
                     message.highlight = isMessageHighlight(message.content);
-                    messagesManager.putMessageInList(message, channelOrigin);
-
-                    pushMessage(channelOrigin);
+                    pushMessage(channelOrigin, message);
                 } else if (data.command === "JOIN") {
-                    messagesManager.putMessageInList(
-                        {
-                            nick_name: "",
-                            content:
-                                message.nick_name === nickName
-                                    ? `you joined`
-                                    : `${message.nick_name} has joined`,
-                            date: new Date(),
-                        } as Message,
-                        channelOrigin,
-                    );
+                    pushMessage(channelOrigin, {
+                        nick_name: "",
+                        content:
+                            message.nick_name === nickName
+                                ? `you joined`
+                                : `${message.nick_name} has joined`,
+                        date: new Date(),
+                    } as Message);
                     updateUsers();
                 } else if (data.command === "QUIT") {
                     let quitMessage = message.content.replace("Quit:", "");
-                    messagesManager.putMessageInList(
-                        {
-                            nick_name: "",
-                            content: `${message.nick_name} has quit (${quitMessage})`,
-                            date: new Date(),
-                        } as Message,
-                        channelOrigin,
-                    );
+                    pushMessage(channelOrigin, {
+                        nick_name: "",
+                        content: `${message.nick_name} has quit (${quitMessage})`,
+                        date: new Date(),
+                    } as Message);
                     updateUsers();
                 } else if (data.command === "TOPIC") {
-                    messagesManager.putMessageInList(
-                        {
-                            nick_name: "",
-                            content: `${message.nick_name} has changed the topic to: '${data.content}' `,
-                            date: new Date(),
-                        } as Message,
-                        channelOrigin,
-                    );
+                    pushMessage(channelOrigin, {
+                        nick_name: "",
+                        content: `${message.nick_name} has changed the topic to: '${data.content}' `,
+                        date: new Date(),
+                    } as Message);
                     topic = data.content;
                 } else if (data.command === "NICK") {
                     if (nickName == data.nick_name) {
@@ -209,8 +182,7 @@
                 } else if (data.command === "ERROR") {
                     message.date = new Date();
                     message.highlight = isMessageHighlight(message.content);
-                    messagesManager.putMessageInList(message, channelOrigin);
-                    pushMessage(channelOrigin);
+                    pushMessage(channelOrigin, message);
                 } else if (data.command === "INTERNAL_ERROR") {
                     if (isLoaded) {
                         console.log("disconnect");
@@ -318,7 +290,7 @@
             date: new Date(),
             highlight: false,
         };
-        messagesManager.putMessageInList(message, channelNameSelected);
+        pushMessage(channelNameSelected, message);
 
         if (!isCommand) {
             invoke("send_message", {
@@ -335,15 +307,8 @@
     }
 
     function changeChannel(inChannel: string) {
-        getChat(channelNameSelected).setAsSelected(false);
-        getChat(inChannel).setAsSelected(true);
-
         channelNameSelected = inChannel;
     }
-
-    let listMessages = $derived(
-        messagesManager.getChannel(channelNameSelected).getListMessages(),
-    );
 
     const unsubscribe = panelIsOpen.subscribe((value) => {
         if (value == true) panelOpeningPercentageToDisplay = 100;
@@ -369,7 +334,7 @@
             <ActionBar {topic}></ActionBar>
             <div class="flex-grow overflow-y-auto" bind:this={discussSection}>
                 <div class="messages">
-                    {#each $listMessages as message, id}
+                    {#each getChat(channelNameSelected).listMessages as message, id}
                         <div class="message">
                             <div class="title">
                                 <div
