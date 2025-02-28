@@ -100,6 +100,6 @@
 
 <style>
   main {
-    font-family: 'Roboto';
+    font-family: 'Lato', sans-serif;
   }
 </style>

@@ -4,13 +4,83 @@
 
 @font-face {
   font-family: 'Roboto';
-  src: url('$lib/../assets/fonts/Roboto-VariableFont_wdth,wght.ttf') format('truetype');
+  src: url('$lib/../assets/fonts/Roboto/Roboto-VariableFont_wdth,wght.ttf') format('truetype');
   font-weight: 100 900;
 }
 
+@font-face {
+  font-family: 'Lato';
+  src: url('$lib/../assets/fonts/Lato/Lato-Hairline-Regular.ttf') format('truetype');
+  font-weight: 100;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Lato';
+  src: url('$lib/../assets/fonts/Lato/Lato-Hairline-Italic.ttf') format('truetype');
+  font-weight: 100;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Lato';
+  src: url('$lib/../assets/fonts/Lato/Lato-Light-Regular.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Lato';
+  src: url('$lib/../assets/fonts/Lato/Lato-Light-Italic.ttf') format('truetype');
+  font-weight: 300;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Lato';
+  src: url('$lib/../assets/fonts/Lato/Lato-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Lato';
+  src: url('$lib/../assets/fonts/Lato/Lato-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Lato';
+  src: url('$lib/../assets/fonts/Lato/Lato-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Lato';
+  src: url('$lib/../assets/fonts/Lato/Lato-Bold-Italic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Lato';
+  src: url('$lib/../assets/fonts/Lato/Lato-Black-Regular.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Lato';
+  src: url('$lib/../assets/fonts/Lato/Lato-Black-Italic.ttf') format('truetype');
+  font-weight: 900;
+  font-style: italic;
+}
+
 :root {
-  font-family: 'Roboto', sans-serif;
-  font-size: 18px;
+  font-family: 'Lato', sans-serif;
+  font-size: 16px;
   line-height: 24px;
   font-weight: normal;
   font-style: normal;
