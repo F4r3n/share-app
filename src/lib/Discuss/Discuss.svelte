@@ -185,8 +185,8 @@
                     pushMessage(channelOrigin, message);
                 } else if (data.command === "INTERNAL_ERROR") {
                     if (isLoaded) {
-                        console.log("disconnect");
-                        invoke("disconnect", {
+                        console.log(data);
+                        /*invoke("disconnect", {
                             message: data.content,
                             shallSendMessage: false,
                         }).then(() => {
@@ -194,7 +194,7 @@
                                 result: false,
                                 message: data.content,
                             });
-                        });
+                        });*/
                     }
                 }
             },
