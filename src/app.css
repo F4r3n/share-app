@@ -1,4 +1,7 @@
 @import 'tailwindcss';
+@import "@skeletonlabs/skeleton";
+@import "@skeletonlabs/skeleton/optional/presets";
+@import "@skeletonlabs/skeleton/themes/modern";
 
 @plugin '@tailwindcss/forms';
 

@@ -78,7 +78,7 @@
       }}
     ></Connection>
     {#if errorMessage !== ""}
-      <aside class="alert variant-filled-error min-w-[60%] ml-auto mr-auto">
+      <aside class="alert preset-filled-error-500 min-w-[60%] ml-auto mr-auto">
         <!-- Message -->
         <div class="alert-message">
           <h3 class="h3">Connection error</h3>

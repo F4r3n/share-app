@@ -345,7 +345,7 @@
                                     {message.nick_name}
                                 </div>
                                 <div
-                                    class="text-primary-300-400-token text-xs ml-10"
+                                    class="text-primary-300-400 text-xs ml-10"
                                 >
                                     {message.date.toLocaleTimeString()}
                                 </div>
