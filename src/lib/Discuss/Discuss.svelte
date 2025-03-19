@@ -332,7 +332,7 @@
     {:else}
         <div class="discuss-section flex-grow-1 min-w-0">
             <ActionBar {topic}></ActionBar>
-            <div class="flex-grow overflow-y-auto" bind:this={discussSection}>
+            <div class="grow overflow-y-auto" bind:this={discussSection}>
                 <div class="messages">
                     {#each getChat(channelNameSelected).listMessages as message, id}
                         <div class="message">
@@ -468,7 +468,7 @@
     }
 
     .discuss-section {
-        flex-grow: 1;
+        grow: 1;
         height: 100vh;
         position: relative;
         display: flex;

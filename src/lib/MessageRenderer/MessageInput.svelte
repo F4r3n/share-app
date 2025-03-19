@@ -247,7 +247,7 @@
 
     <div class="main-input">
         <input
-            class="input flex-grow"
+            class="input grow"
             type="text"
             bind:this={input}
             bind:value={messageToSend}

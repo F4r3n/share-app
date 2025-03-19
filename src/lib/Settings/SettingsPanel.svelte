@@ -102,7 +102,7 @@
             {#if Object.hasOwn(option, "type") && option.type == "string"}
               <div class="md:w-2/3">
                 <input
-                  class="input appearance-none border-2 rounded w-full py-2 px-4 leading-tight focus:outline-none"
+                  class="input appearance-none border-2 rounded-sm w-full py-2 px-4 leading-tight focus:outline-hidden"
                   id={`inline-${option.id}`}
                   type="text"
                   bind:value={setting_clone[section.id][option.id]}
@@ -111,7 +111,7 @@
             {:else if Object.hasOwn(option, "type") && option.type == "array"}
               <select
                 id={`inline-${option.id}`}
-                class="select appearance-none border-2 rounded w-full py-2 px-4 leading-tight focus:outline-none"
+                class="select appearance-none border-2 rounded-sm w-full py-2 px-4 leading-tight focus:outline-hidden"
                 bind:value={setting_clone[section.id][option.id]}
               >
                 {#each option.values as v}

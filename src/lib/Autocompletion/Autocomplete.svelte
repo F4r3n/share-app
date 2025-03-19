@@ -119,7 +119,7 @@
                         itemID = id;
                         fetchHelp(id);
                     }}
-                    class="hover:bg-primary-300 pl-1 rounded content-between"
+                    class="hover:bg-primary-300 pl-1 rounded-sm content-between"
                     class:hoverItem={id == itemID}
                 >
                     <button
