@@ -1,13 +1,12 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
-import { purgeCss } from 'vite-plugin-tailwind-purgecss';
 const host = process.env.TAURI_DEV_HOST;
 
 export default defineConfig({
   define: {
     __IS_MOBILE__: !!/android|ios/.exec(process.env.TAURI_ENV_PLATFORM),
   },
-	plugins: [sveltekit(), purgeCss()],
+	plugins: [sveltekit()],
 	 // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
   // 1. prevent vite from obscuring rust errors
