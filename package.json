@@ -13,15 +13,13 @@
     "lint": "eslint ."
   },
   "devDependencies": {
-    "@skeletonlabs/skeleton": "^3.0.0-next.10",
-    "@skeletonlabs/skeleton-svelte": "^1.0.0-next.19",
-    "@skeletonlabs/tw-plugin": "0.4.1",
+    "@skeletonlabs/skeleton": "3.1.0",
+    "@skeletonlabs/skeleton-svelte": "1.0.0",
     "@sveltejs/adapter-auto": "4.0.0",
     "@sveltejs/adapter-static": "3.0.8",
     "@sveltejs/kit": "2.20.1",
     "@sveltejs/vite-plugin-svelte": "5.0.3",
     "@tailwindcss/forms": "0.5.10",
-    "@tailwindcss/postcss": "^4.0.14",
     "@tailwindcss/typography": "0.5.16",
     "@tauri-apps/cli": "2.2.7",
     "@types/node": "^22",
@@ -29,7 +27,6 @@
     "@typescript-eslint/parser": "8.24",
     "eslint": "9.22.0",
     "eslint-plugin-svelte": "3.3.2",
-    "postcss": "^8.5",
     "svelte": "5.23.2",
     "svelte-check": "4.1.5",
     "svelte-loading-spinners": "0.3.6",
@@ -37,10 +34,10 @@
     "tailwindcss": "^4.0.14",
     "tslib": "2.8.1",
     "typescript": "5.7.3",
-    "vite": "6.1",
-    "vite-plugin-tailwind-purgecss": "0.3.5"
+    "vite": "6.1"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.0.14",
     "@tauri-apps/api": "2.2.0",
     "@tauri-apps/plugin-shell": "2.2.0",
     "@tauri-apps/plugin-updater": "2.5.0"
