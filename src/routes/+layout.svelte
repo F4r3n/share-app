@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { theme_name, theme_mode } from "$lib/theme.svelte";
-	import "../app.postcss";
 
 	theme_name.subscribe(setBodyThemeAttribute);
 	function setBodyThemeAttribute(value): void {
-		document.body.setAttribute("data-theme", value);
+		document.documentElement.setAttribute("data-theme", value);
+		document.documentElement.setAttribute('data-mode', value);
 	}
 
 	theme_mode.subscribe(setModeCurrent);

@@ -7,7 +7,7 @@ export default defineConfig({
   define: {
     __IS_MOBILE__: !!/android|ios/.exec(process.env.TAURI_ENV_PLATFORM),
   },
-	plugins: [sveltekit(), tailwindcss()],
+	plugins: [tailwindcss(), sveltekit()],
 	 // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
   // 1. prevent vite from obscuring rust errors

@@ -2,11 +2,11 @@
 @import "@skeletonlabs/skeleton";
 @import "@skeletonlabs/skeleton/optional/presets";
 @import "@skeletonlabs/skeleton/themes/modern";
-
+@import '@skeletonlabs/skeleton/themes/cerberus';
+@source '../node_modules/@skeletonlabs/skeleton-svelte/dist';
 @plugin '@tailwindcss/forms';
 
 @custom-variant dark (&:is(.dark *));
-
 /*
   The default border color has changed to `currentColor` in Tailwind CSS v4,
   so we've added these compatibility styles to make sure everything still

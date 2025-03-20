@@ -147,11 +147,11 @@
     }
 
     nav {
-        @apply bg-tertiary-50;
+        background-color: var(--color-tertiary-50);
         border-radius: 9px;
     }
 
     .hoverItem {
-        @apply bg-primary-300;
+        background-color: var(--color-primary-300)
     }
 </style>

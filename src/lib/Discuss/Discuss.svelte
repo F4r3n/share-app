@@ -1,8 +1,7 @@
 <script lang="ts">
     import { listen } from "@tauri-apps/api/event";
     import { invoke } from "@tauri-apps/api/core";
-    import { onMount, onDestroy, tick } from "svelte";
-    import { Jumper } from "svelte-loading-spinners";
+    import { onMount, onDestroy } from "svelte";
     import MessageContent from "../MessageRenderer/MessageContent.svelte";
     import MessageInput from "../MessageRenderer/MessageInput.svelte";
     import User from "./User.svelte";
@@ -15,6 +14,7 @@
     import { SvelteMap } from "svelte/reactivity";
     import Settings from "../Settings/Settings.svelte";
     import { type Message, ChattManager } from "./MessagesManager.svelte";
+
     type UserType = {
         nick_name: string;
         user_mode: number;
@@ -29,7 +29,6 @@
         channel: string;
         onConnectionStatus: ({}) => void;
     } = $props();
-
 
     let topic: string = $state("");
     let channelNameSelected: string = $state(channel ?? "");
@@ -68,9 +67,9 @@
         _chatts
             .get(inChannel)
             ?.pushMessage(inNewMessage, inChannel == channelNameSelected);
-            setTimeout(()=> {
-                scrollBehaviourManager.updateScroll(discussSection);
-            }, 10);
+        setTimeout(() => {
+            scrollBehaviourManager.updateScroll(discussSection);
+        }, 10);
     }
 
     function getChat(inChannel: string): ChattManager {
@@ -185,7 +184,7 @@
                     pushMessage(channelOrigin, message);
                 } else if (data.command === "INTERNAL_ERROR") {
                     if (isLoaded) {
-                        console.log(data);
+                        console.error(data);
                         /*invoke("disconnect", {
                             message: data.content,
                             shallSendMessage: false,
@@ -321,14 +320,13 @@
     );
 
     let isSettingsOpened = $state(false);
+
 </script>
 
 <svelte:window on:resize={onResize} />
 <main class="flex flex-row" bind:clientWidth={screen_width}>
     {#if !isLoaded}
-        <div class="loading" class:loading-hide={isLoaded}>
-            <Jumper size="60" color="#845EC2" unit="px" duration="1s"></Jumper>
-        </div>
+        <div class="loading" class:loading-hide={isLoaded}></div>
     {:else}
         <div class="discuss-section flex-grow-1 min-w-0">
             <ActionBar {topic}></ActionBar>
@@ -344,9 +342,7 @@
                                 >
                                     {message.nick_name}
                                 </div>
-                                <div
-                                    class="text-primary-300-400 text-xs ml-10"
-                                >
+                                <div class="text-primary-300-400 text-xs ml-10">
                                     {message.date.toLocaleTimeString()}
                                 </div>
                             </div>
@@ -385,9 +381,8 @@
             class:panel-open-mobile-transition={panelOpeningPercentageToDisplay !=
                 panelOpeningPercentage}
             class:panel-opening-mobile={open}
-            class={panel_mode == Width_Mode.PHONE
-                ? "panel-open-mobile"
-                : "list-users-desktop"}
+            class:panel-open-mobile={panel_mode == Width_Mode.PHONE}
+            class="list-users-desktop preset-filled-secondary-200-800"
             style="--opening_width:{panelOpeningPercentageToDisplay *
                 (maxOpeningUserDistance / 100)}%;"
         >
@@ -430,7 +425,8 @@
 
 <style>
     .list-users-desktop {
-        @apply flex flex-col preset-filled-secondary-200-800 p-1 justify-between;
+        @apply flex flex-col justify-between;
+        padding: calc(var(--spacing) * 1);
     }
 
     .panel-open-mobile {
@@ -442,13 +438,14 @@
         right: 0;
         height: 100%;
         width: var(--opening_width);
-        @apply preset-filled-secondary-300-700 justify-between;
+        justify-content: space-between;
+        padding: 0;
     }
 
     .panel-opening-mobile {
         -webkit-box-shadow: 5px 5px 15px 5px rgba(0, 0, 0, 0.48);
         box-shadow: 5px 5px 15px 5px rgba(0, 0, 0, 0.48);
-        @apply p-1;
+        padding: calc(var(--spacing));
     }
 
     .panel-open-mobile-transition {
@@ -500,38 +497,36 @@
     .message {
         margin-top: var(--space);
 
-        @apply preset-filled-secondary-50-950;
-
-        @apply ml-2 mr-2 mt-1;
-        @apply rounded-xl;
-        @apply p-1;
+        background-color: var(--color-secondary-50-950);
+        color: var(--color-secondary-contrast-50-950);
+        margin-left: calc(var(--spacing) * 2);
+        margin-right: calc(var(--spacing) * 2);
+        margin-top: calc(var(--spacing) * 1);
+        border-radius: var(--radius-xl);
+        padding: calc(var(--spacing) * 1);
     }
 
     .message-content-system {
-        color: theme("colors.primary.400");
+        color: var(--color-primary-400);
     }
 
     .message-content-highlight {
-        background-color: theme("accentColor.primary.700");
-        color: theme("accentColor.primary.300");
+        background-color: var(--color-tertiary-700-300);
+        color: var(--color-tertiary-contrast-700-300);
     }
 
     .username {
         font-weight: bold;
-        @apply text-tertiary-500;
+        color: var(--color-tertiary-500);
     }
 
     .username-me {
-        @apply text-primary-500;
+        color: var(--color-primary-500);
     }
 
     .title {
         display: flex;
         flex-direction: row;
         align-items: baseline;
-    }
-
-    main {
-        @apply bg-gradient-to-b;
     }
 </style>
