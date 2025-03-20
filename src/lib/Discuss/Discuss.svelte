@@ -225,7 +225,6 @@
                 scrollBehaviourManager.followEnd =
                     scrollBehaviourManager.isAtTheEnd();
             }
-            console.log(scrollBehaviourManager.followEnd);
         });
         panelIsOpen.set(currentModeSize == Width_Mode.DESKTOP);
     });

@@ -4,16 +4,12 @@
 	theme_name.subscribe(setBodyThemeAttribute);
 	function setBodyThemeAttribute(value): void {
 		document.documentElement.setAttribute("data-theme", value);
-		document.documentElement.setAttribute('data-mode', value);
 	}
 
 	theme_mode.subscribe(setModeCurrent);
 	export function setModeCurrent(value: string) {
-		const elemHtmlClasses = document.documentElement.classList;
-		const classDark = `dark`;
-		value === "light"
-			? elemHtmlClasses.remove(classDark)
-			: elemHtmlClasses.add(classDark);
+		document.documentElement.setAttribute("data-mode", value);
+
 	}
 </script>
 

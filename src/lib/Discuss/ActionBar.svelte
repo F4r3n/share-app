@@ -14,7 +14,7 @@
         class={showTopic ? "topic-show" : "topic-hide"}
         onclick={() => {
             showTopic = !showTopic;
-            console.log(showTopic)
+            console.log(showTopic);
         }}
     >
         {topic}
