@@ -39,7 +39,8 @@
     }
 
     .topic-hide {
-        @apply truncate block max-h-5;
+        max-height: calc(var(--spacing) * 5);
+        @apply truncate block;
     }
 
     .topic-show {

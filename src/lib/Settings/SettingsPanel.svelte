@@ -102,7 +102,7 @@
             {#if Object.hasOwn(option, "type") && option.type == "string"}
               <div class="md:w-2/3">
                 <input
-                  class="input appearance-none border-2 rounded w-full py-2 px-4 leading-tight focus:outline-none"
+                  class="input appearance-none border-2 rounded-sm w-full py-2 px-4 leading-tight focus:outline-hidden"
                   id={`inline-${option.id}`}
                   type="text"
                   bind:value={setting_clone[section.id][option.id]}
@@ -111,7 +111,7 @@
             {:else if Object.hasOwn(option, "type") && option.type == "array"}
               <select
                 id={`inline-${option.id}`}
-                class="select appearance-none border-2 rounded w-full py-2 px-4 leading-tight focus:outline-none"
+                class="select appearance-none border-2 rounded-sm w-full py-2 px-4 leading-tight focus:outline-hidden"
                 bind:value={setting_clone[section.id][option.id]}
               >
                 {#each option.values as v}
@@ -146,7 +146,8 @@
     font-family: inherit;
     border-radius: 3px;
     line-height: 10px;
-    @apply border rounded w-full;
+    border-radius: 0.25rem;
+    @apply border w-full;
   }
 
   .panel {
@@ -159,13 +160,13 @@
     max-height: 90%;
     max-width: 80%;
     min-width: 50%;
-    @apply bg-surface-50-950;
+    background-color: light-dark(var(--color-surface-50) /* oklch(98.5% 0 0deg) = #fafafa */, var(--color-surface-950) /* oklch(14.5% 0 0deg) = #0a0a0a */);
     @apply justify-center;
     -webkit-box-shadow: 5px 5px 15px 5px rgba(0, 0, 0, 0.48);
     box-shadow: 5px 5px 15px 5px rgba(0, 0, 0, 0.48);
     border-radius: 5px;
     border-width: 3px;
-    @apply text-primary-950-50;
-    @apply border-secondary-500;
+    color: light-dark(var(--color-primary-950) , var(--color-primary-50) );
+    border-color: var(--color-secondary-500);
   }
 </style>

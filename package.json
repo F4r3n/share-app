@@ -13,36 +13,34 @@
     "lint": "eslint ."
   },
   "devDependencies": {
-    "@skeletonlabs/skeleton": "^3.0.0-next.10",
-    "@skeletonlabs/skeleton-svelte": "^1.0.0-next.19",
-    "@skeletonlabs/tw-plugin": "0.4.1",
-    "@sveltejs/adapter-auto": "4.0.0",
+    "@skeletonlabs/skeleton": "^3.1.0",
+    "@skeletonlabs/skeleton-svelte": "^1.0.0",
+    "@sveltejs/adapter-auto": "5.0.0",
     "@sveltejs/adapter-static": "3.0.8",
-    "@sveltejs/kit": "2.17.1",
+    "@sveltejs/kit": "2.20.1",
     "@sveltejs/vite-plugin-svelte": "5.0.3",
     "@tailwindcss/forms": "0.5.10",
     "@tailwindcss/typography": "0.5.16",
-    "@tauri-apps/cli": "2.2.7",
-    "@typescript-eslint/eslint-plugin": "8.24",
-    "@typescript-eslint/parser": "8.24",
-    "@types/node":"^22",
-    "autoprefixer": "^10.4",
-    "eslint": "9.20",
-    "eslint-plugin-svelte": "2.46.1",
-    "postcss": "^8.5",
-    "svelte": "5.19",
-    "svelte-check": "4.1.4",
+    "@tauri-apps/cli": "2.3.1",
+    "@types/node": "^22",
+    "@typescript-eslint/eslint-plugin": "8.27.0",
+    "@typescript-eslint/parser": "8.27.0",
+    "eslint": "9.22.0",
+    "eslint-plugin-svelte": "3.3.3",
+    "svelte": "5.23.2",
+    "svelte-check": "4.1.5",
     "svelte-loading-spinners": "0.3.6",
     "svelte-preprocess": "6.0.3",
-    "tailwindcss": "^3.4.17",
+    "tailwindcss": "^4.0.14",
     "tslib": "2.8.1",
-    "typescript": "5.7.3",
-    "vite": "6.1",
-    "vite-plugin-tailwind-purgecss": "0.3.5"
+    "typescript": "5.8.2",
+    "vite": "6.2.2",
+    "@tailwindcss/vite": "^4.0.14"
+
   },
   "dependencies": {
-    "@tauri-apps/api": "2.2.0",
+    "@tauri-apps/api": "2.3.0",
     "@tauri-apps/plugin-shell": "2.2.0",
-    "@tauri-apps/plugin-updater": "2.5.0"
+    "@tauri-apps/plugin-updater": "2.6.1"
   }
 }

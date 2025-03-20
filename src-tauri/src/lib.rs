@@ -3,8 +3,8 @@
     windows_subsystem = "windows"
 )]
 mod communication;
-mod util;
 mod completion;
+mod util;
 
 use crate::communication::share_client;
 use base64::Engine;
@@ -39,12 +39,15 @@ pub struct IRCState(pub Mutex<share_client::IrcState>);
 
 #[tauri::command]
 fn read_messages(window: tauri::Window, irc: tauri::State<'_, IRCState>) -> Result<(), String> {
-    let mut state = irc.0.try_lock().unwrap();
-    if let Some(client) = &mut state.client {
-        client
-            .read(window)
-            .map_err(|e| anyhow::Error::msg(e).to_string())?
+    if let Some(state_guard) = irc.0.try_lock().as_mut()
+    {
+        if let Some(client) = &mut state_guard.client {
+            client
+                .read(window)
+                .map_err(|e| anyhow::Error::msg(e).to_string())?
+        }
     }
+
     Ok(())
 }
 
@@ -232,25 +235,26 @@ impl MetaData {
             image_only: false,
         };
         use scraper::Selector;
-        let selector = Selector::parse("head meta").unwrap();
-        let s = in_html.select(&selector);
-        for element in s {
-            if let Some(property) = element.attr("property") {
-                if let Some(content) = element.attr("content") {
-                    match property {
-                        "og:title" => {
-                            meta.title = String::from(content);
+        if let Ok(selector) = Selector::parse("head meta") {
+            let s = in_html.select(&selector);
+            for element in s {
+                if let Some(property) = element.attr("property") {
+                    if let Some(content) = element.attr("content") {
+                        match property {
+                            "og:title" => {
+                                meta.title = String::from(content);
+                            }
+                            "og:image" => {
+                                meta.image_url = String::from(content);
+                            }
+                            "og:description" => {
+                                meta.description = String::from(content);
+                            }
+                            "og:site" => {
+                                meta.site = String::from(content);
+                            }
+                            _ => {}
                         }
-                        "og:image" => {
-                            meta.image_url = String::from(content);
-                        }
-                        "og:description" => {
-                            meta.description = String::from(content);
-                        }
-                        "og:site" => {
-                            meta.site = String::from(content);
-                        }
-                        _ => {}
                     }
                 }
             }
@@ -292,35 +296,46 @@ async fn get_url_preview(endpoint: &str) -> Result<MetaData, String> {
 }
 
 #[tauri::command]
-async fn get_completion_list(endpoint: &str, token : &str, word: &str) -> Result<Vec<completion::types::CompletionResult>, String> {
-    completion::request::complete(endpoint, token, word).await.map_err(|err| err.to_string())
+async fn get_completion_list(
+    endpoint: &str,
+    token: &str,
+    word: &str,
+) -> Result<Vec<completion::types::CompletionResult>, String> {
+    completion::request::complete(endpoint, token, word)
+        .await
+        .map_err(|err| err.to_string())
 }
 
 #[tauri::command]
-async fn get_completion_help(endpoint: &str, token : &str, word: &str) -> Result<String, String> {
-    completion::request::help(endpoint, token, word).await.map_err(|err| err.to_string())
+async fn get_completion_help(endpoint: &str, token: &str, word: &str) -> Result<String, String> {
+    completion::request::help(endpoint, token, word)
+        .await
+        .map_err(|err| err.to_string())
 }
-
 
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 use tauri_plugin_updater::UpdaterExt;
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 async fn update(app: tauri::AppHandle) -> anyhow::Result<()> {
     if let Some(update) = app.updater()?.check().await? {
-      let mut downloaded = 0;
-  
-      // alternatively we could also call update.download() and update.install() separately
-      update.download_and_install(|chunk_length, _content_length| {
-        downloaded += chunk_length;
-      }, || {
-      }).await?;
-  
-      println!("update installed");
-      app.restart();
+        let mut downloaded = 0;
+
+        // alternatively we could also call update.download() and update.install() separately
+        update
+            .download_and_install(
+                |chunk_length, _content_length| {
+                    downloaded += chunk_length;
+                },
+                || {},
+            )
+            .await?;
+
+        println!("update installed");
+        app.restart();
     }
-  
+
     Ok(())
-  }
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -349,14 +364,15 @@ pub fn run() {
         .setup(|app| {
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
             {
-                app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
+                app.handle()
+                    .plugin(tauri_plugin_updater::Builder::new().build())?;
                 let handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
-                  let _ = update(handle).await;
+                    let _ = update(handle).await;
                 });
             }
             Ok(())
-          })
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

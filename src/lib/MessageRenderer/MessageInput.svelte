@@ -8,7 +8,6 @@
     import type { AutocompletionItem } from ".././Autocompletion/type";
     import Autocomplete from "../Autocompletion/Autocomplete.svelte";
 
-
     let { onSendMessage }: { onSendMessage: (arg0: string) => void } = $props();
 
     let messageHistory = new MessageHistory();
@@ -210,7 +209,7 @@
         {#each listImages as image}
             <div class="pasted-image">
                 <button
-                    class="top close"
+                    class="btn button top close p-4 preset-filled-primary-600-400"
                     onclick={() => {
                         messageToSend = messageToSend.replace(image.name, "");
                         listImages = listImages.filter((i) => {
@@ -247,7 +246,7 @@
 
     <div class="main-input">
         <input
-            class="input flex-grow"
+            class="input grow"
             type="text"
             bind:this={input}
             bind:value={messageToSend}
@@ -259,7 +258,7 @@
             }}
         />
         <button
-            class="btn ml-1"
+            class="btn button ml-1 p-4 preset-filled-primary-600-400"
             onclick={(event) => {
                 onSendMessage($state.snapshot(messageToSend));
                 messageToSend = "";
@@ -271,11 +270,7 @@
 </main>
 
 <style>
-    button {
-        @apply btn;
-        @apply preset-filled-primary-600-400;
-        @apply px-4;
-    }
+
     .pasted-image {
         width: 150px;
         max-height: 150px;
