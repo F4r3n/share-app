@@ -22,11 +22,10 @@
                 checkLinks.push(token.value.href);
             }
         }
-        checkLinks = checkLinks;
     });
 
     $effect.pre(() => {
-        console.log("update")
+        console.log("update");
         tick().then(() => {
             onMessageFormatted();
         });
