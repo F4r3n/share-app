@@ -2,9 +2,9 @@ name: "test-build"
 on: [pull_request, push]
 
 jobs:
-  build:
-    uses: ./.github/workflows/build.yml
-    secrets: inherit
+  build-ubuntu:
+    uses: ./.github/workflows/build_os.yml
     with:
       releaseDraft: false
+      os: "ubuntu-latest"
 

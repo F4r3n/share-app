@@ -6,25 +6,17 @@ on:
           required: false
           default: true
           description: release draft
+        os:
+            type: string
+            required: true
       outputs:
         release_id:
           description: "The first output string"
           value: ${{ jobs.test-tauri.outputs.release_id }}
 
-
 jobs:
-  build-android:
-    uses: ./.github/workflows/android.yml
-    secrets: inherit
-  test-tauri:
-    outputs:
-      release_id: ${{steps.tauri-action.outputs.releaseId}}
-    strategy:
-      fail-fast: false
-      matrix:
-        object: [{"os":"macos-latest"}, {"os":"ubuntu-latest"}, {"os":"windows-latest"}]
-
-    runs-on: ${{ matrix.object.os }}
+  build-tauri:
+    runs-on: ${{inputs.os}}
     environment: updater
     steps:
     - uses: actions/checkout@v4
@@ -37,9 +29,9 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
       with:
         # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
-        targets: ${{ matrix.object.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+        targets: ${{ runner.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
     - name: install dependencies (ubuntu only)
-      if: matrix.object.os == 'ubuntu-latest'
+      if: runner.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
         sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
@@ -61,3 +53,4 @@ jobs:
         releaseDraft: ${{inputs.releaseDraft}}
         prerelease: false
         args: "--features=clipboard"
+
