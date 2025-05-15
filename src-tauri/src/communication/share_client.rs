@@ -240,7 +240,6 @@ pub async fn irc_login(
         ping_time: Some(30),
         ping_timeout: Some(300),
         use_tls: Some(port_number == 6697),
-        dangerously_accept_invalid_certs: Some(true),
         ..Default::default()
     };
 

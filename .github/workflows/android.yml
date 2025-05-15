@@ -3,7 +3,7 @@ on:
 
 jobs:
   build-tauri:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     environment: updater
     steps:
     - uses: actions/checkout@v4

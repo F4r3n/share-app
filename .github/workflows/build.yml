@@ -22,11 +22,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        object: [{"os":"macos-latest"}, {"os":"ubuntu-latest"}, {"os":"windows-latest"}]
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            build: true
+          - os: macos-latest
+            build: ${{ inputs.releaseDraft == 'true' }}
+          - os: windows-latest
+            build: ${{ inputs.releaseDraft == 'true' }}
 
-    runs-on: ${{ matrix.object.os }}
+    runs-on: ${{ matrix.os }}
     environment: updater
     steps:
+    - name: Skip if test is false
+      if: ${{ matrix.build != 'true' }}
+      run: echo "Skipping this matrix entry" && exit 0
     - uses: actions/checkout@v4
     - name: setup node
       uses: actions/setup-node@v4
@@ -37,9 +47,9 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
       with:
         # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
-        targets: ${{ matrix.object.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+        targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
     - name: install dependencies (ubuntu only)
-      if: matrix.object.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
         sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
