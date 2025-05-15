@@ -42,7 +42,7 @@ jobs:
       if: matrix.object.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
+        sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev openssl openssl-dev
 
     - name: install app dependencies and build it
       run: npm i && npm run build

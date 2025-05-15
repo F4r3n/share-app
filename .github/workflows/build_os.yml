@@ -31,10 +31,10 @@ jobs:
         # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
         targets: ${{ runner.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
     - name: install dependencies (ubuntu only)
-      if: runner.os == 'ubuntu-latest'
+      if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
+        sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev openssl openssl-dev
 
     - name: install app dependencies and build it
       run: npm i && npm run build
