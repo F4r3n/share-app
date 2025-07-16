@@ -26,7 +26,7 @@
     "@typescript-eslint/eslint-plugin": "8.32.1",
     "@typescript-eslint/parser": "8.32.1",
     "eslint": "9.26.0",
-    "eslint-plugin-svelte": "3.6.0",
+    "eslint-plugin-svelte": "3.11.0",
     "svelte": "5.30.1",
     "svelte-check": "4.2.0",
     "svelte-loading-spinners": "0.3.6",
